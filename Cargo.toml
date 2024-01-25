@@ -1,0 +1,10 @@
+[workspace]
+
+members = ["dynatos", "dynatos-reactive"]
+resolver = "2"
+
+[workspace.dependencies]
+
+# Workspace members
+dynatos = { path = "dynatos" }
+dynatos-reactive = { path = "dynatos-reactive" }
