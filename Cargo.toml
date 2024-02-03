@@ -8,3 +8,5 @@ resolver = "2"
 # Workspace members
 dynatos = { path = "dynatos" }
 dynatos-reactive = { path = "dynatos-reactive" }
+
+duplicate = "1.0.0"
