@@ -7,4 +7,6 @@ edition = "2021"
 
 anyhow = { workspace = true }
 extend = { workspace = true }
+js-sys = { workspace = true }
 wasm-bindgen = { workspace = true }
+web-sys = { workspace = true }
