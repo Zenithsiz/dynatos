@@ -1,6 +1,6 @@
 [workspace]
 
-members = ["dynatos", "dynatos-reactive"]
+members = ["dynatos", "dynatos-reactive", "dynatos-util"]
 resolver = "2"
 
 [workspace.dependencies]
@@ -8,5 +8,9 @@ resolver = "2"
 # Workspace members
 dynatos = { path = "dynatos" }
 dynatos-reactive = { path = "dynatos-reactive" }
+dynatos-util = { path = "dynatos-util" }
 
+anyhow = "1.0.79"
 duplicate = "1.0.0"
+extend = "1.2.0"
+wasm-bindgen = "0.2.90"
