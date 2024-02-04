@@ -146,7 +146,7 @@ where
 		//       Otherwise, the element will be keeping us alive, while we keep
 		//       the element alive, causing a leak.
 		let element = WeakRef::new(self.as_ref());
-		let text_content_effect = AttrEffect(Effect::new(move || {
+		let attr_effect = AttrEffect(Effect::new(move || {
 			// Try to get the element
 			let Some(element) = element.deref() else {
 				return;
@@ -170,8 +170,7 @@ where
 		}));
 
 		// Then set it
-		self.as_ref()
-			.define_property("__dynatos_text_content_effect", text_content_effect);
+		self.as_ref().define_property("__dynatos_attr_effect", attr_effect);
 	}
 
 	/// Adds a dynamic attribute to this element.
