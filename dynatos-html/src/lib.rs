@@ -4,11 +4,7 @@
 #![feature(decl_macro)]
 
 // Modules
-mod event_listener;
 pub mod html;
-
-// Exports
-pub use event_listener::{ev, ElementEventListener, EventListener};
 
 // Imports
 use wasm_bindgen::JsValue;

@@ -6,9 +6,9 @@ use wasm_bindgen::{
 	JsCast,
 };
 
-/// Extension trait to define an event listener on an element with a closure
-#[extend::ext_sized(name = ElementEventListener)]
-pub impl web_sys::Element {
+/// Extension trait to define an event listener on an event target with a closure
+#[extend::ext_sized(name = EventTargetAddListener)]
+pub impl<T: AsRef<web_sys::EventTarget>> T {
 	fn add_event_listener<E, F>(&self, f: F)
 	where
 		E: EventListener,
@@ -22,7 +22,8 @@ pub impl web_sys::Element {
 
 		// Then add it
 		// TODO: Can this fail? On MDN, nothing seems to mention it can throw.
-		self.add_event_listener_with_callback(E::name(), &closure)
+		self.as_ref()
+			.add_event_listener_with_callback(E::name(), &closure)
 			.expect("Unable to add event listener");
 	}
 

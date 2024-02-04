@@ -3,8 +3,8 @@
 // Imports
 use {
 	crate::Location,
-	dynatos_html::{ev, html, ElementEventListener, ElementWithAttr},
-	dynatos_util::JsResultContext,
+	dynatos_html::{html, ElementWithAttr},
+	dynatos_util::{ev, EventTargetAddListener, JsResultContext},
 	web_sys::{Element, PointerEvent},
 };
 

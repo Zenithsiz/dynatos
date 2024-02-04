@@ -8,10 +8,10 @@ use {
 	anyhow::Context,
 	dynatos::ElementDynText,
 	dynatos_context::Handle,
-	dynatos_html::{ev, html, ElementEventListener, ElementWithChildren, ElementWithTextContent},
+	dynatos_html::{html, ElementWithChildren, ElementWithTextContent},
 	dynatos_reactive::{SignalGet, SignalSet, SignalUpdate, SignalWithDefault},
 	dynatos_router::{Location, QuerySignal},
-	dynatos_util::{JsResultContext, ObjectDefineProperty},
+	dynatos_util::{ev, EventTargetAddListener, JsResultContext, ObjectDefineProperty},
 	wasm_bindgen::prelude::wasm_bindgen,
 	web_sys::Element,
 };

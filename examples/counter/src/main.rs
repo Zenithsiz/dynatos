@@ -4,9 +4,9 @@
 use {
 	anyhow::Context,
 	dynatos::ElementDynText,
-	dynatos_html::{ev, html, ElementEventListener, ElementWithChildren, ElementWithTextContent},
+	dynatos_html::{html, ElementWithChildren, ElementWithTextContent},
 	dynatos_reactive::{Signal, SignalGet, SignalSet, SignalUpdate},
-	dynatos_util::JsResultContext,
+	dynatos_util::{ev, EventTargetAddListener, JsResultContext},
 	web_sys::Element,
 };
 
