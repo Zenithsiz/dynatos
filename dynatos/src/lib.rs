@@ -1,11 +1,68 @@
 //! Dynatos framework
 
+// TODO: Use a single object, `__dynatos` with all of the effects, instead of a
+//       property for each?
+
 // Imports
 use {
 	dynatos_reactive::Effect,
 	dynatos_util::ObjectDefineProperty,
+	std::cell::RefCell,
 	wasm_bindgen::{prelude::wasm_bindgen, JsCast},
 };
+
+/// Extension trait to add a reactive child to an element
+#[extend::ext(name = ElementDynChild)]
+pub impl web_sys::Element {
+	/// Adds a dynamic child to this element
+	fn dyn_child<F>(&self, f: F)
+	where
+		F: Fn() -> web_sys::Element + 'static,
+	{
+		/// Effect to attach to the element
+		#[wasm_bindgen]
+		struct ChildEffect(Effect);
+
+		// Create the value to attach
+		// Note: It's important that we only keep a `WeakRef` to the element.
+		//       Otherwise, the element will be keeping us alive, while we keep
+		//       the element alive, causing a leak.
+		let element = WeakRef::new(self);
+		let prev_child = RefCell::new(None::<web_sys::Element>);
+		let child_effect = ChildEffect(Effect::new(move || {
+			// Try to get the element
+			let Some(element) = element.deref() else {
+				return;
+			};
+			let element = element.dyn_into::<web_sys::Element>().expect("Should be Element");
+
+			// Remove the previous child, if it exists
+			if let Some(prev_child) = &*prev_child.borrow() {
+				element.remove_child(prev_child).expect("Reactive child was removed");
+			}
+
+			// And set the child
+			let child = f();
+			element.append_child(&child).expect("Unable to append reactive child");
+			*prev_child.borrow_mut() = Some(child);
+		}));
+
+		// Then set it
+
+		self.define_property("__dynatos_child_effect", child_effect);
+	}
+
+	/// Adds a dynamic child to this element.
+	///
+	/// Returns the element, for chaining
+	fn with_dyn_child<F, S>(self, f: F) -> Self
+	where
+		F: Fn() -> web_sys::Element + 'static,
+	{
+		self.dyn_child(f);
+		self
+	}
+}
 
 /// Extension trait to add a reactive element text to an element
 #[extend::ext(name = ElementDynText)]
@@ -40,8 +97,6 @@ pub impl web_sys::Element {
 		}));
 
 		// Then set it
-		// TODO: Use a single object, `__dynatos` with all of the effects, instead of a
-		//       property for each?
 		self.define_property("__dynatos_text_content_effect", text_content_effect);
 	}
 
