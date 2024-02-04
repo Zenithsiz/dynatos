@@ -1,7 +1,13 @@
 //! Location
 
 // Imports
-use {anyhow::Context, dynatos_reactive::Signal, dynatos_util::JsResultContext, url::Url, wasm_bindgen::JsValue};
+use {
+	anyhow::Context,
+	dynatos_reactive::{Signal, SignalUpdate, SignalWith},
+	dynatos_util::JsResultContext,
+	url::Url,
+	wasm_bindgen::JsValue,
+};
 
 /// Inner
 struct Inner {

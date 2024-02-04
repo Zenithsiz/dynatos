@@ -3,7 +3,7 @@
 // Imports
 use {
 	crate::Location,
-	dynatos_reactive::{Effect, Signal},
+	dynatos_reactive::{Effect, Signal, SignalSet, SignalUpdate, SignalWith},
 	std::{collections::HashMap, error::Error as StdError, rc::Rc, str::FromStr},
 };
 

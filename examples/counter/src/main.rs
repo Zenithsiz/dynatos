@@ -5,7 +5,7 @@ use {
 	anyhow::Context,
 	dynatos::ElementDynText,
 	dynatos_html::{ev, html, ElementEventListener, ElementWithChildren, ElementWithTextContent},
-	dynatos_reactive::Signal,
+	dynatos_reactive::{Signal, SignalGet, SignalSet, SignalUpdate},
 	dynatos_util::JsResultContext,
 	web_sys::Element,
 };
