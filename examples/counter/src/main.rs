@@ -3,7 +3,7 @@
 // Imports
 use {
 	dynatos::NodeDynText,
-	dynatos_html::{html, ElementWithChildren, ElementWithTextContent},
+	dynatos_html::{html, NodeWithChildren, NodeWithTextContent},
 	dynatos_reactive::{Signal, SignalGet, SignalSet, SignalUpdate},
 	dynatos_util::{ev, EventTargetAddListener, JsResultContext},
 	web_sys::Element,

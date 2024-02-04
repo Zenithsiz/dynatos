@@ -10,13 +10,16 @@ pub mod html;
 use wasm_bindgen::JsValue;
 
 /// Extension trait to set the text content in a builder-style.
-#[extend::ext_sized(name = ElementWithTextContent)]
-pub impl web_sys::Element {
-	fn with_text_content<T>(self, text: T) -> Self
+#[extend::ext_sized(name = NodeWithTextContent)]
+pub impl<T> T
+where
+	T: AsRef<web_sys::Node>,
+{
+	fn with_text_content<C>(self, text: C) -> Self
 	where
-		T: AsTextContent,
+		C: AsTextContent,
 	{
-		self.set_text_content(text.as_text_content());
+		self.as_ref().set_text_content(text.as_text_content());
 		self
 	}
 }
@@ -42,35 +45,41 @@ impl AsTextContent for Ty {
 	}
 }
 
-/// Extension trait to add children to an element
-#[extend::ext_sized(name = ElementWithChildren)]
-pub impl web_sys::Element {
+/// Extension trait to add children to an node
+#[extend::ext_sized(name = NodeWithChildren)]
+pub impl<T> T
+where
+	T: AsRef<web_sys::Node>,
+{
 	fn with_children<C>(self, children: C) -> Self
 	where
 		C: Children,
 	{
 		self.try_with_children(children)
-			.unwrap_or_else(|err| panic!("Unable to add element children: {err:?}"))
+			.unwrap_or_else(|err| panic!("Unable to add node children: {err:?}"))
 	}
 
 	fn try_with_children<C>(self, children: C) -> Result<Self, JsValue>
 	where
 		C: Children,
 	{
-		children.append_all(&self).map(|()| self)
+		children.append_all(self.as_ref()).map(|()| self)
 	}
 }
 
 /// Types that may be used for [`ElementWithTextContent`]
 pub trait Children {
 	/// Appends all children in this type
-	fn append_all(self, element: &web_sys::Element) -> Result<(), JsValue>;
+	fn append_all(self, node: &web_sys::Node) -> Result<(), JsValue>;
 }
 
-impl<const N: usize> Children for [web_sys::Element; N] {
-	fn append_all(self, element: &web_sys::Element) -> Result<(), JsValue> {
+impl<C, const N: usize> Children for [C; N]
+where
+	C: AsRef<web_sys::Node>,
+{
+	fn append_all(self, node: &web_sys::Node) -> Result<(), JsValue> {
 		for child in self {
-			element.append_child(&child)?;
+			node.append_child(child.as_ref())?;
 		}
 
 		Ok(())
@@ -79,7 +88,10 @@ impl<const N: usize> Children for [web_sys::Element; N] {
 
 /// Extension trait to add an attribute in a builder-style.
 #[extend::ext_sized(name = ElementWithAttr)]
-pub impl web_sys::Element {
+pub impl<T> T
+where
+	T: AsRef<web_sys::Element>,
+{
 	fn with_attr<A, V>(self, attr: A, value: V) -> Self
 	where
 		A: AsRef<str>,
@@ -96,6 +108,8 @@ pub impl web_sys::Element {
 		A: AsRef<str>,
 		V: AsRef<str>,
 	{
-		self.set_attribute(attr.as_ref(), value.as_ref()).map(|()| self)
+		self.as_ref()
+			.set_attribute(attr.as_ref(), value.as_ref())
+			.map(|()| self)
 	}
 }

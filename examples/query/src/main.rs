@@ -7,7 +7,7 @@
 use {
 	dynatos::NodeDynText,
 	dynatos_context::Handle,
-	dynatos_html::{html, ElementWithChildren, ElementWithTextContent},
+	dynatos_html::{html, NodeWithChildren, NodeWithTextContent},
 	dynatos_reactive::{SignalGet, SignalSet, SignalUpdate, SignalWithDefault},
 	dynatos_router::{Location, QuerySignal},
 	dynatos_util::{ev, EventTargetAddListener, ObjectDefineProperty},
