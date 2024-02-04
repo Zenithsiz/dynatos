@@ -10,4 +10,10 @@ duplicate = { workspace = true }
 extend = { workspace = true }
 js-sys = { workspace = true }
 wasm-bindgen = { workspace = true }
-web-sys = { workspace = true }
+web-sys = { workspace = true, features = [
+	"Document",
+	"Element",
+	"HtmlElement",
+	"PointerEvent",
+	"Window",
+] }
