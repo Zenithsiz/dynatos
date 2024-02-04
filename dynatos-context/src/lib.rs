@@ -162,6 +162,25 @@ where
 	self::get::<T>().unwrap_or_else(|| panic!("Context for type {:?} was missing", any::type_name::<T>()))
 }
 
+/// Gets a cloned value of `T` on the current context.
+pub fn get_cloned<T>() -> Option<T>
+where
+	T: 'static,
+	T: Clone,
+{
+	self::with::<T, _, _>(|value| value.cloned())
+}
+
+/// Expects a cloned value of `T` on the current context.
+#[track_caller]
+pub fn expect_cloned<T>() -> T
+where
+	T: 'static,
+	T: Clone,
+{
+	self::get_cloned::<T>().unwrap_or_else(|| panic!("Context for type {:?} was missing", any::type_name::<T>()))
+}
+
 /// Uses a value of `T` on the current context.
 pub fn with<T, F, O>(f: F) -> O
 where
