@@ -28,7 +28,15 @@ impl Location {
 
 	/// Gets the location as a url
 	pub fn get(&self) -> Url {
-		self.0.with(|inner| inner.location.clone())
+		self.with(|location| location.clone())
+	}
+
+	/// Uses the location as a url
+	pub fn with<F, O>(&self, f: F) -> O
+	where
+		F: FnOnce(&Url) -> O,
+	{
+		self.0.with(|inner| f(&inner.location))
 	}
 
 	/// Sets the location.
@@ -54,6 +62,26 @@ impl Location {
 		});
 
 		Ok(())
+	}
+
+	/// Updates the location
+	pub fn update<F, O>(&self, f: F) -> Result<O, anyhow::Error>
+	where
+		F: FnOnce(&mut Url) -> O,
+	{
+		self.0.update(|inner| {
+			let output = f(&mut inner.location);
+
+			let window = web_sys::window().context("Unable to get window")?;
+			let history = window.history().context("Unable to get history")?;
+
+			// Push the new location into history
+			history
+				.push_state_with_url(&JsValue::UNDEFINED, "", Some(inner.location.as_ref()))
+				.expect("Unable to push history");
+
+			Ok(output)
+		})
 	}
 
 	/// Parses the location as url
