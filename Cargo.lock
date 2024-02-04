@@ -33,6 +33,14 @@ dependencies = [
 [[package]]
 name = "dynatos"
 version = "0.1.0"
+dependencies = [
+ "dynatos-reactive",
+ "dynatos-util",
+ "extend",
+ "js-sys",
+ "wasm-bindgen",
+ "web-sys",
+]
 
 [[package]]
 name = "dynatos-reactive"
