@@ -22,7 +22,7 @@ where
 		.with_event_listener::<ev::Click, _>(move |ev: PointerEvent| {
 			ev.prevent_default();
 			dynatos_context::with_expect::<Location, _, _>(|location| {
-				let new_location = new_location.as_ref().to_owned();
+				let new_location = new_location.as_ref();
 				location.set(new_location);
 			});
 		});

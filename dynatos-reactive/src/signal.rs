@@ -81,18 +81,14 @@ impl<T> SignalWith for Signal<T> {
 	}
 }
 
-impl<T> SignalSet for Signal<T> {
-	type Value = T;
-
-	fn set(&self, new_value: Self::Value) {
+impl<T> SignalSet<T> for Signal<T> {
+	fn set(&self, new_value: T) {
 		self.update(|value| *value = new_value);
 	}
 }
 
-impl<T> SignalReplace for Signal<T> {
-	type Value = T;
-
-	fn replace(&self, new_value: Self::Value) -> Self::Value {
+impl<T> SignalReplace<T> for Signal<T> {
+	fn replace(&self, new_value: T) -> T {
 		self.update(|value| mem::replace(value, new_value))
 	}
 }

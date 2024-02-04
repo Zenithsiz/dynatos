@@ -84,24 +84,29 @@ impl<T> SignalWith for QuerySignal<T> {
 	}
 }
 
-impl<T> SignalSet for QuerySignal<T>
+impl<T> SignalSet<Option<T>> for QuerySignal<T>
 where
 	T: ToString,
 {
-	type Value = Option<T>;
-
-	fn set(&self, new_value: Self::Value) {
+	fn set(&self, new_value: Option<T>) {
 		self.update(|value| *value = new_value);
 	}
 }
 
-impl<T> SignalReplace for QuerySignal<T>
+impl<T> SignalSet<T> for QuerySignal<T>
 where
 	T: ToString,
 {
-	type Value = Option<T>;
+	fn set(&self, new_value: T) {
+		self.update(|value| *value = Some(new_value));
+	}
+}
 
-	fn replace(&self, new_value: Self::Value) -> Self::Value {
+impl<T> SignalReplace<Option<T>> for QuerySignal<T>
+where
+	T: ToString,
+{
+	fn replace(&self, new_value: Option<T>) -> Option<T> {
 		self.update(|value| mem::replace(value, new_value))
 	}
 }

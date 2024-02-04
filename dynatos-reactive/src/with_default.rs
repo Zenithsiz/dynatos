@@ -49,26 +49,40 @@ where
 	}
 }
 
-impl<S, T> SignalSet for WithDefault<S, T>
+impl<S, T> SignalSet<T> for WithDefault<S, T>
 where
-	S: SignalSet<Value = Option<T>>,
+	S: SignalSet<Option<T>>,
 {
-	type Value = T;
-
-	fn set(&self, new_value: Self::Value) {
+	fn set(&self, new_value: T) {
 		self.inner.set(Some(new_value))
 	}
 }
 
-impl<S, T> SignalReplace for WithDefault<S, T>
+impl<S, T> SignalSet<Option<T>> for WithDefault<S, T>
 where
-	S: SignalReplace<Value = Option<T>>,
+	S: SignalSet<Option<T>>,
+{
+	fn set(&self, new_value: Option<T>) {
+		self.inner.set(new_value)
+	}
+}
+
+impl<S, T> SignalReplace<T> for WithDefault<S, T>
+where
+	S: SignalReplace<Option<T>>,
 	T: Copy,
 {
-	type Value = T;
-
-	fn replace(&self, new_value: Self::Value) -> Self::Value {
+	fn replace(&self, new_value: T) -> T {
 		self.inner.replace(Some(new_value)).unwrap_or(self.default)
+	}
+}
+
+impl<S, T> SignalReplace<Option<T>> for WithDefault<S, T>
+where
+	S: SignalReplace<Option<T>>,
+{
+	fn replace(&self, new_value: Option<T>) -> Option<T> {
+		self.inner.replace(new_value)
 	}
 }
 

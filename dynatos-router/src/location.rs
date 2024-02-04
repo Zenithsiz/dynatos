@@ -60,21 +60,39 @@ impl SignalWith for Location {
 	}
 }
 
-impl SignalSet for Location {
-	// TODO: This feels like a weird part of the api, maybe we should use a custom type like `RedirectUrl` or something?
-	type Value = String;
-
-	fn set(&self, new_location: Self::Value) {
+impl SignalSet<&'_ str> for Location {
+	fn set(&self, new_location: &'_ str) {
 		let window = web_sys::window().expect("Unable to get window");
 		let history = window.history().expect("Unable to get history");
 
 		// Push the new location into history
 		history
-			.push_state_with_url(&JsValue::UNDEFINED, "", Some(new_location.as_ref()))
+			.push_state_with_url(&JsValue::UNDEFINED, "", Some(new_location))
 			.expect("Unable to push history");
 
 		// Then parse the location back
 		let new_location = self::parse_location_url();
+		self.0.update(|inner| inner.location = new_location);
+	}
+}
+
+impl SignalSet<Url> for Location {
+	fn set(&self, new_location: Url) {
+		let window = web_sys::window().expect("Unable to get window");
+		let history = window.history().expect("Unable to get history");
+
+		// Push the new location into history
+		history
+			.push_state_with_url(&JsValue::UNDEFINED, "", Some(new_location.as_str()))
+			.expect("Unable to push history");
+
+		// Then update the location
+		// Note: Although the browser might interpret `new_location` differently,
+		//       which would cause us to be out of sync from the browser, we always
+		//       parse the location into a `Url`, so even if the browser is slightly
+		//       different, the roundtrip through `Url::as_str` and `Url::parse` should
+		//       be the same.
+		// TODO: Verify this is the case.
 		self.0.update(|inner| inner.location = new_location);
 	}
 }
