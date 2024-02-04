@@ -5,7 +5,7 @@
 
 // Imports
 use {
-	dynatos::ElementDynChild,
+	dynatos::NodeDynChild,
 	dynatos_context::Handle,
 	dynatos_html::{html, ElementWithChildren, ElementWithTextContent},
 	dynatos_reactive::SignalGet,
