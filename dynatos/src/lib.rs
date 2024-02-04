@@ -20,7 +20,7 @@ where
 	/// Adds a dynamic child to this node
 	fn dyn_child<F, N>(&self, f: F)
 	where
-		F: Fn() -> N + 'static,
+		F: Fn() -> Option<N> + 'static,
 		N: AsRef<web_sys::Node> + 'static,
 	{
 		/// Effect to attach to the node
@@ -41,16 +41,17 @@ where
 			let node = node.dyn_into::<web_sys::Node>().expect("Should be Node");
 
 			// Remove the previous child, if it exists
-			if let Some(prev_child) = &*prev_child.borrow() {
+			if let Some(prev_child) = prev_child.borrow_mut().take() {
 				node.remove_child(prev_child.as_ref())
 					.expect("Reactive child was removed");
 			}
 
-			// And set the child
-			let child = f();
-			node.append_child(child.as_ref())
-				.expect("Unable to append reactive child");
-			*prev_child.borrow_mut() = Some(child);
+			// And set the child, if any
+			if let Some(child) = f() {
+				node.append_child(child.as_ref())
+					.expect("Unable to append reactive child");
+				*prev_child.borrow_mut() = Some(child)
+			}
 		}));
 
 		// Then set it
@@ -63,7 +64,7 @@ where
 	/// Returns the node, for chaining
 	fn with_dyn_child<F, N>(self, f: F) -> Self
 	where
-		F: Fn() -> N + 'static,
+		F: Fn() -> Option<N> + 'static,
 		N: AsRef<web_sys::Node> + 'static,
 	{
 		self.dyn_child(f);

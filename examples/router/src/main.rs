@@ -33,7 +33,7 @@ fn run() -> Result<(), anyhow::Error> {
 	let location = Location::new();
 	let location_handle = dynatos_context::provide(location);
 
-	body.dyn_child(self::render_route);
+	body.dyn_child(|| Some(self::render_route()));
 
 	#[wasm_bindgen]
 	struct LocationHandle(Handle<Location>);
