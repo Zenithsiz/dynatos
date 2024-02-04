@@ -5,7 +5,7 @@ use {
 	crate::Location,
 	dynatos_html::{html, ElementWithAttr},
 	dynatos_reactive::SignalSet,
-	dynatos_util::{ev, EventTargetAddListener, JsResultContext},
+	dynatos_util::{ev, EventTargetAddListener},
 	web_sys::{Element, PointerEvent},
 };
 
@@ -18,7 +18,6 @@ where
 {
 	let el = html::a()
 		.with_attr("href", new_location.as_ref())
-		.context("Unable to set attribute")?
 		.with_event_listener::<ev::Click, _>(move |ev: PointerEvent| {
 			ev.prevent_default();
 			dynatos_context::with_expect::<Location, _, _>(|location| {
