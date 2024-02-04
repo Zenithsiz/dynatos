@@ -70,11 +70,11 @@ extern "C" {
 	///
 	/// [MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WeakRef/WeakRef)
 	#[wasm_bindgen(constructor)]
-	fn new(target: &js_sys::Object) -> WeakRef;
+	pub fn new(target: &js_sys::Object) -> WeakRef;
 
 	/// Dereference method
 	///
 	/// [MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WeakRef/deref)
 	#[wasm_bindgen(method, js_name = deref)]
-	fn deref(this: &WeakRef) -> Option<js_sys::Object>;
+	pub fn deref(this: &WeakRef) -> Option<js_sys::Object>;
 }
