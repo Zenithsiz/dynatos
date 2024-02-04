@@ -94,3 +94,30 @@ impl AsTextContent for Ty {
 		body
 	}
 }
+
+/// Extension trait to add children to an element
+#[extend::ext_sized(name = ElementWithChildren)]
+pub impl web_sys::Element {
+	fn with_children<C>(self, children: C) -> Result<Self, JsValue>
+	where
+		C: Children,
+	{
+		children.append_all(&self).map(|()| self)
+	}
+}
+
+/// Types that may be used for [`ElementWithTextContent`]
+pub trait Children {
+	/// Appends all children in this type
+	fn append_all(self, element: &web_sys::Element) -> Result<(), JsValue>;
+}
+
+impl<const N: usize> Children for [web_sys::Element; N] {
+	fn append_all(self, element: &web_sys::Element) -> Result<(), JsValue> {
+		for child in self {
+			element.append_child(&child)?;
+		}
+
+		Ok(())
+	}
+}
