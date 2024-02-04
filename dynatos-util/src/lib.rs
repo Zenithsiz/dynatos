@@ -121,3 +121,15 @@ impl<const N: usize> Children for [web_sys::Element; N] {
 		Ok(())
 	}
 }
+
+/// Extension trait to add an attribute in a builder-style.
+#[extend::ext_sized(name = ElementWithAttr)]
+pub impl web_sys::Element {
+	fn with_attr<A, V>(self, attr: A, value: V) -> Result<Self, JsValue>
+	where
+		A: AsRef<str>,
+		V: AsRef<str>,
+	{
+		self.set_attribute(attr.as_ref(), value.as_ref()).map(|()| self)
+	}
+}
