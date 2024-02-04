@@ -3,14 +3,13 @@
 // Features
 #![feature(try_blocks)]
 
-use dynatos_html::{ev, ElementEventListener};
-
 // Imports
 use {
 	anyhow::Context,
 	dynatos::ElementDynText,
 	dynatos_context::Handle,
-	dynatos_html::{html, ElementWithChildren, ElementWithTextContent},
+	dynatos_html::{ev, html, ElementEventListener, ElementWithChildren, ElementWithTextContent},
+	dynatos_reactive::{SignalGet, SignalSet, SignalUpdate},
 	dynatos_router::{Location, QuerySignal},
 	dynatos_util::{JsResultContext, ObjectDefineProperty},
 	wasm_bindgen::prelude::wasm_bindgen,
@@ -74,7 +73,9 @@ fn page() -> Result<Element, anyhow::Error> {
 				.with_text_content("Add"),
 			html::br(),
 			html::button()
-				.with_event_listener::<ev::Click, _>(move |_ev| query.set(6))
+				.with_event_listener::<ev::Click, _>(move |_ev| {
+					query.set(Some(6));
+				})
 				.with_text_content("6"),
 		])
 		.context("Unable to add children")

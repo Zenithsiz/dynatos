@@ -3,8 +3,8 @@
 // Imports
 use {
 	crate::Location,
-	dynatos_reactive::{Effect, Signal, SignalSet, SignalUpdate, SignalWith},
-	std::{collections::HashMap, error::Error as StdError, rc::Rc, str::FromStr},
+	dynatos_reactive::{Effect, Signal, SignalGet, SignalSet, SignalUpdate, SignalWith},
+	std::{collections::HashMap, error::Error as StdError, mem, rc::Rc, str::FromStr},
 };
 
 /// Query signal
@@ -60,37 +60,50 @@ impl<T> QuerySignal<T> {
 			update_effect: update,
 		}
 	}
+}
 
-	/// Returns the query signal
-	pub fn get(&self) -> Option<T>
-	where
-		T: Copy,
-	{
-		self.with(|value| value.copied())
+impl<T> SignalGet for QuerySignal<T>
+where
+	T: Copy,
+{
+	type Value = Option<T>;
+
+	fn get(&self) -> Self::Value {
+		self.with(|value| *value)
 	}
+}
 
-	/// Uses the query signal
-	pub fn with<F, O>(&self, f: F) -> O
+impl<T> SignalWith for QuerySignal<T> {
+	type Value = Option<T>;
+
+	fn with<F, O>(&self, f: F) -> O
 	where
-		F: FnOnce(Option<&T>) -> O,
+		F: FnOnce(&Self::Value) -> O,
 	{
-		self.inner.with(|value| f(value.as_ref()))
+		self.inner.with(|value| f(value))
 	}
+}
 
-	/// Sets the query signal
-	pub fn set<V>(&self, new_value: V)
-	where
-		T: ToString,
-		V: Into<Option<T>>,
-	{
-		self.update(|value| *value = new_value.into())
+impl<T> SignalSet for QuerySignal<T>
+where
+	T: ToString,
+{
+	type Value = Option<T>;
+
+	fn set(&self, new_value: Self::Value) -> Self::Value {
+		self.update(|value| mem::replace(value, new_value))
 	}
+}
 
-	/// Updates the query signal
-	pub fn update<F, O>(&self, f: F) -> O
+impl<T> SignalUpdate for QuerySignal<T>
+where
+	T: ToString,
+{
+	type Value = Option<T>;
+
+	fn update<F, O>(&self, f: F) -> O
 	where
-		T: ToString,
-		F: FnOnce(&mut Option<T>) -> O,
+		F: FnOnce(&mut Self::Value) -> O,
 	{
 		// Update the value
 		let output = self.inner.update(f);
