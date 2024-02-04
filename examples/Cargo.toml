@@ -1,14 +1,16 @@
 [workspace]
 
-members = ["counter"]
+members = ["counter", "router"]
 resolver = "2"
 
 [workspace.dependencies]
 
 # Parent workspace members
 dynatos = { path = "../dynatos" }
+dynatos-context = { path = "../dynatos-context" }
 dynatos-logger = { path = "../dynatos-logger" }
 dynatos-reactive = { path = "../dynatos-reactive" }
+dynatos-router = { path = "../dynatos-router" }
 dynatos-util = { path = "../dynatos-util" }
 
 anyhow = "1.0.79"
@@ -17,5 +19,6 @@ duplicate = "1.0.0"
 extend = "1.2.0"
 js-sys = "0.3.67"
 tracing = "0.1.40"
+url = "2.5.0"
 wasm-bindgen = "0.2.90"
 web-sys = "0.3.67"
