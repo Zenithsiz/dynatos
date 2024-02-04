@@ -7,7 +7,7 @@
 pub mod html;
 
 // Imports
-use wasm_bindgen::JsValue;
+use {itertools::Itertools, wasm_bindgen::JsValue};
 
 /// Extension trait to set the text content in a builder-style.
 #[extend::ext_sized(name = NodeWithTextContent)]
@@ -150,5 +150,38 @@ where
 		self.as_ref()
 			.set_attribute(attr.as_ref(), value.as_ref())
 			.map(|()| self)
+	}
+}
+
+/// Extension trait to *append* a class in a builder-style.
+#[extend::ext_sized(name = ElementWithClass)]
+pub impl<T> T
+where
+	T: AsRef<web_sys::Element>,
+{
+	fn with_class<C>(self, class: C) -> Self
+	where
+		C: AsRef<str>,
+	{
+		self.with_classes([class])
+	}
+
+	fn with_classes<I, C>(self, classes: I) -> Self
+	where
+		I: IntoIterator<Item = C>,
+		C: AsRef<str>,
+	{
+		// Append all classes to the existing class name and set it.
+		// TODO: Not allocate the classes here.
+		let classes = classes.into_iter().collect::<Vec<_>>();
+		let class_name = self
+			.as_ref()
+			.class_name()
+			.split_whitespace()
+			.chain(classes.iter().map(C::as_ref))
+			.join(" ");
+
+		self.as_ref().set_class_name(&class_name);
+		self
 	}
 }

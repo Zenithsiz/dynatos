@@ -7,6 +7,8 @@ edition = "2021"
 
 duplicate = { workspace = true }
 extend = { workspace = true }
+itertools = { workspace = true }
 js-sys = { workspace = true }
+tracing = { workspace = true }
 wasm-bindgen = { workspace = true }
 web-sys = { workspace = true }

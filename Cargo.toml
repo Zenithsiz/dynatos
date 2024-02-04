@@ -25,6 +25,7 @@ dynatos-util = { path = "dynatos-util" }
 anyhow = "1.0.79"
 duplicate = "1.0.0"
 extend = "1.2.0"
+itertools = "0.12.1"
 js-sys = "0.3.67"
 tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
