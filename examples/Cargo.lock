@@ -108,6 +108,7 @@ name = "dynatos-reactive"
 version = "0.1.0"
 dependencies = [
  "duplicate",
+ "extend",
 ]
 
 [[package]]

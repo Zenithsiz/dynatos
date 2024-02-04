@@ -9,7 +9,7 @@ use {
 	dynatos::ElementDynText,
 	dynatos_context::Handle,
 	dynatos_html::{ev, html, ElementEventListener, ElementWithChildren, ElementWithTextContent},
-	dynatos_reactive::{SignalGet, SignalSet, SignalUpdate},
+	dynatos_reactive::{SignalGet, SignalSet, SignalUpdate, SignalWithDefault},
 	dynatos_router::{Location, QuerySignal},
 	dynatos_util::{JsResultContext, ObjectDefineProperty},
 	wasm_bindgen::prelude::wasm_bindgen,
@@ -45,7 +45,7 @@ fn run() -> Result<(), anyhow::Error> {
 }
 
 fn page() -> Result<Element, anyhow::Error> {
-	let query = QuerySignal::<i32>::new("a");
+	let query = QuerySignal::<i32>::new("a").with_default(20);
 
 	html::div()
 		.with_children([
@@ -64,17 +64,14 @@ fn page() -> Result<Element, anyhow::Error> {
 				.with_event_listener::<ev::Click, _>({
 					let query = query.clone();
 					move |_ev| {
-						query.update(|value| match value {
-							Some(value) => *value += 1,
-							None => *value = Some(0),
-						});
+						query.update(|value| *value += 1);
 					}
 				})
 				.with_text_content("Add"),
 			html::br(),
 			html::button()
 				.with_event_listener::<ev::Click, _>(move |_ev| {
-					query.set(Some(6));
+					query.set(6);
 				})
 				.with_text_content("6"),
 		])

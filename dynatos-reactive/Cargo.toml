@@ -6,3 +6,4 @@ edition = "2021"
 [dependencies]
 
 duplicate = { workspace = true }
+extend = { workspace = true }

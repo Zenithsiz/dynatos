@@ -3,11 +3,13 @@
 // Modules
 pub mod effect;
 pub mod signal;
+pub mod with_default;
 
 // Exports
 pub use self::{
 	effect::{Effect, WeakEffect},
 	signal::Signal,
+	with_default::{SignalWithDefault, WithDefault},
 };
 
 /// Signal get
