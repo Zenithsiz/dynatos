@@ -6,6 +6,7 @@
 // Imports
 use std::{
 	cell::RefCell,
+	fmt,
 	hash::Hash,
 	rc::{Rc, Weak},
 };
@@ -135,5 +136,11 @@ impl Eq for WeakEffect {}
 impl Hash for WeakEffect {
 	fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
 		self.inner.as_ptr().hash(state);
+	}
+}
+
+impl fmt::Debug for Effect {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		f.debug_struct("Effect").finish_non_exhaustive()
 	}
 }

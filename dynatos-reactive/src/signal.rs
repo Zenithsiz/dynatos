@@ -6,7 +6,7 @@
 // Imports
 use {
 	crate::{Effect, SignalGet, SignalReplace, SignalSet, SignalUpdate, SignalWith, WeakEffect},
-	std::{cell::RefCell, collections::HashSet, mem, rc::Rc},
+	std::{cell::RefCell, collections::HashSet, fmt, mem, rc::Rc},
 };
 
 /// Signal inner
@@ -130,6 +130,14 @@ impl<T> Clone for Signal<T> {
 		Self {
 			inner: Rc::clone(&self.inner),
 		}
+	}
+}
+
+impl<T: fmt::Debug> fmt::Debug for Signal<T> {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		f.debug_struct("Signal")
+			.field("value", &self.inner.borrow().value)
+			.finish()
 	}
 }
 
