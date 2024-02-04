@@ -1,12 +1,19 @@
 [workspace]
 
-members = ["dynatos", "dynatos-logger", "dynatos-reactive", "dynatos-util"]
+members = [
+	"dynatos",
+	"dynatos-context",
+	"dynatos-logger",
+	"dynatos-reactive",
+	"dynatos-util",
+]
 resolver = "2"
 
 [workspace.dependencies]
 
 # Workspace members
 dynatos = { path = "dynatos" }
+dynatos-context = { path = "dynatos-context" }
 dynatos-logger = { path = "dynatos-logger" }
 dynatos-reactive = { path = "dynatos-reactive" }
 dynatos-util = { path = "dynatos-util" }

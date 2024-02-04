@@ -52,6 +52,10 @@ dependencies = [
 ]
 
 [[package]]
+name = "dynatos-context"
+version = "0.1.0"
+
+[[package]]
 name = "dynatos-logger"
 version = "0.1.0"
 dependencies = [
