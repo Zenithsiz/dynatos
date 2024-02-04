@@ -280,6 +280,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "query"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "console_error_panic_hook",
+ "dynatos",
+ "dynatos-context",
+ "dynatos-html",
+ "dynatos-logger",
+ "dynatos-reactive",
+ "dynatos-router",
+ "dynatos-util",
+ "extend",
+ "tracing",
+ "url",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
 name = "quote"
 version = "1.0.35"
 source = "registry+https://github.com/rust-lang/crates.io-index"

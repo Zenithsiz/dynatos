@@ -1,6 +1,6 @@
 [workspace]
 
-members = ["counter", "router"]
+members = ["counter", "router", "query"]
 resolver = "2"
 
 [workspace.dependencies]
