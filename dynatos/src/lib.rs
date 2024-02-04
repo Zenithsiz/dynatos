@@ -220,6 +220,27 @@ where
 		self.dyn_attr_value(key, f);
 		self
 	}
+
+	/// Adds a dynamic attribute to this element, without a value, given a predicate
+	fn dyn_attr_if<F, K>(&self, key: K, f: F)
+	where
+		F: Fn() -> bool + 'static,
+		K: AsRef<str> + Copy + 'static,
+	{
+		self.dyn_attr(move || (key, f().then_some("")));
+	}
+
+	/// Adds a dynamic attribute to this element, without a value, given a predicate
+	///
+	/// Returns the element, for chaining
+	fn with_dyn_attr_if<F, K>(self, key: K, f: F) -> Self
+	where
+		F: Fn() -> bool + 'static,
+		K: AsRef<str> + Copy + 'static,
+	{
+		self.dyn_attr_if(key, f);
+		self
+	}
 }
 
 #[wasm_bindgen]
