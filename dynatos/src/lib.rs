@@ -23,17 +23,13 @@ where
 		F: Fn() -> Option<N> + 'static,
 		N: AsRef<web_sys::Node> + 'static,
 	{
-		/// Effect to attach to the node
-		#[wasm_bindgen]
-		struct ChildEffect(Effect);
-
 		// Create the value to attach
 		// Note: It's important that we only keep a `WeakRef` to the node.
 		//       Otherwise, the node will be keeping us alive, while we keep
 		//       the node alive, causing a leak.
 		let node = WeakRef::new(self.as_ref());
 		let prev_child = RefCell::new(None::<N>);
-		let child_effect = ChildEffect(Effect::new(move || {
+		let child_effect = Effect::new(move || {
 			// Try to get the node
 			let Some(node) = node.deref() else {
 				return;
@@ -52,9 +48,14 @@ where
 					.expect("Unable to append reactive child");
 				*prev_child.borrow_mut() = Some(child)
 			}
-		}));
+		});
 
-		// Get a unique id for the property name
+		// If the future is inert, no point in setting up anything past this
+		if child_effect.is_inert() {
+			return;
+		}
+
+		// Otherwise get a unique id for the property name
 		// Note: Since a node may have multiple reactive children,
 		//       we can't use a single property name for this
 		// TODO: Technically, two different threads may set this and
@@ -66,8 +67,11 @@ where
 		PROP_IDX.set(prop_idx + 1);
 
 		// Then set it
+		#[wasm_bindgen]
+		struct ChildEffect(Effect);
+
 		let prop = format!("__dynatos_child_effect_{}", prop_idx);
-		self.as_ref().define_property(&prop, child_effect);
+		self.as_ref().define_property(&prop, ChildEffect(child_effect));
 	}
 
 	/// Adds a dynamic child to this node.
@@ -95,16 +99,12 @@ where
 		F: Fn() -> Option<S> + 'static,
 		S: AsRef<str>,
 	{
-		/// Effect to attach to the node
-		#[wasm_bindgen]
-		struct TextContentEffect(Effect);
-
 		// Create the value to attach
 		// Note: It's important that we only keep a `WeakRef` to the node.
 		//       Otherwise, the node will be keeping us alive, while we keep
 		//       the node alive, causing a leak.
 		let node = WeakRef::new(self.as_ref());
-		let text_content_effect = TextContentEffect(Effect::new(move || {
+		let text_content_effect = Effect::new(move || {
 			// Try to get the node
 			let Some(node) = node.deref() else {
 				return;
@@ -116,11 +116,19 @@ where
 				Some(s) => node.set_text_content(Some(s.as_ref())),
 				None => node.set_text_content(None),
 			}
-		}));
+		});
 
-		// Then set it
+		// If the future is inert, no point in setting up anything past this
+		if text_content_effect.is_inert() {
+			return;
+		}
+
+		// Otherwise set it
+		#[wasm_bindgen]
+		struct TextContentEffect(Effect);
+
 		self.as_ref()
-			.define_property("__dynatos_text_content_effect", text_content_effect);
+			.define_property("__dynatos_text_content_effect", TextContentEffect(text_content_effect));
 	}
 
 	/// Adds dynamic text to this node.
@@ -149,16 +157,12 @@ where
 		K: AsRef<str>,
 		V: AsRef<str>,
 	{
-		/// Effect to attach to the element
-		#[wasm_bindgen]
-		struct AttrEffect(Effect);
-
 		// Create the value to attach
 		// Note: It's important that we only keep a `WeakRef` to the element.
 		//       Otherwise, the element will be keeping us alive, while we keep
 		//       the element alive, causing a leak.
 		let element = WeakRef::new(self.as_ref());
-		let attr_effect = AttrEffect(Effect::new(move || {
+		let attr_effect = Effect::new(move || {
 			// Try to get the element
 			let Some(element) = element.deref() else {
 				return;
@@ -179,10 +183,19 @@ where
 					.remove_attribute(key)
 					.unwrap_or_else(|err| panic!("Unable to remove attribute {key:?}: {err:?}")),
 			}
-		}));
+		});
 
-		// Then set it
-		self.as_ref().define_property("__dynatos_attr_effect", attr_effect);
+		// If the future is inert, no point in setting up anything past this
+		if attr_effect.is_inert() {
+			return;
+		}
+
+		// Otherwise set it
+		#[wasm_bindgen]
+		struct AttrEffect(Effect);
+
+		self.as_ref()
+			.define_property("__dynatos_attr_effect", AttrEffect(attr_effect));
 	}
 
 	/// Adds a dynamic attribute to this element.

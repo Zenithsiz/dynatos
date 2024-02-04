@@ -63,6 +63,15 @@ impl Effect {
 		EFFECT_STACK.with_borrow(|effects| effects.last().cloned())
 	}
 
+	/// Returns if this effect is inert.
+	///
+	/// An inert effect is one that will never be updated.
+	/// In detail, an effect is inert, if no other [`Effect`]s
+	/// or [`WeakEffect`]s exist that point to it.
+	pub fn is_inert(&self) -> bool {
+		Rc::strong_count(&self.inner) == 1 && Rc::weak_count(&self.inner) == 0
+	}
+
 	/// Runs the effect
 	pub fn run(&self) {
 		// Push the effect, run the closure and pop it
