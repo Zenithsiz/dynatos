@@ -8,9 +8,9 @@ use {
 	anyhow::Context,
 	dynatos::ElementDynChild,
 	dynatos_context::Handle,
-	dynatos_html::html,
+	dynatos_html::{html, ElementWithChildren, ElementWithTextContent},
 	dynatos_router::Location,
-	dynatos_util::{ElementWithChildren, ElementWithTextContent, JsResultContext, ObjectDefineProperty},
+	dynatos_util::{JsResultContext, ObjectDefineProperty},
 	wasm_bindgen::prelude::wasm_bindgen,
 	web_sys::Element,
 };
