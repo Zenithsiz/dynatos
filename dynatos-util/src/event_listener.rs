@@ -49,7 +49,10 @@ pub trait EventListener {
 /// Events
 pub mod ev {
 	// Imports
-	use {super::EventListener, web_sys::PointerEvent};
+	use {
+		super::EventListener,
+		web_sys::{PointerEvent, PopStateEvent},
+	};
 
 	macro define_events(
 		$(
@@ -74,5 +77,8 @@ pub mod ev {
 	define_events! {
 		/// `click` Event
 		Click(PointerEvent) = "click";
+
+		/// `popstate` Event
+		PopState(PopStateEvent) = "popstate";
 	}
 }
