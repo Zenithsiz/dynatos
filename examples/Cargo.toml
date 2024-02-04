@@ -8,6 +8,7 @@ resolver = "2"
 # Parent workspace members
 dynatos = { path = "../dynatos" }
 dynatos-context = { path = "../dynatos-context" }
+dynatos-html = { path = "../dynatos-html" }
 dynatos-logger = { path = "../dynatos-logger" }
 dynatos-reactive = { path = "../dynatos-reactive" }
 dynatos-router = { path = "../dynatos-router" }

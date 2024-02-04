@@ -3,7 +3,7 @@
 // Imports
 use {
 	crate::Location,
-	anyhow::Context,
+	dynatos_html::html,
 	dynatos_util::{ev, ElementEventListener, ElementWithAttr, JsResultContext},
 	web_sys::{Element, PointerEvent},
 };
@@ -15,12 +15,7 @@ pub fn anchor<U>(new_location: U) -> Result<Element, anyhow::Error>
 where
 	U: AsRef<str> + 'static,
 {
-	let window = web_sys::window().context("Unable to get window")?;
-	let document = window.document().context("Unable to get document")?;
-
-	let el = document
-		.create_element("a")
-		.context("Unable to create a")?
+	let el = html::a()
 		.with_attr("href", new_location.as_ref())
 		.context("Unable to set attribute")?
 		.with_event_listener::<ev::Click, _>(move |ev: PointerEvent| {

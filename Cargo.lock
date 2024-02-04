@@ -56,6 +56,13 @@ name = "dynatos-context"
 version = "0.1.0"
 
 [[package]]
+name = "dynatos-html"
+version = "0.1.0"
+dependencies = [
+ "web-sys",
+]
+
+[[package]]
 name = "dynatos-logger"
 version = "0.1.0"
 dependencies = [
@@ -79,6 +86,7 @@ dependencies = [
  "anyhow",
  "duplicate",
  "dynatos-context",
+ "dynatos-html",
  "dynatos-reactive",
  "dynatos-util",
  "extend",

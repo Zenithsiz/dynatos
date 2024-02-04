@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 
 dynatos = { workspace = true }
+dynatos-html = { workspace = true }
 dynatos-logger = { workspace = true }
 dynatos-reactive = { workspace = true }
 dynatos-util = { workspace = true }

@@ -8,6 +8,7 @@ use {
 	anyhow::Context,
 	dynatos::ElementDynChild,
 	dynatos_context::Handle,
+	dynatos_html::html,
 	dynatos_router::Location,
 	dynatos_util::{ElementWithChildren, ElementWithTextContent, JsResultContext, ObjectDefineProperty},
 	wasm_bindgen::prelude::wasm_bindgen,
@@ -34,10 +35,7 @@ fn run() -> Result<(), anyhow::Error> {
 
 	body.dyn_child(move || match self::render_route() {
 		Ok(page) => page,
-		Err(err) => document
-			.create_element("p")
-			.expect("Unable to create element")
-			.with_text_content(format!("Error: {err:?}")),
+		Err(err) => html::p().with_text_content(format!("Error: {err:?}")),
 	});
 
 	#[wasm_bindgen]
@@ -60,20 +58,12 @@ fn render_route() -> Result<Element, anyhow::Error> {
 }
 
 fn page(name: &str) -> Result<Element, anyhow::Error> {
-	let window = web_sys::window().context("Unable to get window")?;
-	let document = window.document().context("Unable to get document")?;
-
-	document
-		.create_element("div")
-		.context("Unable to create div")?
+	html::div()
 		.with_children([
-			document
-				.create_element("p")
-				.context("Unable to create p")?
-				.with_text_content(format!("Page {name}")),
-			document.create_element("hr").context("Unable to create hr")?,
+			html::p().with_text_content(format!("Page {name}")),
+			html::hr(),
 			dynatos_router::anchor("/a")?.with_text_content("A"),
-			document.create_element("br").context("Unable to create br")?,
+			html::br(),
 			dynatos_router::anchor("/b")?.with_text_content("B"),
 		])
 		.context("Unable to add children")
