@@ -30,7 +30,7 @@ fn run() -> Result<(), anyhow::Error> {
 	Ok(())
 }
 
-pub fn counter(document: &Document) -> Result<Element, anyhow::Error> {
+fn counter(document: &Document) -> Result<Element, anyhow::Error> {
 	let value = Signal::new(0);
 	document
 		.create_element("div")
