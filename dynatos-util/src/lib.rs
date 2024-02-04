@@ -1,5 +1,14 @@
 //! Utilities for [`dynatos`]
 
+// Features
+#![feature(decl_macro)]
+
+// Modules
+mod event_listener;
+
+// Exports
+pub use event_listener::{ev, ElementEventListener, EventListener};
+
 // Imports
 use {
 	std::fmt,
