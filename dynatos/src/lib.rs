@@ -64,45 +64,49 @@ pub impl web_sys::Element {
 	}
 }
 
-/// Extension trait to add a reactive element text to an element
-#[extend::ext(name = ElementDynText)]
-pub impl web_sys::Element {
-	/// Adds dynamic text to this element
+/// Extension trait to add reactive text to a node
+#[extend::ext(name = NodeDynText)]
+pub impl<T> T
+where
+	T: AsRef<web_sys::Node>,
+{
+	/// Adds dynamic text to this node
 	fn dyn_text<F, S>(&self, f: F)
 	where
 		F: Fn() -> Option<S> + 'static,
 		S: AsRef<str>,
 	{
-		/// Effect to attach to the element
+		/// Effect to attach to the node
 		#[wasm_bindgen]
 		struct TextContentEffect(Effect);
 
 		// Create the value to attach
-		// Note: It's important that we only keep a `WeakRef` to the element.
-		//       Otherwise, the element will be keeping us alive, while we keep
-		//       the element alive, causing a leak.
-		let element = WeakRef::new(self);
+		// Note: It's important that we only keep a `WeakRef` to the node.
+		//       Otherwise, the node will be keeping us alive, while we keep
+		//       the node alive, causing a leak.
+		let node = WeakRef::new(self.as_ref());
 		let text_content_effect = TextContentEffect(Effect::new(move || {
-			// Try to get the element
-			let Some(element) = element.deref() else {
+			// Try to get the node
+			let Some(node) = node.deref() else {
 				return;
 			};
-			let element = element.dyn_into::<web_sys::Element>().expect("Should be Element");
+			let node = node.dyn_into::<web_sys::Node>().expect("Should be node");
 
 			// And set the text content
 			match f() {
-				Some(s) => element.set_text_content(Some(s.as_ref())),
-				None => element.set_text_content(None),
+				Some(s) => node.set_text_content(Some(s.as_ref())),
+				None => node.set_text_content(None),
 			}
 		}));
 
 		// Then set it
-		self.define_property("__dynatos_text_content_effect", text_content_effect);
+		self.as_ref()
+			.define_property("__dynatos_text_content_effect", text_content_effect);
 	}
 
-	/// Adds dynamic text to this element.
+	/// Adds dynamic text to this node.
 	///
-	/// Returns the element, for chaining
+	/// Returns the node, for chaining
 	fn with_dyn_text<F, S>(self, f: F) -> Self
 	where
 		F: Fn() -> Option<S> + 'static,

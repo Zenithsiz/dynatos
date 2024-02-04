@@ -7,8 +7,11 @@ use wasm_bindgen::{
 };
 
 /// Extension trait to define an event listener on an event target with a closure
-#[extend::ext_sized(name = EventTargetAddListener)]
-pub impl<T: AsRef<web_sys::EventTarget>> T {
+#[extend::ext(name = EventTargetAddListener)]
+pub impl<T> T
+where
+	T: AsRef<web_sys::EventTarget>,
+{
 	fn add_event_listener<E, F>(&self, f: F)
 	where
 		E: EventListener,
