@@ -197,6 +197,29 @@ where
 		self.dyn_attr(f);
 		self
 	}
+
+	/// Adds a dynamic attribute to this element, where only the value is dynamic.
+	fn dyn_attr_value<F, K, V>(&self, key: K, f: F)
+	where
+		F: Fn() -> Option<V> + 'static,
+		K: AsRef<str> + Copy + 'static,
+		V: AsRef<str>,
+	{
+		self.dyn_attr(move || (key, f()));
+	}
+
+	/// Adds a dynamic attribute to this element, where only the value is dynamic.
+	///
+	/// Returns the element, for chaining
+	fn with_dyn_attr_value<F, K, V>(self, key: K, f: F) -> Self
+	where
+		F: Fn() -> Option<V> + 'static,
+		K: AsRef<str> + Copy + 'static,
+		V: AsRef<str>,
+	{
+		self.dyn_attr_value(key, f);
+		self
+	}
 }
 
 #[wasm_bindgen]
