@@ -1,3 +1,4 @@
 {
-  "cSpell.words": ["Dynatos", "unsize"]
+  "cSpell.words": ["Dynatos", "unsize"],
+  "rust-analyzer.linkedProjects": ["Cargo.toml", "examples/Cargo.toml"]
 }

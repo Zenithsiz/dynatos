@@ -1,2 +1,5 @@
 # Cargo
-/target
+target/
+
+# Trunk
+dist/
