@@ -25,40 +25,38 @@ fn run() -> Result<(), anyhow::Error> {
 	let document = window.document().context("Unable to get document")?;
 	let body = document.body().context("Unable to get document body")?;
 
-	let counter = self::counter().context("Unable to build button")?;
+	let counter = self::counter();
 	body.append_child(&counter).context("Unable to append counter")?;
 
 	Ok(())
 }
 
-fn counter() -> Result<Element, anyhow::Error> {
+fn counter() -> Element {
 	let value = Signal::new(0);
-	html::div()
-		.with_children([
-			html::button()
-				.with_text_content("Clear")
-				.with_event_listener::<ev::Click, _>({
-					let value = value.clone();
-					move |_ev| {
-						value.set(0);
-					}
-				}),
-			html::button()
-				.with_text_content("+")
-				.with_event_listener::<ev::Click, _>({
-					let value = value.clone();
-					move |_ev| value.update(|value| *value += 1)
-				}),
-			html::button()
-				.with_text_content("-")
-				.with_event_listener::<ev::Click, _>({
-					let value = value.clone();
-					move |_ev| value.update(|value| *value -= 1)
-				}),
-			html::span().with_dyn_text({
+	html::div().with_children([
+		html::button()
+			.with_text_content("Clear")
+			.with_event_listener::<ev::Click, _>({
 				let value = value.clone();
-				move || Some(format!("Value: {}.", value.get()))
+				move |_ev| {
+					value.set(0);
+				}
 			}),
-		])
-		.context("Unable to add children")
+		html::button()
+			.with_text_content("+")
+			.with_event_listener::<ev::Click, _>({
+				let value = value.clone();
+				move |_ev| value.update(|value| *value += 1)
+			}),
+		html::button()
+			.with_text_content("-")
+			.with_event_listener::<ev::Click, _>({
+				let value = value.clone();
+				move |_ev| value.update(|value| *value -= 1)
+			}),
+		html::span().with_dyn_text({
+			let value = value.clone();
+			move || Some(format!("Value: {}.", value.get()))
+		}),
+	])
 }

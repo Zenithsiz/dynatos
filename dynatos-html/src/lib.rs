@@ -45,7 +45,15 @@ impl AsTextContent for Ty {
 /// Extension trait to add children to an element
 #[extend::ext_sized(name = ElementWithChildren)]
 pub impl web_sys::Element {
-	fn with_children<C>(self, children: C) -> Result<Self, JsValue>
+	fn with_children<C>(self, children: C) -> Self
+	where
+		C: Children,
+	{
+		self.try_with_children(children)
+			.unwrap_or_else(|err| panic!("Unable to add element children: {err:?}"))
+	}
+
+	fn try_with_children<C>(self, children: C) -> Result<Self, JsValue>
 	where
 		C: Children,
 	{

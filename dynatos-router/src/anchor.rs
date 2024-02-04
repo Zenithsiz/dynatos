@@ -12,11 +12,11 @@ use {
 /// Creates a reactive anchor element.
 ///
 /// Expects a context of type [`Location`](crate::Location).
-pub fn anchor<U>(new_location: U) -> Result<Element, anyhow::Error>
+pub fn anchor<U>(new_location: U) -> Element
 where
 	U: AsRef<str> + 'static,
 {
-	let el = html::a()
+	html::a()
 		.with_attr("href", new_location.as_ref())
 		.with_event_listener::<ev::Click, _>(move |ev: PointerEvent| {
 			ev.prevent_default();
@@ -24,7 +24,5 @@ where
 				let new_location = new_location.as_ref();
 				location.set(new_location);
 			});
-		});
-
-	Ok(el)
+		})
 }

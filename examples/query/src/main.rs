@@ -34,7 +34,7 @@ fn run() -> Result<(), anyhow::Error> {
 	let location = Location::new().context("Unable to create location")?;
 	let location_handle = dynatos_context::provide(location);
 
-	let child = self::page().context("Unable to create page")?;
+	let child = self::page();
 	body.append_child(&child).context("Unable to append child")?;
 
 	#[wasm_bindgen]
@@ -44,36 +44,34 @@ fn run() -> Result<(), anyhow::Error> {
 	Ok(())
 }
 
-fn page() -> Result<Element, anyhow::Error> {
+fn page() -> Element {
 	let query = QuerySignal::<i32>::new("a").with_default(20);
 
-	html::div()
-		.with_children([
-			html::p().with_dyn_text({
+	html::div().with_children([
+		html::p().with_dyn_text({
+			let query = query.clone();
+			move || Some(format!("{:?}", query.get()))
+		}),
+		html::hr(),
+		dynatos_router::anchor("/?a=5").with_text_content("5"),
+		html::br(),
+		dynatos_router::anchor("/?a=7").with_text_content("7"),
+		html::br(),
+		dynatos_router::anchor("/?a=abc").with_text_content("abc"),
+		html::br(),
+		html::button()
+			.with_event_listener::<ev::Click, _>({
 				let query = query.clone();
-				move || Some(format!("{:?}", query.get()))
-			}),
-			html::hr(),
-			dynatos_router::anchor("/?a=5")?.with_text_content("5"),
-			html::br(),
-			dynatos_router::anchor("/?a=7")?.with_text_content("7"),
-			html::br(),
-			dynatos_router::anchor("/?a=abc")?.with_text_content("abc"),
-			html::br(),
-			html::button()
-				.with_event_listener::<ev::Click, _>({
-					let query = query.clone();
-					move |_ev| {
-						query.update(|value| *value += 1);
-					}
-				})
-				.with_text_content("Add"),
-			html::br(),
-			html::button()
-				.with_event_listener::<ev::Click, _>(move |_ev| {
-					query.set(6);
-				})
-				.with_text_content("6"),
-		])
-		.context("Unable to add children")
+				move |_ev| {
+					query.update(|value| *value += 1);
+				}
+			})
+			.with_text_content("Add"),
+		html::br(),
+		html::button()
+			.with_event_listener::<ev::Click, _>(move |_ev| {
+				query.set(6);
+			})
+			.with_text_content("6"),
+	])
 }
