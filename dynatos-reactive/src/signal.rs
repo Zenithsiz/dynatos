@@ -5,7 +5,7 @@
 
 // Imports
 use {
-	crate::{Effect, SignalGet, SignalSet, SignalUpdate, SignalWith, WeakEffect},
+	crate::{Effect, SignalGet, SignalReplace, SignalSet, SignalUpdate, SignalWith, WeakEffect},
 	std::{cell::RefCell, collections::HashSet, mem, rc::Rc},
 };
 
@@ -84,7 +84,15 @@ impl<T> SignalWith for Signal<T> {
 impl<T> SignalSet for Signal<T> {
 	type Value = T;
 
-	fn set(&self, new_value: Self::Value) -> Self::Value {
+	fn set(&self, new_value: Self::Value) {
+		self.update(|value| *value = new_value);
+	}
+}
+
+impl<T> SignalReplace for Signal<T> {
+	type Value = T;
+
+	fn replace(&self, new_value: Self::Value) -> Self::Value {
 		self.update(|value| mem::replace(value, new_value))
 	}
 }

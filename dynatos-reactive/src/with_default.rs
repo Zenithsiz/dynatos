@@ -1,7 +1,7 @@
 //! `Option<T>` Signal with default value
 
 // Imports
-use crate::{SignalGet, SignalSet, SignalUpdate, SignalWith};
+use crate::{SignalGet, SignalReplace, SignalSet, SignalUpdate, SignalWith};
 
 /// Wrapper for a `Signal<Option<T>>` with a default value
 #[derive(Clone)]
@@ -49,18 +49,26 @@ where
 	}
 }
 
-// TODO: Requiring `T: Copy` just because of the return is a bit awkward.
-//       Should we make `SignalSet` not return the previous value? Or at least
-//       move it to a different trait like `SignalReplace` or something?
 impl<S, T> SignalSet for WithDefault<S, T>
 where
 	S: SignalSet<Value = Option<T>>,
+{
+	type Value = T;
+
+	fn set(&self, new_value: Self::Value) {
+		self.inner.set(Some(new_value))
+	}
+}
+
+impl<S, T> SignalReplace for WithDefault<S, T>
+where
+	S: SignalReplace<Value = Option<T>>,
 	T: Copy,
 {
 	type Value = T;
 
-	fn set(&self, new_value: Self::Value) -> Self::Value {
-		self.inner.set(Some(new_value)).unwrap_or(self.default)
+	fn replace(&self, new_value: Self::Value) -> Self::Value {
+		self.inner.replace(Some(new_value)).unwrap_or(self.default)
 	}
 }
 

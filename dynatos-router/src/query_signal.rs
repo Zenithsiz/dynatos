@@ -3,7 +3,7 @@
 // Imports
 use {
 	crate::Location,
-	dynatos_reactive::{Effect, Signal, SignalGet, SignalSet, SignalUpdate, SignalWith},
+	dynatos_reactive::{Effect, Signal, SignalGet, SignalReplace, SignalSet, SignalUpdate, SignalWith},
 	std::{collections::HashMap, error::Error as StdError, mem, rc::Rc, str::FromStr},
 };
 
@@ -90,7 +90,18 @@ where
 {
 	type Value = Option<T>;
 
-	fn set(&self, new_value: Self::Value) -> Self::Value {
+	fn set(&self, new_value: Self::Value) {
+		self.update(|value| *value = new_value);
+	}
+}
+
+impl<T> SignalReplace for QuerySignal<T>
+where
+	T: ToString,
+{
+	type Value = Option<T>;
+
+	fn replace(&self, new_value: Self::Value) -> Self::Value {
 		self.update(|value| mem::replace(value, new_value))
 	}
 }

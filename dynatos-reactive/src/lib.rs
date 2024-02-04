@@ -37,8 +37,17 @@ pub trait SignalSet {
 	/// Value type
 	type Value;
 
-	/// Sets the signal value, returning the previous value
-	fn set(&self, new_value: Self::Value) -> Self::Value;
+	/// Sets the signal value
+	fn set(&self, new_value: Self::Value);
+}
+
+/// Signal replace
+pub trait SignalReplace {
+	/// Value type
+	type Value;
+
+	/// Replaces the signal value, returning the previous value
+	fn replace(&self, new_value: Self::Value) -> Self::Value;
 }
 
 /// Signal update
