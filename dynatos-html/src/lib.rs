@@ -51,6 +51,13 @@ pub impl<T> T
 where
 	T: AsRef<web_sys::Node>,
 {
+	fn with_child<C>(self, child: C) -> Self
+	where
+		C: AsRef<web_sys::Node>,
+	{
+		self.with_children([child])
+	}
+
 	fn with_children<C>(self, children: C) -> Self
 	where
 		C: Children,
