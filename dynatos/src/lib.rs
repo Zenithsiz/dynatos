@@ -7,7 +7,7 @@
 use {
 	dynatos_reactive::Effect,
 	dynatos_util::ObjectDefineProperty,
-	std::cell::RefCell,
+	std::cell::{Cell, RefCell},
 	wasm_bindgen::{prelude::wasm_bindgen, JsCast},
 };
 
@@ -54,9 +54,20 @@ where
 			}
 		}));
 
-		// Then set it
+		// Get a unique id for the property name
+		// Note: Since a node may have multiple reactive children,
+		//       we can't use a single property name for this
+		// TODO: Technically, two different threads may set this and
+		//       get the same id, check alternatives.
+		thread_local! {
+			static PROP_IDX: Cell<usize> = Cell::new(0);
+		}
+		let prop_idx = PROP_IDX.get();
+		PROP_IDX.set(prop_idx + 1);
 
-		self.as_ref().define_property("__dynatos_child_effect", child_effect);
+		// Then set it
+		let prop = format!("__dynatos_child_effect_{}", prop_idx);
+		self.as_ref().define_property(&prop, child_effect);
 	}
 
 	/// Adds a dynamic child to this node.
