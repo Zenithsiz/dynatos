@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 
 anyhow = { workspace = true }
+duplicate = { workspace = true }
 extend = { workspace = true }
 js-sys = { workspace = true }
 wasm-bindgen = { workspace = true }

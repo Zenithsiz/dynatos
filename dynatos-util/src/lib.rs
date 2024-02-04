@@ -61,3 +61,36 @@ pub impl js_sys::Object {
 		js_sys::Object::define_property(self, &JsValue::from_str(property), &descriptor);
 	}
 }
+
+/// Extension trait to set the text content in a builder-style.
+#[extend::ext_sized(name = ElementWithTextContent)]
+pub impl web_sys::Element {
+	fn with_text_content<T>(self, text: T) -> Self
+	where
+		T: AsTextContent,
+	{
+		self.set_text_content(text.as_text_content());
+		self
+	}
+}
+
+/// Types that may be used for [`ElementWithTextContent`]
+pub trait AsTextContent {
+	/// Returns the text content
+	fn as_text_content(&self) -> Option<&str>;
+}
+
+// Note: We only add a single impl for `Option<_>` to ensure
+//       that calling `with_text_content(None)` works without
+//       specifying any type annotations
+#[duplicate::duplicate_item(
+	Ty body;
+	[ &'_ str ] [ Some(self) ];
+	[ String ] [ Some(self.as_str()) ];
+	[ Option<String> ] [ self.as_deref() ];
+)]
+impl AsTextContent for Ty {
+	fn as_text_content(&self) -> Option<&str> {
+		body
+	}
+}
