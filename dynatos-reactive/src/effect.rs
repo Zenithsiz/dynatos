@@ -18,7 +18,7 @@ thread_local! {
 /// Effect inner
 struct Inner {
 	/// Effect runner
-	run: Box<dyn Fn()>,
+	run: Option<Box<dyn Fn()>>,
 }
 
 /// Effect
@@ -37,7 +37,9 @@ impl Effect {
 		F: Fn() + 'static,
 	{
 		// Create the effect
-		let inner = Inner { run: Box::new(run) };
+		let inner = Inner {
+			run: Some(Box::new(run)),
+		};
 		let effect = Self {
 			inner: Rc::new(RefCell::new(inner)),
 		};
@@ -67,13 +69,29 @@ impl Effect {
 
 		// Then run it
 		let inner = self.inner.borrow();
-		let run = inner.run.as_ref();
-		run();
+		if let Some(run) = inner.run.as_ref() {
+			run();
+		}
 
 		// And finally pop the effect from the stack
 		EFFECT_STACK
 			.with_borrow_mut(|effects| effects.pop())
 			.expect("Missing added effect");
+	}
+
+	/// Suppresses this effect from running while calling this function
+	pub fn suppressed<F, O>(&self, f: F) -> O
+	where
+		F: FnOnce() -> O,
+	{
+		// Remove the run function and run `f`
+		let run = self.inner.borrow_mut().run.take();
+		let output = f();
+
+		// Then put it back
+		self.inner.borrow_mut().run = run;
+
+		output
 	}
 }
 
