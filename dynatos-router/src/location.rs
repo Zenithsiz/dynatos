@@ -2,7 +2,6 @@
 
 // Imports
 use {
-	anyhow::Context,
 	dynatos_reactive::{Signal, SignalGet, SignalSet, SignalUpdate, SignalWith},
 	dynatos_util::{ev, EventTargetAddListener},
 	url::Url,
@@ -22,13 +21,17 @@ pub struct Location(Signal<Inner>);
 
 impl Location {
 	/// Creates a new location
-	pub fn new() -> Result<Self, anyhow::Error> {
+	#[expect(
+		clippy::new_without_default,
+		reason = "We want locations to only be created explicitly"
+	)]
+	pub fn new() -> Self {
 		let location = self::parse_location_url();
 		let inner = Inner { location };
 		let inner = Signal::new(inner);
 
 		// Add an event listener on the document for when the user navigates manually
-		let window = web_sys::window().context("Unable to get window")?;
+		let window = web_sys::window().expect("Unable to get window");
 		window.add_event_listener::<ev::PopState, _>({
 			let inner = inner.clone();
 			move |_ev: PopStateEvent| {
@@ -37,7 +40,7 @@ impl Location {
 			}
 		});
 
-		Ok(Self(inner))
+		Self(inner)
 	}
 }
 

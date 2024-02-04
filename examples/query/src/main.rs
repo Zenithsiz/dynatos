@@ -5,13 +5,12 @@
 
 // Imports
 use {
-	anyhow::Context,
 	dynatos::ElementDynText,
 	dynatos_context::Handle,
 	dynatos_html::{html, ElementWithChildren, ElementWithTextContent},
 	dynatos_reactive::{SignalGet, SignalSet, SignalUpdate, SignalWithDefault},
 	dynatos_router::{Location, QuerySignal},
-	dynatos_util::{ev, EventTargetAddListener, JsResultContext, ObjectDefineProperty},
+	dynatos_util::{ev, EventTargetAddListener, ObjectDefineProperty},
 	wasm_bindgen::prelude::wasm_bindgen,
 	web_sys::Element,
 };
@@ -27,15 +26,15 @@ fn main() {
 }
 
 fn run() -> Result<(), anyhow::Error> {
-	let window = web_sys::window().context("Unable to get window")?;
-	let document = window.document().context("Unable to get document")?;
-	let body = document.body().context("Unable to get document body")?;
+	let window = web_sys::window().expect("Unable to get window");
+	let document = window.document().expect("Unable to get document");
+	let body = document.body().expect("Unable to get document body");
 
-	let location = Location::new().context("Unable to create location")?;
+	let location = Location::new();
 	let location_handle = dynatos_context::provide(location);
 
 	let child = self::page();
-	body.append_child(&child).context("Unable to append child")?;
+	body.append_child(&child).expect("Unable to append child");
 
 	#[wasm_bindgen]
 	struct LocationHandle(Handle<Location>);

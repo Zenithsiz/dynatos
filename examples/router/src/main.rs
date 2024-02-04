@@ -5,7 +5,6 @@
 
 // Imports
 use {
-	anyhow::Context,
 	dynatos::ElementDynChild,
 	dynatos_context::Handle,
 	dynatos_html::{html, ElementWithChildren, ElementWithTextContent},
@@ -27,11 +26,11 @@ fn main() {
 }
 
 fn run() -> Result<(), anyhow::Error> {
-	let window = web_sys::window().context("Unable to get window")?;
-	let document = window.document().context("Unable to get document")?;
-	let body = document.body().context("Unable to get document body")?;
+	let window = web_sys::window().expect("Unable to get window");
+	let document = window.document().expect("Unable to get document");
+	let body = document.body().expect("Unable to get document body");
 
-	let location = Location::new().context("Unable to create location")?;
+	let location = Location::new();
 	let location_handle = dynatos_context::provide(location);
 
 	body.dyn_child(self::render_route);

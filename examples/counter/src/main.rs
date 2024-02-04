@@ -2,7 +2,6 @@
 
 // Imports
 use {
-	anyhow::Context,
 	dynatos::ElementDynText,
 	dynatos_html::{html, ElementWithChildren, ElementWithTextContent},
 	dynatos_reactive::{Signal, SignalGet, SignalSet, SignalUpdate},
@@ -21,9 +20,9 @@ fn main() {
 }
 
 fn run() -> Result<(), anyhow::Error> {
-	let window = web_sys::window().context("Unable to get window")?;
-	let document = window.document().context("Unable to get document")?;
-	let body = document.body().context("Unable to get document body")?;
+	let window = web_sys::window().expect("Unable to get window");
+	let document = window.document().expect("Unable to get document");
+	let body = document.body().expect("Unable to get document body");
 
 	let counter = self::counter();
 	body.append_child(&counter).context("Unable to append counter")?;
