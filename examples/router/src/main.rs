@@ -9,6 +9,7 @@ use {
 	dynatos::ElementDynChild,
 	dynatos_context::Handle,
 	dynatos_html::{html, ElementWithChildren, ElementWithTextContent},
+	dynatos_reactive::SignalGet,
 	dynatos_router::Location,
 	dynatos_util::{JsResultContext, ObjectDefineProperty},
 	wasm_bindgen::prelude::wasm_bindgen,

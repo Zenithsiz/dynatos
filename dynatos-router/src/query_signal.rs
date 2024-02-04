@@ -125,17 +125,15 @@ where
 		// TODO: Force an update anyway just to ensure some consistency with `FromStr` + `ToString`?
 		self.update_effect.suppressed(|| {
 			dynatos_context::with_expect::<Location, _, _>(|location| {
-				location
-					.update(|location| {
-						let mut queries = location.query_pairs().into_owned().collect::<HashMap<_, _>>();
-						match self.inner.with(|value| value.as_ref().map(T::to_string)) {
-							Some(value) => queries.insert((*self.key).to_owned(), value),
-							None => queries.remove(&*self.key),
-						};
+				location.update(|location| {
+					let mut queries = location.query_pairs().into_owned().collect::<HashMap<_, _>>();
+					match self.inner.with(|value| value.as_ref().map(T::to_string)) {
+						Some(value) => queries.insert((*self.key).to_owned(), value),
+						None => queries.remove(&*self.key),
+					};
 
-						location.query_pairs_mut().clear().extend_pairs(queries);
-					})
-					.expect("Unable to update location");
+					location.query_pairs_mut().clear().extend_pairs(queries);
+				});
 			})
 		});
 

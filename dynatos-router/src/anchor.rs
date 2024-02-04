@@ -4,6 +4,7 @@
 use {
 	crate::Location,
 	dynatos_html::{html, ElementWithAttr},
+	dynatos_reactive::SignalSet,
 	dynatos_util::{ev, EventTargetAddListener, JsResultContext},
 	web_sys::{Element, PointerEvent},
 };
@@ -21,10 +22,8 @@ where
 		.with_event_listener::<ev::Click, _>(move |ev: PointerEvent| {
 			ev.prevent_default();
 			dynatos_context::with_expect::<Location, _, _>(|location| {
-				let new_location = new_location.as_ref();
-				if let Err(err) = location.set(new_location) {
-					tracing::error!(?new_location, ?err, "Unable to set location");
-				}
+				let new_location = new_location.as_ref().to_owned();
+				location.set(new_location);
 			});
 		});
 
