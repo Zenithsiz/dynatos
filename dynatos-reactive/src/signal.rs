@@ -42,14 +42,7 @@ impl<T> Signal<T> {
 	where
 		T: Copy,
 	{
-		if let Some(effect) = Effect::running() {
-			self.add_subscriber(effect);
-		}
-
-		self.inner
-			.try_borrow()
-			.expect("Cannot get signal value while updating")
-			.value
+		self.with(|value| *value)
 	}
 
 	/// Calls `f` with the inner value
@@ -58,6 +51,10 @@ impl<T> Signal<T> {
 	where
 		F: FnOnce(&T) -> O,
 	{
+		if let Some(effect) = Effect::running() {
+			self.add_subscriber(effect);
+		}
+
 		let inner = self.inner.try_borrow().expect("Cannot use signal value while updating");
 		f(&inner.value)
 	}
