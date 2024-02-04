@@ -73,6 +73,12 @@ pub trait Children {
 	fn append_all(self, node: &web_sys::Node) -> Result<(), JsValue>;
 }
 
+impl Children for () {
+	fn append_all(self, _node: &web_sys::Node) -> Result<(), JsValue> {
+		Ok(())
+	}
+}
+
 impl<C, const N: usize> Children for [C; N]
 where
 	C: AsRef<web_sys::Node>,
@@ -84,6 +90,39 @@ where
 
 		Ok(())
 	}
+}
+
+/// Implements `Children` on tuples
+macro impl_children_tuple( $( $( $C:ident($idx:tt) ),*; )* ) {
+	$(
+		impl<$( $C ),*> Children for ($( $C, )*)
+		where
+			$(
+				$C: AsRef<web_sys::Node>,
+			)*
+		{
+			fn append_all(self, node: &web_sys::Node) -> Result<(), JsValue> {
+				$(
+					node.append_child(self.$idx.as_ref())?;
+				)*
+
+				Ok(())
+			}
+		}
+	)*
+}
+
+impl_children_tuple! {
+	C0(0);
+	C0(0), C1(1);
+	C0(0), C1(1), C2(2);
+	C0(0), C1(1), C2(2), C3(3);
+	C0(0), C1(1), C2(2), C3(3), C4(4);
+	C0(0), C1(1), C2(2), C3(3), C4(4), C5(5);
+	C0(0), C1(1), C2(2), C3(3), C4(4), C5(5), C6(6);
+	C0(0), C1(1), C2(2), C3(3), C4(4), C5(5), C6(6), C7(7);
+	C0(0), C1(1), C2(2), C3(3), C4(4), C5(5), C6(6), C7(7), C8(8);
+	C0(0), C1(1), C2(2), C3(3), C4(4), C5(5), C6(6), C7(7), C8(8), C9(9);
 }
 
 /// Extension trait to add an attribute in a builder-style.
