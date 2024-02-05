@@ -6,20 +6,23 @@
 // Imports
 use {
 	crate::{Effect, SignalGet, SignalReplace, SignalSet, SignalUpdate, SignalWith, Trigger, WeakEffect},
-	std::{cell::RefCell, fmt, mem, rc::Rc},
+	std::{cell::RefCell, fmt, marker::Unsize, mem, ops::CoerceUnsized, rc::Rc},
 };
 
 /// Inner
-struct Inner<T> {
-	/// Value
-	value: RefCell<T>,
-
+struct Inner<T: ?Sized> {
 	/// Trigger
 	trigger: Trigger,
+
+	/// Value
+	value: RefCell<T>,
 }
 
+// TODO: Add `T: ?Sized, U: ?Sized` once `RefCell` supports it.
+impl<T, U> CoerceUnsized<Inner<U>> for Inner<T> where T: CoerceUnsized<U> {}
+
 /// Signal
-pub struct Signal<T> {
+pub struct Signal<T: ?Sized> {
 	/// Inner
 	inner: Rc<Inner<T>>,
 }
@@ -35,6 +38,11 @@ impl<T> Signal<T> {
 	}
 }
 
+// TODO: Add `Signal::<dyn Any>::downcast` once we add `{T, U}: ?Sized` to the `CoerceUnsized` impl of `Inner`.
+//       Use `Rc::downcast::<Inner<T>>(self.inner as Rc<dyn Any>)`
+
+impl<T: ?Sized, U: ?Sized> CoerceUnsized<Signal<U>> for Signal<T> where T: Unsize<U> {}
+
 impl<T> SignalGet for Signal<T>
 where
 	T: Copy,
@@ -46,7 +54,7 @@ where
 	}
 }
 
-impl<T> SignalWith for Signal<T> {
+impl<T: ?Sized> SignalWith for Signal<T> {
 	type Value = T;
 
 	fn with<F, O>(&self, f: F) -> O
@@ -78,7 +86,7 @@ impl<T> SignalReplace<T> for Signal<T> {
 	}
 }
 
-impl<T> SignalUpdate for Signal<T> {
+impl<T: ?Sized> SignalUpdate for Signal<T> {
 	type Value = T;
 
 	fn update<F, O>(&self, f: F) -> O

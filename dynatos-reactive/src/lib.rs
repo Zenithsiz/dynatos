@@ -1,5 +1,8 @@
 //! Reactivity for [`dynatos`]
 
+// Features
+#![feature(unsize, coerce_unsized)]
+
 // Modules
 pub mod effect;
 pub mod signal;
@@ -26,7 +29,7 @@ pub trait SignalGet {
 /// Signal with
 pub trait SignalWith {
 	/// Value type
-	type Value;
+	type Value: ?Sized;
 
 	/// Uses the signal value
 	fn with<F, O>(&self, f: F) -> O
@@ -49,7 +52,7 @@ pub trait SignalReplace<Value> {
 /// Signal update
 pub trait SignalUpdate {
 	/// Value type
-	type Value;
+	type Value: ?Sized;
 
 	/// Updates the signal value
 	fn update<F, O>(&self, f: F) -> O
