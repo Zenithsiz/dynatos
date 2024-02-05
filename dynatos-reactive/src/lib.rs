@@ -3,12 +3,14 @@
 // Modules
 pub mod effect;
 pub mod signal;
+pub mod trigger;
 pub mod with_default;
 
 // Exports
 pub use self::{
 	effect::{Effect, WeakEffect},
 	signal::Signal,
+	trigger::Trigger,
 	with_default::{SignalWithDefault, WithDefault},
 };
 
