@@ -7,7 +7,10 @@
 use {
 	dynatos_reactive::Effect,
 	dynatos_util::ObjectDefineProperty,
-	std::cell::{Cell, RefCell},
+	std::{
+		cell::RefCell,
+		sync::atomic::{self, AtomicUsize},
+	},
 	wasm_bindgen::{prelude::wasm_bindgen, JsCast},
 };
 
@@ -58,13 +61,8 @@ where
 		// Otherwise get a unique id for the property name
 		// Note: Since a node may have multiple reactive children,
 		//       we can't use a single property name for this
-		// TODO: Technically, two different threads may set this and
-		//       get the same id, check alternatives.
-		thread_local! {
-			static PROP_IDX: Cell<usize> = Cell::new(0);
-		}
-		let prop_idx = PROP_IDX.get();
-		PROP_IDX.set(prop_idx + 1);
+		static PROP_IDX: AtomicUsize = AtomicUsize::new(0);
+		let prop_idx = PROP_IDX.fetch_add(1, atomic::Ordering::AcqRel);
 
 		// Then set it
 		#[wasm_bindgen]
