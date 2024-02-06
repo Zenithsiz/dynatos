@@ -7,7 +7,7 @@
 use {
 	dynatos_html::html,
 	dynatos_reactive::Effect,
-	dynatos_util::{ObjectDefineProperty, TryOrReturnExt, WeakRef},
+	dynatos_util::{ObjectSet, TryOrReturnExt, WeakRef},
 	std::{
 		cell::RefCell,
 		sync::atomic::{self, AtomicUsize},
@@ -76,7 +76,7 @@ where
 
 		// Then set it
 		let prop = format!("__dynatos_child_effect_{}", prop_idx);
-		self.as_ref().define_property(&prop, WasmEffect(child_effect));
+		self.as_ref().set(&prop, WasmEffect(child_effect));
 	}
 
 	/// Adds a dynamic child to this node.
@@ -123,7 +123,7 @@ where
 
 		// Otherwise set it
 		self.as_ref()
-			.define_property("__dynatos_text_content_effect", WasmEffect(text_content_effect));
+			.set("__dynatos_text_content_effect", WasmEffect(text_content_effect));
 	}
 
 	/// Adds dynamic text to this node.
@@ -179,8 +179,7 @@ where
 		.or_return()?;
 
 		// Otherwise set it
-		self.as_ref()
-			.define_property("__dynatos_attr_effect", WasmEffect(attr_effect));
+		self.as_ref().set("__dynatos_attr_effect", WasmEffect(attr_effect));
 	}
 
 	/// Adds a dynamic attribute to this element.

@@ -10,7 +10,7 @@ use {
 	dynatos_html::{html, NodeWithChildren, NodeWithTextContent},
 	dynatos_reactive::SignalGet,
 	dynatos_router::Location,
-	dynatos_util::ObjectDefineProperty,
+	dynatos_util::ObjectSet,
 	std::cell::LazyCell,
 	wasm_bindgen::prelude::wasm_bindgen,
 	web_sys::Element,
@@ -50,7 +50,7 @@ fn run() -> Result<(), anyhow::Error> {
 
 	#[wasm_bindgen]
 	struct LocationHandle(Handle<Location>);
-	body.define_property("__dynatos_location_handle", LocationHandle(location_handle));
+	body.set("__dynatos_location_handle", LocationHandle(location_handle));
 
 	Ok(())
 }
