@@ -75,11 +75,8 @@ where
 		let prop_idx = PROP_IDX.fetch_add(1, atomic::Ordering::AcqRel);
 
 		// Then set it
-		#[wasm_bindgen]
-		struct ChildEffect(Effect);
-
 		let prop = format!("__dynatos_child_effect_{}", prop_idx);
-		self.as_ref().define_property(&prop, ChildEffect(child_effect));
+		self.as_ref().define_property(&prop, WasmEffect(child_effect));
 	}
 
 	/// Adds a dynamic child to this node.
@@ -125,11 +122,8 @@ where
 		.or_return()?;
 
 		// Otherwise set it
-		#[wasm_bindgen]
-		struct TextContentEffect(Effect);
-
 		self.as_ref()
-			.define_property("__dynatos_text_content_effect", TextContentEffect(text_content_effect));
+			.define_property("__dynatos_text_content_effect", WasmEffect(text_content_effect));
 	}
 
 	/// Adds dynamic text to this node.
@@ -185,11 +179,8 @@ where
 		.or_return()?;
 
 		// Otherwise set it
-		#[wasm_bindgen]
-		struct AttrEffect(Effect);
-
 		self.as_ref()
-			.define_property("__dynatos_attr_effect", AttrEffect(attr_effect));
+			.define_property("__dynatos_attr_effect", WasmEffect(attr_effect));
 	}
 
 	/// Adds a dynamic attribute to this element.
@@ -249,3 +240,8 @@ where
 		self
 	}
 }
+
+
+/// A wasm `Effect` type.
+#[wasm_bindgen]
+struct WasmEffect(Effect);
