@@ -38,7 +38,7 @@ where
 		let node = WeakRef::new(self.as_ref());
 		let prev_child = RefCell::new(None::<web_sys::Node>);
 		let empty_child = web_sys::Node::from(html::template());
-		let child_effect = Effect::new(move || {
+		let child_effect = Effect::try_new(move || {
 			// Try to get the node
 			let node = node.get().or_return()?;
 
@@ -65,12 +65,8 @@ where
 					*prev_child = Some(new_child);
 				},
 			};
-		});
-
-		// If the future is inert, no point in setting up anything past this
-		if child_effect.is_inert() {
-			return;
-		}
+		})
+		.or_return()?;
 
 		// Otherwise get a unique id for the property name
 		// Note: Since a node may have multiple reactive children,
@@ -116,7 +112,7 @@ where
 		//       Otherwise, the node will be keeping us alive, while we keep
 		//       the node alive, causing a leak.
 		let node = WeakRef::new(self.as_ref());
-		let text_content_effect = Effect::new(move || {
+		let text_content_effect = Effect::try_new(move || {
 			// Try to get the node
 			let node = node.get().or_return()?;
 
@@ -125,12 +121,8 @@ where
 				Some(s) => node.set_text_content(Some(s.as_ref())),
 				None => node.set_text_content(None),
 			}
-		});
-
-		// If the future is inert, no point in setting up anything past this
-		if text_content_effect.is_inert() {
-			return;
-		}
+		})
+		.or_return()?;
 
 		// Otherwise set it
 		#[wasm_bindgen]
@@ -171,7 +163,7 @@ where
 		//       Otherwise, the element will be keeping us alive, while we keep
 		//       the element alive, causing a leak.
 		let element = WeakRef::new(self.as_ref());
-		let attr_effect = Effect::new(move || {
+		let attr_effect = Effect::try_new(move || {
 			// Try to get the element
 			let element = element.get().or_return()?;
 
@@ -189,12 +181,8 @@ where
 					.remove_attribute(key)
 					.unwrap_or_else(|err| panic!("Unable to remove attribute {key:?}: {err:?}")),
 			}
-		});
-
-		// If the future is inert, no point in setting up anything past this
-		if attr_effect.is_inert() {
-			return;
-		}
+		})
+		.or_return()?;
 
 		// Otherwise set it
 		#[wasm_bindgen]

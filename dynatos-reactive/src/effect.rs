@@ -51,6 +51,20 @@ impl Effect {
 		effect
 	}
 
+	/// Tries to create a new effect.
+	///
+	/// If the effects ends up being inert, returns `None`
+	pub fn try_new<F>(run: F) -> Option<Self>
+	where
+		F: Fn() + 'static,
+	{
+		let effect = Self::new(run);
+		match effect.is_inert() {
+			true => None,
+			false => Some(effect),
+		}
+	}
+
 	/// Downgrades this effect
 	pub fn downgrade(&self) -> WeakEffect {
 		WeakEffect {
