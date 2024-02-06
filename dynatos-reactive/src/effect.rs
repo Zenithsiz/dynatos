@@ -119,6 +119,13 @@ impl Effect {
 	}
 }
 
+impl fmt::Debug for Effect {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		f.debug_struct("Effect").finish_non_exhaustive()
+	}
+}
+
+
 /// Weak effect
 ///
 /// Used to break ownership between a signal and it's subscribers
@@ -162,8 +169,8 @@ impl Hash for WeakEffect {
 	}
 }
 
-impl fmt::Debug for Effect {
+impl fmt::Debug for WeakEffect {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		f.debug_struct("Effect").finish_non_exhaustive()
+		f.debug_struct("WeakEffect").finish_non_exhaustive()
 	}
 }
