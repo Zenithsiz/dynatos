@@ -7,12 +7,12 @@
 use {
 	dynatos_html::html,
 	dynatos_reactive::Effect,
-	dynatos_util::ObjectDefineProperty,
+	dynatos_util::{ObjectDefineProperty, WeakRef},
 	std::{
 		cell::RefCell,
 		sync::atomic::{self, AtomicUsize},
 	},
-	wasm_bindgen::{prelude::wasm_bindgen, JsCast},
+	wasm_bindgen::prelude::wasm_bindgen,
 };
 
 /// Extension trait to add a reactive child to an node
@@ -40,10 +40,9 @@ where
 		let empty_child = web_sys::Node::from(html::template());
 		let child_effect = Effect::new(move || {
 			// Try to get the node
-			let Some(node) = node.deref() else {
+			let Some(node) = node.get() else {
 				return;
 			};
-			let node = node.dyn_into::<web_sys::Node>().expect("Should be Node");
 
 			// Then update the node
 			let new_child = f();
@@ -121,10 +120,9 @@ where
 		let node = WeakRef::new(self.as_ref());
 		let text_content_effect = Effect::new(move || {
 			// Try to get the node
-			let Some(node) = node.deref() else {
+			let Some(node) = node.get() else {
 				return;
 			};
-			let node = node.dyn_into::<web_sys::Node>().expect("Should be node");
 
 			// And set the text content
 			match f() {
@@ -179,10 +177,9 @@ where
 		let element = WeakRef::new(self.as_ref());
 		let attr_effect = Effect::new(move || {
 			// Try to get the element
-			let Some(element) = element.deref() else {
+			let Some(element) = element.get() else {
 				return;
 			};
-			let element = element.dyn_into::<web_sys::Element>().expect("Should be element");
 
 			// And set the attribute
 			let (key, value) = f();
@@ -269,25 +266,4 @@ where
 		self.dyn_attr_if(key, f);
 		self
 	}
-}
-
-#[wasm_bindgen]
-extern "C" {
-	/// Weak reference.
-	///
-	/// [MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WeakRef)
-	#[wasm_bindgen(js_name = WeakRef)]
-	pub type WeakRef;
-
-	/// Constructor
-	///
-	/// [MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WeakRef/WeakRef)
-	#[wasm_bindgen(constructor)]
-	pub fn new(target: &js_sys::Object) -> WeakRef;
-
-	/// Dereference method
-	///
-	/// [MDN Documentation](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/WeakRef/deref)
-	#[wasm_bindgen(method, js_name = deref)]
-	pub fn deref(this: &WeakRef) -> Option<js_sys::Object>;
 }

@@ -5,9 +5,13 @@
 
 // Modules
 mod event_listener;
+pub mod weak_ref;
 
 // Exports
-pub use event_listener::{ev, EventListener, EventTargetAddListener};
+pub use self::{
+	event_listener::{ev, EventListener, EventTargetAddListener},
+	weak_ref::WeakRef,
+};
 
 // Imports
 use {
