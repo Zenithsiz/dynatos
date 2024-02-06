@@ -1,15 +1,17 @@
 //! Utilities for [`dynatos`]
 
 // Features
-#![feature(decl_macro)]
+#![feature(decl_macro, never_type, try_trait_v2, control_flow_enum)]
 
 // Modules
 mod event_listener;
+pub mod try_or_return;
 pub mod weak_ref;
 
 // Exports
 pub use self::{
 	event_listener::{ev, EventListener, EventTargetAddListener},
+	try_or_return::{TryOrReturn, TryOrReturnExt},
 	weak_ref::WeakRef,
 };
 

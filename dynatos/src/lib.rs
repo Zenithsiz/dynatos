@@ -7,7 +7,7 @@
 use {
 	dynatos_html::html,
 	dynatos_reactive::Effect,
-	dynatos_util::{ObjectDefineProperty, WeakRef},
+	dynatos_util::{ObjectDefineProperty, TryOrReturnExt, WeakRef},
 	std::{
 		cell::RefCell,
 		sync::atomic::{self, AtomicUsize},
@@ -40,9 +40,7 @@ where
 		let empty_child = web_sys::Node::from(html::template());
 		let child_effect = Effect::new(move || {
 			// Try to get the node
-			let Some(node) = node.get() else {
-				return;
-			};
+			let node = node.get().or_return()?;
 
 			// Then update the node
 			let new_child = f();
@@ -120,9 +118,7 @@ where
 		let node = WeakRef::new(self.as_ref());
 		let text_content_effect = Effect::new(move || {
 			// Try to get the node
-			let Some(node) = node.get() else {
-				return;
-			};
+			let node = node.get().or_return()?;
 
 			// And set the text content
 			match f() {
@@ -177,9 +173,7 @@ where
 		let element = WeakRef::new(self.as_ref());
 		let attr_effect = Effect::new(move || {
 			// Try to get the element
-			let Some(element) = element.get() else {
-				return;
-			};
+			let element = element.get().or_return()?;
 
 			// And set the attribute
 			let (key, value) = f();
