@@ -1,7 +1,7 @@
 //! Router example
 
 // Features
-#![feature(try_blocks)]
+#![feature(try_blocks, lazy_cell)]
 
 // Imports
 use {
@@ -11,6 +11,7 @@ use {
 	dynatos_reactive::SignalGet,
 	dynatos_router::Location,
 	dynatos_util::ObjectDefineProperty,
+	std::cell::LazyCell,
 	wasm_bindgen::prelude::wasm_bindgen,
 	web_sys::Element,
 };
@@ -33,7 +34,19 @@ fn run() -> Result<(), anyhow::Error> {
 	let location = Location::new();
 	let location_handle = dynatos_context::provide(location);
 
-	body.dyn_child(|| Some(self::render_route()));
+	(&body).with_child(
+		html::div()
+			.with_children([html::p().with_text_content("Header"), html::hr()])
+			.with_dyn_child(self::render_route)
+			.with_children([
+				html::hr(),
+				dynatos_router::anchor("/test").with_text_content("Test"),
+				html::br(),
+				dynatos_router::anchor("/cached").with_text_content("Cached"),
+				html::br(),
+				dynatos_router::anchor("/empty").with_text_content("Empty"),
+			]),
+	);
 
 	#[wasm_bindgen]
 	struct LocationHandle(Handle<Location>);
@@ -42,22 +55,27 @@ fn run() -> Result<(), anyhow::Error> {
 	Ok(())
 }
 
-fn render_route() -> Element {
+thread_local! {
+	static ROUTE_CACHED: LazyCell<Element> = LazyCell::new(|| self::page("Cached"));
+}
+
+fn render_route() -> Option<Element> {
 	let location = dynatos_context::with_expect::<Location, _, _>(|location| location.get());
 
+	tracing::info!(%location, "Rendering route");
 	match location.path().trim_end_matches('/') {
-		"/a" => self::page("A"),
-		"/b" => self::page("B"),
-		page => self::page(&format!("Unknown Page ({page:?})")),
+		// Always re-create page a
+		"/test" => Some(self::page("Test")),
+		// Cache the 2nd route to show that `dyn_child` can handle the same element fine.
+		"/cached" => Some(ROUTE_CACHED.with(|route| LazyCell::force(route).clone())),
+		// Have a page without any content
+		"/empty" => None,
+		// And finally a catch-all page
+		page => Some(self::page(&format!("Unknown Page ({page:?})"))),
 	}
 }
 
 fn page(name: &str) -> Element {
-	html::div().with_children([
-		html::p().with_text_content(format!("Page {name}")),
-		html::hr(),
-		dynatos_router::anchor("/a").with_text_content("A"),
-		html::br(),
-		dynatos_router::anchor("/b").with_text_content("B"),
-	])
+	tracing::info!(%name, "Rendering page");
+	html::p().with_text_content(format!("Page {name}"))
 }

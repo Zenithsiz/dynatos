@@ -25,4 +25,5 @@ decl_elements! {
 	hr = "hr",
 	p = "p",
 	span = "span",
+	template = "template",
 }

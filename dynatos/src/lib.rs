@@ -5,6 +5,7 @@
 
 // Imports
 use {
+	dynatos_html::html,
 	dynatos_reactive::Effect,
 	dynatos_util::ObjectDefineProperty,
 	std::{
@@ -24,14 +25,19 @@ where
 	fn dyn_child<F, N>(&self, f: F)
 	where
 		F: Fn() -> Option<N> + 'static,
-		N: AsRef<web_sys::Node> + 'static,
+		N: AsRef<web_sys::Node>,
 	{
 		// Create the value to attach
 		// Note: It's important that we only keep a `WeakRef` to the node.
 		//       Otherwise, the node will be keeping us alive, while we keep
 		//       the node alive, causing a leak.
+		// Note: We have an empty `<template>` so that we can track the position
+		//       of the node, in case of `f` returning `None`.
+		// TODO: Find a better solution for when `f` returns `None` that doesn't involve
+		//       adding an element to the dom?
 		let node = WeakRef::new(self.as_ref());
-		let prev_child = RefCell::new(None::<N>);
+		let prev_child = RefCell::new(None::<web_sys::Node>);
+		let empty_child = web_sys::Node::from(html::template());
 		let child_effect = Effect::new(move || {
 			// Try to get the node
 			let Some(node) = node.deref() else {
@@ -39,18 +45,29 @@ where
 			};
 			let node = node.dyn_into::<web_sys::Node>().expect("Should be Node");
 
-			// Remove the previous child, if it exists
-			if let Some(prev_child) = prev_child.borrow_mut().take() {
-				node.remove_child(prev_child.as_ref())
-					.expect("Reactive child was removed");
-			}
+			// Then update the node
+			let new_child = f();
+			let new_child = new_child.as_ref().map(N::as_ref).unwrap_or(&empty_child);
+			let mut prev_child = prev_child.borrow_mut();
+			match &mut *prev_child {
+				// If we already have a node, and it isn't the same one, replace it
+				Some(prev_child) =>
+					if prev_child != new_child {
+						node.replace_child(new_child, prev_child)
+							.expect("Unable to replace reactive child");
+						*prev_child = new_child.clone();
+					},
 
-			// And set the child, if any
-			if let Some(child) = f() {
-				node.append_child(child.as_ref())
-					.expect("Unable to append reactive child");
-				*prev_child.borrow_mut() = Some(child)
-			}
+				// The first time we run the effect we won't have any previous node,
+				// so either add the node returned by `f`, or an empty node to track
+				// the position of the child
+				None => {
+					let new_child = node
+						.append_child(new_child.as_ref())
+						.expect("Unable to append reactive child");
+					*prev_child = Some(new_child);
+				},
+			};
 		});
 
 		// If the future is inert, no point in setting up anything past this

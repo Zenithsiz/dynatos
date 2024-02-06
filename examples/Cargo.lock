@@ -70,10 +70,12 @@ dependencies = [
 name = "dynatos"
 version = "0.1.0"
 dependencies = [
+ "dynatos-html",
  "dynatos-reactive",
  "dynatos-util",
  "extend",
  "js-sys",
+ "tracing",
  "wasm-bindgen",
  "web-sys",
 ]

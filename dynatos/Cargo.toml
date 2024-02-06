@@ -5,10 +5,12 @@ edition = "2021"
 
 [dependencies]
 
+dynatos-html = { workspace = true }
 dynatos-reactive = { workspace = true }
 dynatos-util = { workspace = true }
 
 extend = { workspace = true }
 js-sys = { workspace = true }
+tracing = { workspace = true }
 wasm-bindgen = { workspace = true }
 web-sys = { workspace = true }
