@@ -3,6 +3,9 @@
 // TODO: Use a single object, `__dynatos` with all of the effects, instead of a
 //       property for each?
 
+// Features
+#![feature(let_chains)]
+
 // Imports
 use {
 	dynatos_html::html,
@@ -42,29 +45,56 @@ where
 			// Try to get the node
 			let node = node.get().or_return()?;
 
-			// Then update the node
+			// Get the new child
+			// Note: If the new child already exists,
 			let new_child = f();
-			let new_child = new_child.as_ref().map(N::as_ref).unwrap_or(&empty_child);
-			let mut prev_child = prev_child.borrow_mut();
-			match &mut *prev_child {
-				// If we already have a node, and it isn't the same one, replace it
-				Some(prev_child) =>
-					if prev_child != new_child {
-						node.replace_child(new_child, prev_child)
-							.expect("Unable to replace reactive child");
-						*prev_child = new_child.clone();
-					},
+			let new_child = new_child.as_ref().map(N::as_ref);
 
-				// The first time we run the effect we won't have any previous node,
-				// so either add the node returned by `f`, or an empty node to track
-				// the position of the child
-				None => {
-					let new_child = node
-						.append_child(new_child.as_ref())
-						.expect("Unable to append reactive child");
-					*prev_child = Some(new_child);
+			// Check if someone's messed with our previous child
+			// TODO: At this point should we give up, since we lost the position?
+			//       The behavior of trying again might be worse.
+			let mut prev_child = prev_child.borrow_mut();
+			if let Some(child) = &*prev_child &&
+				!node.contains(Some(child))
+			{
+				tracing::warn!("Reactive child was removed externally, re-inserting");
+				*prev_child = None;
+			}
+
+			// Then check if we need to substitute in the empty child
+			let new_child = match new_child {
+				// If the new child is the same as the old one, we can return
+				Some(child) if prev_child.as_ref() == Some(child) => return,
+
+				// Otherwise, if this is a duplicate node, warn and use an empty child
+				// Note: The typical browser behavior would be to remove the previous
+				//       child, then add ours. Unfortunately, removing other nodes might
+				//       cause another dyn child to panic due to it's previous node being
+				//       missing.
+				Some(child) if node.contains(Some(child)) => {
+					tracing::warn!("Attempted to add a reactive node multiple times");
+					&empty_child
 				},
+
+				// Otherwise, use the new child
+				Some(child) => child,
+
+				// Finally, if no child was given, use the empty child
+				None => &empty_child,
 			};
+
+			// Then update the node
+			match &mut *prev_child {
+				// If we already have a node, replace it
+				Some(prev_child) => node
+					.replace_child(new_child, prev_child)
+					.expect("Unable to replace reactive child"),
+
+				// Otherwise, we're running for the first time, so append the child
+				None => node.append_child(new_child).expect("Unable to append reactive child"),
+			};
+
+			*prev_child = Some(new_child.clone());
 		})
 		.or_return()?;
 
