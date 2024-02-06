@@ -1,8 +1,5 @@
 //! Dynatos framework
 
-// TODO: Use a single object, `__dynatos` with all of the effects, instead of a
-//       property for each?
-
 // Features
 #![feature(let_chains)]
 
@@ -10,13 +7,43 @@
 use {
 	dynatos_html::html,
 	dynatos_reactive::Effect,
-	dynatos_util::{ObjectSet, TryOrReturnExt, WeakRef},
-	std::{
-		cell::RefCell,
-		sync::atomic::{self, AtomicUsize},
-	},
+	dynatos_util::{ObjectGet, ObjectSet, TryOrReturnExt, WeakRef},
+	std::cell::RefCell,
 	wasm_bindgen::prelude::wasm_bindgen,
 };
+
+/// Extension trait to add an effect to a node
+// TODO: Allow removing effects?
+#[extend::ext(name = NodeAttachEffect)]
+pub impl js_sys::Object {
+	/// Attaches an effect to this node
+	fn attach_effect(&self, effect: Effect) {
+		// Get the effects array, or create it, if it doesn't exist
+		// TODO: Use an static anonymous symbol?
+		let prop_name: &str = "__dynatos_effects";
+		let effects = match self.get::<js_sys::Array>(prop_name) {
+			Ok(effects) => effects,
+			Err(dynatos_util::GetError::WrongType(err)) => panic!("Effects array was the wrong type: {err:?}"),
+			Err(dynatos_util::GetError::Missing) => {
+				let effects = js_sys::Array::new();
+				self.set(prop_name, &effects);
+				effects
+			},
+		};
+
+		// Then push the effects
+		let effect = WasmEffect(effect);
+		effects.push(&effect.into());
+	}
+
+	/// Attaches an effect to this node.
+	///
+	/// Returns the node, for chaining
+	fn with_effect(self, effect: Effect) -> Self {
+		self.attach_effect(effect);
+		self
+	}
+}
 
 /// Extension trait to add a reactive child to an node
 #[extend::ext(name = NodeDynChild)]
@@ -98,15 +125,8 @@ where
 		})
 		.or_return()?;
 
-		// Otherwise get a unique id for the property name
-		// Note: Since a node may have multiple reactive children,
-		//       we can't use a single property name for this
-		static PROP_IDX: AtomicUsize = AtomicUsize::new(0);
-		let prop_idx = PROP_IDX.fetch_add(1, atomic::Ordering::AcqRel);
-
 		// Then set it
-		let prop = format!("__dynatos_child_effect_{}", prop_idx);
-		self.as_ref().set(&prop, WasmEffect(child_effect));
+		self.as_ref().attach_effect(child_effect);
 	}
 
 	/// Adds a dynamic child to this node.
@@ -151,9 +171,8 @@ where
 		})
 		.or_return()?;
 
-		// Otherwise set it
-		self.as_ref()
-			.set("__dynatos_text_content_effect", WasmEffect(text_content_effect));
+		// Then set it
+		self.as_ref().attach_effect(text_content_effect);
 	}
 
 	/// Adds dynamic text to this node.
@@ -208,8 +227,8 @@ where
 		})
 		.or_return()?;
 
-		// Otherwise set it
-		self.as_ref().set("__dynatos_attr_effect", WasmEffect(attr_effect));
+		// Then set it
+		self.as_ref().attach_effect(attr_effect);
 	}
 
 	/// Adds a dynamic attribute to this element.

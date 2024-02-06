@@ -16,7 +16,11 @@ pub use self::{
 };
 
 // Imports
-use {js_sys::Reflect, std::fmt, wasm_bindgen::JsValue};
+use {
+	js_sys::Reflect,
+	std::fmt,
+	wasm_bindgen::{JsCast, JsValue},
+};
 
 /// Extension trait to be able to use `.context` on `Result<T, JsValue>`.
 #[extend::ext(name = JsResultContext)]
@@ -41,5 +45,34 @@ pub impl js_sys::Object {
 		T: Into<JsValue>,
 	{
 		Reflect::set(self, &property.into(), &value.into()).expect("Unable to set object property");
+	}
+}
+
+/// Error for [`ObjectGet::get`]
+#[derive(Clone, Debug)]
+pub enum GetError {
+	/// Property was missing
+	Missing,
+
+	/// Property was the wrong type
+	WrongType(JsValue),
+}
+
+/// Extension trait to get a property of an object
+#[extend::ext(name = ObjectGet)]
+pub impl js_sys::Object {
+	// TODO: Differentiate between missing value and wrong type?
+	fn get<T>(&self, property: &str) -> Result<T, GetError>
+	where
+		T: JsCast,
+	{
+		// Note: This returning `Err` should only happen if `self` isn't an object,
+		//       which we guarantee, so no errors can occur.
+		let value = Reflect::get(self, &property.into()).expect("Unable to get object property");
+		if value.is_undefined() {
+			return Err(GetError::Missing);
+		}
+
+		value.dyn_into().map_err(GetError::WrongType)
 	}
 }
