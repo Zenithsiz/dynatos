@@ -119,6 +119,20 @@ impl Effect {
 	}
 }
 
+impl PartialEq for Effect {
+	fn eq(&self, other: &Self) -> bool {
+		Rc::ptr_eq(&self.inner, &other.inner)
+	}
+}
+
+impl Eq for Effect {}
+
+impl Hash for Effect {
+	fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+		self.inner.as_ptr().hash(state);
+	}
+}
+
 impl fmt::Debug for Effect {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		f.debug_struct("Effect").finish_non_exhaustive()
