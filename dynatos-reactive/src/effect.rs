@@ -86,6 +86,13 @@ impl Effect {
 		Rc::strong_count(&self.inner) == 1 && Rc::weak_count(&self.inner) == 0
 	}
 
+	/// Returns the pointer of this effect
+	///
+	/// This can be used for creating maps based on equality
+	pub fn inner_ptr(&self) -> *const () {
+		Rc::as_ptr(&self.inner).cast()
+	}
+
 	/// Runs the effect
 	pub fn run(&self) {
 		// Push the effect, run the closure and pop it
