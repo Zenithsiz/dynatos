@@ -12,21 +12,25 @@ use {
 	wasm_bindgen::prelude::wasm_bindgen,
 };
 
-/// Extension trait to add an effect to a node
+/// Extension trait to add an effect to an object
 // TODO: Allow removing effects?
-#[extend::ext(name = NodeAttachEffect)]
-pub impl js_sys::Object {
-	/// Attaches an effect to this node
+#[extend::ext(name = ObjectAttachEffect)]
+pub impl<T> T
+where
+	T: AsRef<js_sys::Object>,
+{
+	/// Attaches an effect to this object
 	fn attach_effect(&self, effect: Effect) {
 		// Get the effects array, or create it, if it doesn't exist
 		// TODO: Use an static anonymous symbol?
 		let prop_name: &str = "__dynatos_effects";
-		let effects = match self.get::<js_sys::Array>(prop_name) {
+		let obj = self.as_ref();
+		let effects = match obj.get::<js_sys::Array>(prop_name) {
 			Ok(effects) => effects,
 			Err(dynatos_util::GetError::WrongType(err)) => panic!("Effects array was the wrong type: {err:?}"),
 			Err(dynatos_util::GetError::Missing) => {
 				let effects = js_sys::Array::new();
-				self.set(prop_name, &effects);
+				obj.set(prop_name, &effects);
 				effects
 			},
 		};
