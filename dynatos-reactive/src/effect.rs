@@ -13,7 +13,7 @@ use std::{
 
 thread_local! {
 	/// Effect stack
-	static EFFECT_STACK: RefCell<Vec<Effect>> = RefCell::new(vec![]);
+	static EFFECT_STACK: RefCell<Vec<WeakEffect>> = RefCell::new(vec![]);
 }
 
 /// Effect inner
@@ -73,7 +73,7 @@ impl Effect {
 	}
 
 	/// Returns the current running effect
-	pub fn running() -> Option<Self> {
+	pub fn running() -> Option<WeakEffect> {
 		EFFECT_STACK.with_borrow(|effects| effects.last().cloned())
 	}
 
@@ -96,7 +96,7 @@ impl Effect {
 	/// Runs the effect
 	pub fn run(&self) {
 		// Push the effect, run the closure and pop it
-		EFFECT_STACK.with_borrow_mut(|effects| effects.push(self.clone()));
+		EFFECT_STACK.with_borrow_mut(|effects| effects.push(self.downgrade()));
 
 		// Then run it
 		let inner = self.inner.borrow();
