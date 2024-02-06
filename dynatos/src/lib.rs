@@ -25,19 +25,20 @@ where
 		// TODO: Use an static anonymous symbol?
 		let prop_name: &str = "__dynatos_effects";
 		let obj = self.as_ref();
-		let effects = match obj.get::<js_sys::Array>(prop_name) {
+		let effects = match obj.get::<js_sys::Map>(prop_name) {
 			Ok(effects) => effects,
 			Err(dynatos_util::GetError::WrongType(err)) => panic!("Effects array was the wrong type: {err:?}"),
 			Err(dynatos_util::GetError::Missing) => {
-				let effects = js_sys::Array::new();
+				let effects = js_sys::Map::new();
 				obj.set(prop_name, &effects);
 				effects
 			},
 		};
 
 		// Then push the effects
+		let effect_key = effect.inner_ptr();
 		let effect = WasmEffect(effect);
-		effects.push(&effect.into());
+		effects.set(&effect_key.into(), &effect.into());
 	}
 
 	/// Attaches an effect to this node.
