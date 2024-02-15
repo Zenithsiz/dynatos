@@ -91,7 +91,13 @@ where
 	C: AsRef<web_sys::Node>,
 {
 	fn append_all(self, node: &web_sys::Node) -> Result<(), JsValue> {
-		for child in self {
+		for child in self.iter().map(C::as_ref) {
+			// If the node already contains the child, warn and refuse to add it.
+			if node.contains(Some(child)) {
+				tracing::warn!(?child, "Attempted to add a duplicate child");
+				continue;
+			}
+
 			node.append_child(child.as_ref())?;
 		}
 
@@ -109,9 +115,16 @@ macro impl_children_tuple( $( $( $C:ident($idx:tt) ),*; )* ) {
 			)*
 		{
 			fn append_all(self, node: &web_sys::Node) -> Result<(), JsValue> {
-				$(
-					node.append_child(self.$idx.as_ref())?;
-				)*
+				$({
+					// If the node already contains the child, warn and refuse to add it.
+					let child = self.$idx.as_ref();
+					match node.contains(Some(child)) {
+						true => tracing::warn!(?child, "Attempted to add a duplicate child"),
+						false => {
+							node.append_child(child)?;
+						},
+					}
+				})*
 
 				Ok(())
 			}
