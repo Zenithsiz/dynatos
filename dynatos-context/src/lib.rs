@@ -159,7 +159,7 @@ where
 	T: 'static,
 	T: Copy,
 {
-	self::get::<T>().unwrap_or_else(|| panic!("Context for type {:?} was missing", any::type_name::<T>()))
+	self::get::<T>().unwrap_or_else(self::on_missing_context::<T, _>)
 }
 
 /// Gets a cloned value of `T` on the current context.
@@ -178,7 +178,7 @@ where
 	T: 'static,
 	T: Clone,
 {
-	self::get_cloned::<T>().unwrap_or_else(|| panic!("Context for type {:?} was missing", any::type_name::<T>()))
+	self::get_cloned::<T>().unwrap_or_else(self::on_missing_context::<T, _>)
 }
 
 /// Uses a value of `T` on the current context.
@@ -207,8 +207,15 @@ where
 	T: 'static,
 	F: FnOnce(&T) -> O,
 {
-	self::with(|value| value.map(f))
-		.unwrap_or_else(|| panic!("Context for type {:?} was missing", any::type_name::<T>()))
+	self::with(|value| value.map(f)).unwrap_or_else(self::on_missing_context::<T, _>)
+}
+
+/// Called when context for type `T` was missing.
+#[cold]
+#[inline(never)]
+#[track_caller]
+fn on_missing_context<T, O>() -> O {
+	panic!("Context for type {:?} was missing", any::type_name::<T>())
 }
 
 #[cfg(test)]
