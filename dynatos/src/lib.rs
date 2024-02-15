@@ -3,6 +3,12 @@
 // Features
 #![feature(let_chains)]
 
+// Modules
+pub mod dyn_element;
+
+// Exports
+pub use dyn_element::dyn_element;
+
 // Imports
 use {
 	dynatos_html::html,
