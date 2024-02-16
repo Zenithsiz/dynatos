@@ -15,7 +15,7 @@ mod object_dyn_prop;
 pub use self::{
 	dyn_element::dyn_element,
 	element_dyn_attr::ElementDynAttr,
-	node_dyn_child::{AsDynNode, AsOptNode, NodeDynChild},
+	node_dyn_child::{NodeDynChild, ToDynNode},
 	node_dyn_text::{NodeDynText, WithDynText},
 	object_attach_effect::ObjectAttachEffect,
 	object_dyn_prop::ObjectDynProp,

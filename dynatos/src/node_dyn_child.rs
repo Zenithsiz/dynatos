@@ -7,6 +7,7 @@ use {
 	dynatos_reactive::Effect,
 	dynatos_util::{TryOrReturnExt, WeakRef},
 	std::cell::RefCell,
+	wasm_bindgen::JsCast,
 };
 
 /// Extension trait to add a reactive child to an node
@@ -18,7 +19,7 @@ where
 	/// Adds a dynamic child to this node
 	fn dyn_child<C>(&self, child: C)
 	where
-		C: AsDynNode + 'static,
+		C: ToDynNode + 'static,
 	{
 		// Create the value to attach
 		// Note: It's important that we only keep a `WeakRef` to the node.
@@ -36,9 +37,7 @@ where
 			let node = node.get().or_return()?;
 
 			// Get the new child
-			// Note: If the new child already exists,
-			let new_child = child.as_node();
-			let new_child = new_child.get();
+			let new_child = child.to_node();
 
 			// Check if someone's messed with our previous child
 			// TODO: At this point should we give up, since we lost the position?
@@ -54,37 +53,37 @@ where
 			// Then check if we need to substitute in the empty child
 			let new_child = match new_child {
 				// If the new child is the same as the old one, we can return
-				Some(child) if prev_child.as_ref() == Some(child) => return,
+				Some(child) if prev_child.as_ref() == Some(&child) => return,
 
 				// Otherwise, if this is a duplicate node, warn and use an empty child
 				// Note: The typical browser behavior would be to remove the previous
 				//       child, then add ours. Unfortunately, removing other nodes might
 				//       cause another dyn child to panic due to it's previous node being
 				//       missing.
-				Some(child) if node.contains(Some(child)) => {
+				Some(child) if node.contains(Some(&child)) => {
 					tracing::warn!("Attempted to add a reactive node multiple times");
-					&empty_child
+					empty_child.clone()
 				},
 
 				// Otherwise, use the new child
 				Some(child) => child,
 
 				// Finally, if no child was given, use the empty child
-				None => &empty_child,
+				None => empty_child.clone(),
 			};
 
 			// Then update the node
 			match &mut *prev_child {
 				// If we already have a node, replace it
 				Some(prev_child) => node
-					.replace_child(new_child, prev_child)
+					.replace_child(&new_child, prev_child)
 					.expect("Unable to replace reactive child"),
 
 				// Otherwise, we're running for the first time, so append the child
-				None => node.append_child(new_child).expect("Unable to append reactive child"),
+				None => node.append_child(&new_child).expect("Unable to append reactive child"),
 			};
 
-			*prev_child = Some(new_child.clone());
+			*prev_child = Some(new_child);
 		})
 		.or_return()?;
 
@@ -97,49 +96,10 @@ where
 	/// Returns the node, for chaining
 	fn with_dyn_child<C>(self, child: C) -> Self
 	where
-		C: AsDynNode + 'static,
+		C: ToDynNode + 'static,
 	{
 		self.dyn_child(child);
 		self
-	}
-}
-
-/// Type used for the output of [`AsDynNode`].
-///
-/// This allows [`AsDynNode`] to work with both owned
-/// values, as well as `Option`s of those owned values.
-pub trait AsOptNode {
-	fn get(&self) -> Option<&web_sys::Node>;
-}
-
-impl<N> AsOptNode for &N
-where
-	N: AsOptNode,
-{
-	fn get(&self) -> Option<&web_sys::Node> {
-		N::get(self)
-	}
-}
-
-impl<N> AsOptNode for Option<N>
-where
-	N: AsOptNode,
-{
-	fn get(&self) -> Option<&web_sys::Node> {
-		self.as_ref().and_then(N::get)
-	}
-}
-
-// TODO: Impl for `impl AsRef<web_sys::Node>` if we can get rid of
-//       the conflict with the function impl
-#[duplicate::duplicate_item(
-	Ty;
-	[web_sys::Node];
-	[web_sys::Element];
-)]
-impl AsOptNode for Ty {
-	fn get(&self) -> Option<&web_sys::Node> {
-		Some(self)
 	}
 }
 
@@ -151,25 +111,18 @@ impl AsOptNode for Ty {
 /// - `N`
 /// - `Option<N>`
 /// Where `N` is a node type.
-pub trait AsDynNode {
-	/// The inner node type.
-	type Node<'a>: AsOptNode
-	where
-		Self: 'a;
-
+pub trait ToDynNode {
 	/// Retrieves / Computes the inner node
-	fn as_node(&self) -> Self::Node<'_>;
+	fn to_node(&self) -> Option<web_sys::Node>;
 }
 
-impl<F, N> AsDynNode for F
+impl<F, N> ToDynNode for F
 where
 	F: Fn() -> N,
-	N: AsOptNode,
+	N: ToDynNode,
 {
-	type Node<'a> = N where Self: 'a;
-
-	fn as_node(&self) -> Self::Node<'_> {
-		self()
+	fn to_node(&self) -> Option<web_sys::Node> {
+		self().to_node()
 	}
 }
 
@@ -180,23 +133,18 @@ where
 	[web_sys::Node];
 	[web_sys::Element];
 )]
-impl AsDynNode for Ty {
-	type Node<'a> = &'a Ty;
-
-	fn as_node(&self) -> Self::Node<'_> {
-		self
+impl ToDynNode for Ty {
+	fn to_node(&self) -> Option<web_sys::Node> {
+		let node = self.dyn_ref::<web_sys::Node>().expect("Unable to cast to element");
+		Some(node.clone())
 	}
 }
 
-#[duplicate::duplicate_item(
-	Ty;
-	[web_sys::Node];
-	[web_sys::Element];
-)]
-impl AsDynNode for Option<Ty> {
-	type Node<'a> = Option<&'a Ty>;
-
-	fn as_node(&self) -> Self::Node<'_> {
-		self.as_ref()
+impl<N> ToDynNode for Option<N>
+where
+	N: ToDynNode,
+{
+	fn to_node(&self) -> Option<web_sys::Node> {
+		self.as_ref().and_then(N::to_node)
 	}
 }
