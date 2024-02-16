@@ -28,6 +28,18 @@ pub trait SignalGet {
 	fn get(&self) -> Self::Value;
 }
 
+/// Signal cloned
+#[extend::ext(name = SignalCloned)]
+pub impl<S> S
+where
+	S: SignalWith,
+	S::Value: Clone,
+{
+	fn cloned(&self) -> S::Value {
+		self.with(|value| value.clone())
+	}
+}
+
 /// Signal with
 pub trait SignalWith {
 	/// Value type
