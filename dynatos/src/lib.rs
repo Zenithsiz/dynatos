@@ -13,7 +13,7 @@ pub use dyn_element::dyn_element;
 use {
 	dynatos_html::html,
 	dynatos_reactive::Effect,
-	dynatos_util::{ObjectGet, ObjectSet, TryOrReturnExt, WeakRef},
+	dynatos_util::{ObjectGet, ObjectSetProp, TryOrReturnExt, WeakRef},
 	std::cell::RefCell,
 	wasm_bindgen::prelude::wasm_bindgen,
 };
@@ -36,7 +36,7 @@ where
 			Err(dynatos_util::GetError::WrongType(err)) => panic!("Effects array was the wrong type: {err:?}"),
 			Err(dynatos_util::GetError::Missing) => {
 				let effects = js_sys::Map::new();
-				obj.set(prop_name, &effects);
+				obj.set_prop(prop_name, &effects);
 				effects
 			},
 		};

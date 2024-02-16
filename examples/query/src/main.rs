@@ -10,7 +10,7 @@ use {
 	dynatos_html::{html, NodeWithChildren, NodeWithTextContent},
 	dynatos_reactive::{SignalGet, SignalSet, SignalUpdate, SignalWithDefault},
 	dynatos_router::{Location, QuerySignal},
-	dynatos_util::{ev, EventTargetAddListener, ObjectSet},
+	dynatos_util::{ev, EventTargetAddListener, ObjectSetProp},
 	wasm_bindgen::prelude::wasm_bindgen,
 	web_sys::Element,
 };
@@ -38,7 +38,7 @@ fn run() -> Result<(), anyhow::Error> {
 
 	#[wasm_bindgen]
 	struct LocationHandle(Handle<Location>);
-	body.set("__dynatos_location_handle", LocationHandle(location_handle));
+	body.set_prop("__dynatos_location_handle", LocationHandle(location_handle));
 
 	Ok(())
 }

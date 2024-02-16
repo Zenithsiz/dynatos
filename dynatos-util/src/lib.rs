@@ -41,13 +41,27 @@ pub impl<T> Result<T, JsValue> {
 }
 
 /// Extension trait to set a property on an object
-#[extend::ext(name = ObjectSet)]
+#[extend::ext(name = ObjectSetProp)]
 pub impl js_sys::Object {
-	fn set<T>(&self, property: &str, value: T)
+	/// Sets the `prop` property of this object to `value`.
+	fn set_prop<T>(&self, prop: &str, value: T)
 	where
 		T: Into<JsValue>,
 	{
-		Reflect::set(self, &property.into(), &value.into()).expect("Unable to set object property");
+		let value = value.into();
+		Reflect::set(self, &prop.into(), &value)
+			.unwrap_or_else(|err| panic!("Unable to set object property {prop:?} to {value:?}: {err:?}"));
+	}
+
+	/// Sets the `prop` property of this object to `value`.
+	///
+	/// Returns the object, for chaining
+	fn with_prop<T>(self, prop: &str, value: T) -> Self
+	where
+		T: Into<JsValue>,
+	{
+		self.set_prop(prop, value);
+		self
 	}
 }
 
