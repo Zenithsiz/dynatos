@@ -52,7 +52,14 @@ pub impl js_sys::Object {
 		Reflect::set(self, &prop.into(), &value)
 			.unwrap_or_else(|err| panic!("Unable to set object property {prop:?} to {value:?}: {err:?}"));
 	}
+}
 
+/// Extension trait to set a property on any type that is an object
+#[extend::ext(name = ObjectWithProp)]
+pub impl<O> O
+where
+	O: AsRef<js_sys::Object>,
+{
 	/// Sets the `prop` property of this object to `value`.
 	///
 	/// Returns the object, for chaining
@@ -60,7 +67,7 @@ pub impl js_sys::Object {
 	where
 		T: Into<JsValue>,
 	{
-		self.set_prop(prop, value);
+		self.as_ref().set_prop(prop, value);
 		self
 	}
 }
