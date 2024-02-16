@@ -5,7 +5,7 @@ use {
 	dynatos::{ElementDynAttr, NodeDynText},
 	dynatos_html::{html, NodeWithChildren, NodeWithText},
 	dynatos_reactive::{Signal, SignalGet, SignalSet, SignalUpdate},
-	dynatos_util::{ev, EventTargetAddListener, JsResultContext},
+	dynatos_util::{ev, EventTargetWithListener, JsResultContext},
 	web_sys::Element,
 };
 
@@ -38,17 +38,17 @@ fn counter() -> Element {
 			move || ("data-value", Some(value.get().to_string()))
 		})
 		.with_children([
-			html::button().with_text("Clear").with_event_listener::<ev::Click, _>({
+			html::button().with_text("Clear").with_event_listener::<ev::Click>({
 				let value = value.clone();
 				move |_ev| {
 					value.set(0);
 				}
 			}),
-			html::button().with_text("+").with_event_listener::<ev::Click, _>({
+			html::button().with_text("+").with_event_listener::<ev::Click>({
 				let value = value.clone();
 				move |_ev| value.update(|value| *value += 1)
 			}),
-			html::button().with_text("-").with_event_listener::<ev::Click, _>({
+			html::button().with_text("-").with_event_listener::<ev::Click>({
 				let value = value.clone();
 				move |_ev| value.update(|value| *value -= 1)
 			}),

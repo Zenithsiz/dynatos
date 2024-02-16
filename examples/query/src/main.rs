@@ -10,7 +10,7 @@ use {
 	dynatos_html::{html, NodeWithChildren, NodeWithText},
 	dynatos_reactive::{SignalGet, SignalSet, SignalUpdate, SignalWithDefault},
 	dynatos_router::{Location, QuerySignal},
-	dynatos_util::{ev, EventTargetAddListener, ObjectSetProp},
+	dynatos_util::{ev, EventTargetWithListener, ObjectSetProp},
 	wasm_bindgen::prelude::wasm_bindgen,
 	web_sys::Element,
 };
@@ -59,7 +59,7 @@ fn page() -> Element {
 		dynatos_router::anchor("/?a=abc").with_text("abc"),
 		html::br(),
 		html::button()
-			.with_event_listener::<ev::Click, _>({
+			.with_event_listener::<ev::Click>({
 				let query = query.clone();
 				move |_ev| {
 					query.update(|value| *value += 1);
@@ -68,7 +68,7 @@ fn page() -> Element {
 			.with_text("Add"),
 		html::br(),
 		html::button()
-			.with_event_listener::<ev::Click, _>(move |_ev| {
+			.with_event_listener::<ev::Click>(move |_ev| {
 				query.set(6);
 			})
 			.with_text("6"),

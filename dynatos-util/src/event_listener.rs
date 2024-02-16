@@ -8,10 +8,8 @@ use wasm_bindgen::{
 
 /// Extension trait to define an event listener on an event target with a closure
 #[extend::ext(name = EventTargetAddListener)]
-pub impl<T> T
-where
-	T: AsRef<web_sys::EventTarget>,
-{
+pub impl web_sys::EventTarget {
+	/// Adds an event listener to this target
 	fn add_event_listener<E, F>(&self, f: F)
 	where
 		E: EventListener,
@@ -25,17 +23,24 @@ where
 
 		// Then add it
 		// TODO: Can this fail? On MDN, nothing seems to mention it can throw.
-		self.as_ref()
-			.add_event_listener_with_callback(E::name(), &closure)
+		self.add_event_listener_with_callback(E::name(), &closure)
 			.expect("Unable to add event listener");
 	}
-
-	fn with_event_listener<E, F>(self, f: F) -> Self
+}
+/// Extension trait to define an event listener on an event target with a closure
+#[extend::ext(name = EventTargetWithListener)]
+pub impl<T> T
+where
+	T: AsRef<web_sys::EventTarget>,
+{
+	/// Adds an event listener to this target
+	///
+	/// Returns the type, for chaining
+	fn with_event_listener<E>(self, f: impl IntoWasmClosure<E::Closure> + 'static) -> Self
 	where
 		E: EventListener,
-		F: IntoWasmClosure<E::Closure> + 'static,
 	{
-		self.add_event_listener::<E, F>(f);
+		self.as_ref().add_event_listener::<E, _>(f);
 		self
 	}
 }

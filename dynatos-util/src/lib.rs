@@ -10,7 +10,7 @@ pub mod weak_ref;
 
 // Exports
 pub use self::{
-	event_listener::{ev, EventListener, EventTargetAddListener},
+	event_listener::{ev, EventListener, EventTargetAddListener, EventTargetWithListener},
 	try_or_return::{TryOrReturn, TryOrReturnExt},
 	weak_ref::WeakRef,
 };
