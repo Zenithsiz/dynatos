@@ -15,7 +15,7 @@ where
 	T: AsRef<js_sys::Object>,
 {
 	/// Adds a dynamic property to this object
-	fn dyn_prop<F, K, V>(&self, f: F)
+	fn add_dyn_prop<F, K, V>(&self, f: F)
 	where
 		F: Fn() -> (K, Option<V>) + 'static,
 		K: AsRef<str>,
@@ -57,18 +57,18 @@ where
 		K: AsRef<str>,
 		V: Into<JsValue>,
 	{
-		self.dyn_prop(f);
+		self.add_dyn_prop(f);
 		self
 	}
 
 	/// Adds a dynamic property to this object, where only the value is dynamic.
-	fn dyn_prop_value<F, K, V>(&self, key: K, f: F)
+	fn add_dyn_prop_value<F, K, V>(&self, key: K, f: F)
 	where
 		F: Fn() -> Option<V> + 'static,
 		K: AsRef<str> + Copy + 'static,
 		V: Into<JsValue>,
 	{
-		self.dyn_prop(move || (key, f()));
+		self.add_dyn_prop(move || (key, f()));
 	}
 
 	/// Adds a dynamic property to this object, where only the value is dynamic.
@@ -80,7 +80,7 @@ where
 		K: AsRef<str> + Copy + 'static,
 		V: Into<JsValue>,
 	{
-		self.dyn_prop_value(key, f);
+		self.add_dyn_prop_value(key, f);
 		self
 	}
 }

@@ -14,7 +14,7 @@ where
 	T: AsRef<web_sys::Node>,
 {
 	/// Adds dynamic text to this node
-	fn dyn_text<U>(&self, text: U)
+	fn set_dyn_text<U>(&self, text: U)
 	where
 		U: WithDynText + 'static,
 	{
@@ -43,7 +43,7 @@ where
 	where
 		U: WithDynText + 'static,
 	{
-		self.dyn_text(text);
+		self.set_dyn_text(text);
 		self
 	}
 }

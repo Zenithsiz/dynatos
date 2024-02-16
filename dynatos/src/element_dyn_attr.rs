@@ -14,7 +14,7 @@ where
 	T: AsRef<web_sys::Element>,
 {
 	/// Adds a dynamic attribute to this element
-	fn dyn_attr<F, K, V>(&self, f: F)
+	fn set_dyn_attr<F, K, V>(&self, f: F)
 	where
 		F: Fn() -> (K, Option<V>) + 'static,
 		K: AsRef<str>,
@@ -59,18 +59,18 @@ where
 		K: AsRef<str>,
 		V: AsRef<str>,
 	{
-		self.dyn_attr(f);
+		self.set_dyn_attr(f);
 		self
 	}
 
 	/// Adds a dynamic attribute to this element, where only the value is dynamic.
-	fn dyn_attr_value<F, K, V>(&self, key: K, f: F)
+	fn set_dyn_attr_value<F, K, V>(&self, key: K, f: F)
 	where
 		F: Fn() -> Option<V> + 'static,
 		K: AsRef<str> + Copy + 'static,
 		V: AsRef<str>,
 	{
-		self.dyn_attr(move || (key, f()));
+		self.set_dyn_attr(move || (key, f()));
 	}
 
 	/// Adds a dynamic attribute to this element, where only the value is dynamic.
@@ -82,17 +82,17 @@ where
 		K: AsRef<str> + Copy + 'static,
 		V: AsRef<str>,
 	{
-		self.dyn_attr_value(key, f);
+		self.set_dyn_attr_value(key, f);
 		self
 	}
 
 	/// Adds a dynamic attribute to this element, without a value, given a predicate
-	fn dyn_attr_if<F, K>(&self, key: K, f: F)
+	fn set_dyn_attr_if<F, K>(&self, key: K, f: F)
 	where
 		F: Fn() -> bool + 'static,
 		K: AsRef<str> + Copy + 'static,
 	{
-		self.dyn_attr(move || (key, f().then_some("")));
+		self.set_dyn_attr(move || (key, f().then_some("")));
 	}
 
 	/// Adds a dynamic attribute to this element, without a value, given a predicate
@@ -103,7 +103,7 @@ where
 		F: Fn() -> bool + 'static,
 		K: AsRef<str> + Copy + 'static,
 	{
-		self.dyn_attr_if(key, f);
+		self.set_dyn_attr_if(key, f);
 		self
 	}
 }

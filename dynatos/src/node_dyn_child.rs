@@ -17,7 +17,7 @@ where
 	T: AsRef<web_sys::Node>,
 {
 	/// Adds a dynamic child to this node
-	fn dyn_child<C>(&self, child: C)
+	fn add_dyn_child<C>(&self, child: C)
 	where
 		C: ToDynNode + 'static,
 	{
@@ -98,7 +98,7 @@ where
 	where
 		C: ToDynNode + 'static,
 	{
-		self.dyn_child(child);
+		self.add_dyn_child(child);
 		self
 	}
 }
