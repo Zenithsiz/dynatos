@@ -49,7 +49,7 @@ fn page() -> Element {
 	html::div().with_children([
 		html::p().with_dyn_text({
 			let query = query.clone();
-			move || Some(format!("{:?}", query.get()))
+			move || format!("{:?}", query.get())
 		}),
 		html::hr(),
 		dynatos_router::anchor("/?a=5").with_text("5"),

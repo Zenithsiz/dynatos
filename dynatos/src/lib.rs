@@ -255,10 +255,9 @@ where
 	T: AsRef<web_sys::Node>,
 {
 	/// Adds dynamic text to this node
-	fn dyn_text<F, S>(&self, f: F)
+	fn dyn_text<U>(&self, text: U)
 	where
-		F: Fn() -> Option<S> + 'static,
-		S: AsRef<str>,
+		U: AsDynText + 'static,
 	{
 		// Create the value to attach
 		// Note: It's important that we only keep a `WeakRef` to the node.
@@ -270,8 +269,8 @@ where
 			let node = node.get().or_return()?;
 
 			// And set the text content
-			match f() {
-				Some(s) => node.set_text_content(Some(s.as_ref())),
+			match text.as_text().get() {
+				Some(s) => node.set_text_content(Some(s)),
 				None => node.set_text_content(None),
 			}
 		})
@@ -284,13 +283,110 @@ where
 	/// Adds dynamic text to this node.
 	///
 	/// Returns the node, for chaining
-	fn with_dyn_text<F, S>(self, f: F) -> Self
+	fn with_dyn_text<U>(self, text: U) -> Self
 	where
-		F: Fn() -> Option<S> + 'static,
-		S: AsRef<str>,
+		U: AsDynText + 'static,
 	{
-		self.dyn_text(f);
+		self.dyn_text(text);
 		self
+	}
+}
+
+/// Type used for the output of [`AsDynText`].
+///
+/// This allows [`AsDynText`] to work with both owned
+/// values, as well as `Option`s of those owned values.
+pub trait AsOptText {
+	fn get(&self) -> Option<&str>;
+}
+
+impl<N: ?Sized> AsOptText for &N
+where
+	N: AsOptText,
+{
+	fn get(&self) -> Option<&str> {
+		N::get(self)
+	}
+}
+
+impl<N> AsOptText for Option<N>
+where
+	N: AsOptText,
+{
+	fn get(&self) -> Option<&str> {
+		self.as_ref().and_then(N::get)
+	}
+}
+
+// TODO: Impl for `impl AsRef<str>` if we can get rid of
+//       the conflict with the function impl
+#[duplicate::duplicate_item(
+	Ty;
+	[str];
+	[String];
+)]
+impl AsOptText for Ty {
+	fn get(&self) -> Option<&str> {
+		Some(self)
+	}
+}
+
+/// Trait for values accepted by [`NodeDynText`].
+///
+/// This allows it to work with the following types:
+/// - `impl Fn() -> N`
+/// - `impl Fn() -> Option<N>`
+/// - `N`
+/// - `Option<N>`
+/// Where `N` is a text type.
+pub trait AsDynText {
+	/// The inner text type.
+	type Text<'a>: AsOptText
+	where
+		Self: 'a;
+
+	/// Retrieves / Computes the inner text
+	fn as_text(&self) -> Self::Text<'_>;
+}
+
+impl<F, N> AsDynText for F
+where
+	F: Fn() -> N,
+	N: AsOptText,
+{
+	type Text<'a> = N where Self: 'a;
+
+	fn as_text(&self) -> Self::Text<'_> {
+		self()
+	}
+}
+
+#[duplicate::duplicate_item(
+	Ty;
+	[&'static str];
+	[String];
+)]
+impl AsDynText for Ty {
+	type Text<'a> = &'a str;
+
+	fn as_text(&self) -> Self::Text<'_> {
+		self
+	}
+}
+
+#[duplicate::duplicate_item(
+	Ty;
+	[&'static str];
+	[String];
+)]
+impl AsDynText for Option<Ty> {
+	type Text<'a> = Option<&'a str> where Self: 'a;
+
+	fn as_text(&self) -> Self::Text<'_> {
+		match self {
+			Some(s) => Some(s),
+			None => None,
+		}
 	}
 }
 

@@ -54,7 +54,7 @@ fn counter() -> Element {
 			}),
 			html::span().with_dyn_text({
 				let value = value.clone();
-				move || Some(format!("Value: {}.", value.get()))
+				move || format!("Value: {}.", value.get())
 			}),
 		])
 }
