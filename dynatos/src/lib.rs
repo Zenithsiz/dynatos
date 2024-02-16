@@ -146,7 +146,7 @@ where
 	fn with_dyn_child<F, N>(self, f: F) -> Self
 	where
 		F: Fn() -> Option<N> + 'static,
-		N: AsRef<web_sys::Node> + 'static,
+		N: AsRef<web_sys::Node>,
 	{
 		self.dyn_child(f);
 		self
