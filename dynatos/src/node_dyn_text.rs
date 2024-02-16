@@ -92,18 +92,16 @@ impl WithDynText for Ty {
 	}
 }
 
-#[duplicate::duplicate_item(
-	Ty;
-	[&'static str];
-	[String];
-)]
-impl WithDynText for Option<Ty> {
+impl<T> WithDynText for Option<T>
+where
+	T: WithDynText,
+{
 	fn with_text<F, O>(&self, f: F) -> O
 	where
 		F: FnOnce(Option<&str>) -> O,
 	{
 		match self {
-			Some(s) => f(Some(s)),
+			Some(s) => s.with_text(f),
 			None => f(None),
 		}
 	}
