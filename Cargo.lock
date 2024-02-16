@@ -43,6 +43,7 @@ dependencies = [
 name = "dynatos"
 version = "0.1.0"
 dependencies = [
+ "duplicate",
  "dynatos-html",
  "dynatos-reactive",
  "dynatos-util",

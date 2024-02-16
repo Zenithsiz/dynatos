@@ -9,6 +9,7 @@ dynatos-html = { workspace = true }
 dynatos-reactive = { workspace = true }
 dynatos-util = { workspace = true }
 
+duplicate = { workspace = true }
 extend = { workspace = true }
 js-sys = { workspace = true }
 tracing = { workspace = true }

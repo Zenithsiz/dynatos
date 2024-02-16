@@ -1,7 +1,7 @@
 //! Dynatos framework
 
 // Features
-#![feature(let_chains)]
+#![feature(let_chains, unboxed_closures, associated_type_bounds)]
 
 // Modules
 pub mod dyn_element;
@@ -63,10 +63,9 @@ where
 	T: AsRef<web_sys::Node>,
 {
 	/// Adds a dynamic child to this node
-	fn dyn_child<F, N>(&self, f: F)
+	fn dyn_child<C>(&self, child: C)
 	where
-		F: Fn() -> Option<N> + 'static,
-		N: AsRef<web_sys::Node>,
+		C: AsDynNode + 'static,
 	{
 		// Create the value to attach
 		// Note: It's important that we only keep a `WeakRef` to the node.
@@ -85,8 +84,8 @@ where
 
 			// Get the new child
 			// Note: If the new child already exists,
-			let new_child = f();
-			let new_child = new_child.as_ref().map(N::as_ref);
+			let new_child = child.as_node();
+			let new_child = new_child.get();
 
 			// Check if someone's messed with our previous child
 			// TODO: At this point should we give up, since we lost the position?
@@ -143,13 +142,109 @@ where
 	/// Adds a dynamic child to this node.
 	///
 	/// Returns the node, for chaining
-	fn with_dyn_child<F, N>(self, f: F) -> Self
+	fn with_dyn_child<C>(self, child: C) -> Self
 	where
-		F: Fn() -> Option<N> + 'static,
-		N: AsRef<web_sys::Node>,
+		C: AsDynNode + 'static,
 	{
-		self.dyn_child(f);
+		self.dyn_child(child);
 		self
+	}
+}
+
+/// Type used for the output of [`AsDynNode`].
+///
+/// This allows [`AsDynNode`] to work with both owned
+/// values, as well as `Option`s of those owned values.
+pub trait AsOptNode {
+	fn get(&self) -> Option<&web_sys::Node>;
+}
+
+impl<N> AsOptNode for &N
+where
+	N: AsOptNode,
+{
+	fn get(&self) -> Option<&web_sys::Node> {
+		N::get(self)
+	}
+}
+
+impl<N> AsOptNode for Option<N>
+where
+	N: AsOptNode,
+{
+	fn get(&self) -> Option<&web_sys::Node> {
+		self.as_ref().and_then(N::get)
+	}
+}
+
+// TODO: Impl for `impl AsRef<web_sys::Node>` if we can get rid of
+//       the conflict with the function impl
+#[duplicate::duplicate_item(
+	Ty;
+	[web_sys::Node];
+	[web_sys::Element];
+)]
+impl AsOptNode for Ty {
+	fn get(&self) -> Option<&web_sys::Node> {
+		Some(self)
+	}
+}
+
+/// Trait for values accepted by [`NodeDynChild`].
+///
+/// This allows it to work with the following types:
+/// - `impl Fn() -> N`
+/// - `impl Fn() -> Option<N>`
+/// - `N`
+/// - `Option<N>`
+/// Where `N` is a node type.
+pub trait AsDynNode {
+	/// The inner node type.
+	type Node<'a>: AsOptNode
+	where
+		Self: 'a;
+
+	/// Retrieves / Computes the inner node
+	fn as_node(&self) -> Self::Node<'_>;
+}
+
+impl<F, N> AsDynNode for F
+where
+	F: Fn() -> N,
+	N: AsOptNode,
+{
+	type Node<'a> = N where Self: 'a;
+
+	fn as_node(&self) -> Self::Node<'_> {
+		self()
+	}
+}
+
+// TODO: Impl for `impl AsRef<web_sys::Node>` if we can get rid of
+//       the conflict with the function impl
+#[duplicate::duplicate_item(
+	Ty;
+	[web_sys::Node];
+	[web_sys::Element];
+)]
+impl AsDynNode for Ty {
+	type Node<'a> = &'a Ty;
+
+	fn as_node(&self) -> Self::Node<'_> {
+		self
+	}
+}
+
+#[duplicate::duplicate_item(
+	Ty;
+	[web_sys::Node];
+	[web_sys::Element];
+)]
+impl AsDynNode for Option<Ty> {
+	type Node<'a> = Option<&'a Ty>;
+
+	fn as_node(&self) -> Self::Node<'_> {
+		self.as_ref()
 	}
 }
 
