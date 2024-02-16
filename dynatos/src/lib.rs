@@ -257,7 +257,7 @@ where
 	/// Adds dynamic text to this node
 	fn dyn_text<U>(&self, text: U)
 	where
-		U: AsDynText + 'static,
+		U: WithDynText + 'static,
 	{
 		// Create the value to attach
 		// Note: It's important that we only keep a `WeakRef` to the node.
@@ -269,10 +269,7 @@ where
 			let node = node.get().or_return()?;
 
 			// And set the text content
-			match text.as_text().get() {
-				Some(s) => node.set_text_content(Some(s)),
-				None => node.set_text_content(None),
-			}
+			text.with_text(|text| node.set_text_content(text));
 		})
 		.or_return()?;
 
@@ -285,49 +282,10 @@ where
 	/// Returns the node, for chaining
 	fn with_dyn_text<U>(self, text: U) -> Self
 	where
-		U: AsDynText + 'static,
+		U: WithDynText + 'static,
 	{
 		self.dyn_text(text);
 		self
-	}
-}
-
-/// Type used for the output of [`AsDynText`].
-///
-/// This allows [`AsDynText`] to work with both owned
-/// values, as well as `Option`s of those owned values.
-pub trait AsOptText {
-	fn get(&self) -> Option<&str>;
-}
-
-impl<N: ?Sized> AsOptText for &N
-where
-	N: AsOptText,
-{
-	fn get(&self) -> Option<&str> {
-		N::get(self)
-	}
-}
-
-impl<N> AsOptText for Option<N>
-where
-	N: AsOptText,
-{
-	fn get(&self) -> Option<&str> {
-		self.as_ref().and_then(N::get)
-	}
-}
-
-// TODO: Impl for `impl AsRef<str>` if we can get rid of
-//       the conflict with the function impl
-#[duplicate::duplicate_item(
-	Ty;
-	[str];
-	[String];
-)]
-impl AsOptText for Ty {
-	fn get(&self) -> Option<&str> {
-		Some(self)
 	}
 }
 
@@ -339,25 +297,39 @@ impl AsOptText for Ty {
 /// - `N`
 /// - `Option<N>`
 /// Where `N` is a text type.
-pub trait AsDynText {
-	/// The inner text type.
-	type Text<'a>: AsOptText
+pub trait WithDynText {
+	/// Calls `f` with the inner text
+	fn with_text<F, O>(&self, f: F) -> O
 	where
-		Self: 'a;
-
-	/// Retrieves / Computes the inner text
-	fn as_text(&self) -> Self::Text<'_>;
+		F: FnOnce(Option<&str>) -> O;
 }
 
-impl<F, N> AsDynText for F
+impl<FT, T> WithDynText for FT
 where
-	F: Fn() -> N,
-	N: AsOptText,
+	FT: Fn() -> T,
+	T: WithDynText,
 {
-	type Text<'a> = N where Self: 'a;
+	fn with_text<F, O>(&self, f: F) -> O
+	where
+		F: FnOnce(Option<&str>) -> O,
+	{
+		let text = self();
+		text.with_text(f)
+	}
+}
 
-	fn as_text(&self) -> Self::Text<'_> {
-		self()
+#[duplicate::duplicate_item(
+	Ty;
+	[str];
+	[&'static str];
+	[String];
+)]
+impl WithDynText for Ty {
+	fn with_text<F, O>(&self, f: F) -> O
+	where
+		F: FnOnce(Option<&str>) -> O,
+	{
+		f(Some(self))
 	}
 }
 
@@ -366,26 +338,14 @@ where
 	[&'static str];
 	[String];
 )]
-impl AsDynText for Ty {
-	type Text<'a> = &'a str;
-
-	fn as_text(&self) -> Self::Text<'_> {
-		self
-	}
-}
-
-#[duplicate::duplicate_item(
-	Ty;
-	[&'static str];
-	[String];
-)]
-impl AsDynText for Option<Ty> {
-	type Text<'a> = Option<&'a str> where Self: 'a;
-
-	fn as_text(&self) -> Self::Text<'_> {
+impl WithDynText for Option<Ty> {
+	fn with_text<F, O>(&self, f: F) -> O
+	where
+		F: FnOnce(Option<&str>) -> O,
+	{
 		match self {
-			Some(s) => Some(s),
-			None => None,
+			Some(s) => f(Some(s)),
+			None => f(None),
 		}
 	}
 }
