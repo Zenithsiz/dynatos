@@ -109,6 +109,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "dynatos-title"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "duplicate",
+ "dynatos-reactive",
+ "dynatos-util",
+ "extend",
+ "js-sys",
+ "tracing",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
 name = "dynatos-util"
 version = "0.1.0"
 dependencies = [

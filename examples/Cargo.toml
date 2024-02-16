@@ -12,6 +12,7 @@ dynatos-html = { path = "../dynatos-html" }
 dynatos-logger = { path = "../dynatos-logger" }
 dynatos-reactive = { path = "../dynatos-reactive" }
 dynatos-router = { path = "../dynatos-router" }
+dynatos-title = { path = "../dynatos-title" }
 dynatos-util = { path = "../dynatos-util" }
 
 anyhow = "1.0.79"
