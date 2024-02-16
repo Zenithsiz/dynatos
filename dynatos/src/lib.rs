@@ -12,7 +12,7 @@ pub use dyn_element::dyn_element;
 // Imports
 use {
 	dynatos_html::html,
-	dynatos_reactive::Effect,
+	dynatos_reactive::{Derived, Effect, Signal, SignalWith},
 	dynatos_util::{ObjectGet, ObjectRemoveProp, ObjectSetProp, TryOrReturnExt, WeakRef},
 	std::cell::RefCell,
 	wasm_bindgen::{prelude::wasm_bindgen, JsValue},
@@ -347,6 +347,24 @@ impl WithDynText for Option<Ty> {
 			Some(s) => f(Some(s)),
 			None => f(None),
 		}
+	}
+}
+
+// TODO: Allow impl for `impl SignalGet<Value: WithDynText>`
+#[duplicate::duplicate_item(
+	Sig;
+	[Signal];
+	[Derived];
+)]
+impl<T> WithDynText for Sig<T>
+where
+	T: WithDynText,
+{
+	fn with_text<F, O>(&self, f: F) -> O
+	where
+		F: FnOnce(Option<&str>) -> O,
+	{
+		self.with(|text| text.with_text(f))
 	}
 }
 
