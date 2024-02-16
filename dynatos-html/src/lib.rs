@@ -10,28 +10,28 @@ pub mod html;
 use {itertools::Itertools, wasm_bindgen::JsValue};
 
 /// Extension trait to set the text content in a builder-style.
-#[extend::ext_sized(name = NodeWithTextContent)]
+#[extend::ext_sized(name = NodeWithText)]
 pub impl<T> T
 where
 	T: AsRef<web_sys::Node>,
 {
-	fn with_text_content<C>(self, text: C) -> Self
+	fn with_text<C>(self, text: C) -> Self
 	where
 		C: AsTextContent,
 	{
-		self.as_ref().set_text_content(text.as_text_content());
+		self.as_ref().set_text_content(text.as_text());
 		self
 	}
 }
 
-/// Types that may be used for [`ElementWithTextContent`]
+/// Types that may be used for [`NodeWithText`]
 pub trait AsTextContent {
-	/// Returns the text content
-	fn as_text_content(&self) -> Option<&str>;
+	/// Returns the text
+	fn as_text(&self) -> Option<&str>;
 }
 
 // Note: We only add a single impl for `Option<_>` to ensure
-//       that calling `with_text_content(None)` works without
+//       that calling `with_text(None)` works without
 //       specifying any type annotations
 #[duplicate::duplicate_item(
 	Ty body;
@@ -40,7 +40,7 @@ pub trait AsTextContent {
 	[ Option<String> ] [ self.as_deref() ];
 )]
 impl AsTextContent for Ty {
-	fn as_text_content(&self) -> Option<&str> {
+	fn as_text(&self) -> Option<&str> {
 		body
 	}
 }

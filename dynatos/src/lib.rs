@@ -265,7 +265,7 @@ where
 		//       Otherwise, the node will be keeping us alive, while we keep
 		//       the node alive, causing a leak.
 		let node = WeakRef::new(self.as_ref());
-		let text_content_effect = Effect::try_new(move || {
+		let text_effect = Effect::try_new(move || {
 			// Try to get the node
 			let node = node.get().or_return()?;
 
@@ -278,7 +278,7 @@ where
 		.or_return()?;
 
 		// Then set it
-		self.as_ref().attach_effect(text_content_effect);
+		self.as_ref().attach_effect(text_effect);
 	}
 
 	/// Adds dynamic text to this node.

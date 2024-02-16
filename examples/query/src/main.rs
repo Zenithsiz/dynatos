@@ -7,7 +7,7 @@
 use {
 	dynatos::NodeDynText,
 	dynatos_context::Handle,
-	dynatos_html::{html, NodeWithChildren, NodeWithTextContent},
+	dynatos_html::{html, NodeWithChildren, NodeWithText},
 	dynatos_reactive::{SignalGet, SignalSet, SignalUpdate, SignalWithDefault},
 	dynatos_router::{Location, QuerySignal},
 	dynatos_util::{ev, EventTargetAddListener, ObjectSetProp},
@@ -52,11 +52,11 @@ fn page() -> Element {
 			move || Some(format!("{:?}", query.get()))
 		}),
 		html::hr(),
-		dynatos_router::anchor("/?a=5").with_text_content("5"),
+		dynatos_router::anchor("/?a=5").with_text("5"),
 		html::br(),
-		dynatos_router::anchor("/?a=7").with_text_content("7"),
+		dynatos_router::anchor("/?a=7").with_text("7"),
 		html::br(),
-		dynatos_router::anchor("/?a=abc").with_text_content("abc"),
+		dynatos_router::anchor("/?a=abc").with_text("abc"),
 		html::br(),
 		html::button()
 			.with_event_listener::<ev::Click, _>({
@@ -65,12 +65,12 @@ fn page() -> Element {
 					query.update(|value| *value += 1);
 				}
 			})
-			.with_text_content("Add"),
+			.with_text("Add"),
 		html::br(),
 		html::button()
 			.with_event_listener::<ev::Click, _>(move |_ev| {
 				query.set(6);
 			})
-			.with_text_content("6"),
+			.with_text("6"),
 	])
 }

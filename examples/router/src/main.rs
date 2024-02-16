@@ -7,7 +7,7 @@
 use {
 	dynatos::NodeDynChild,
 	dynatos_context::Handle,
-	dynatos_html::{html, NodeWithChildren, NodeWithTextContent},
+	dynatos_html::{html, NodeWithChildren, NodeWithText},
 	dynatos_reactive::SignalGet,
 	dynatos_router::Location,
 	dynatos_util::ObjectSetProp,
@@ -36,15 +36,15 @@ fn run() -> Result<(), anyhow::Error> {
 
 	(&body).with_child(
 		html::div()
-			.with_children([html::p().with_text_content("Header"), html::hr()])
+			.with_children([html::p().with_text("Header"), html::hr()])
 			.with_dyn_child(self::render_route)
 			.with_children([
 				html::hr(),
-				dynatos_router::anchor("/test").with_text_content("Test"),
+				dynatos_router::anchor("/test").with_text("Test"),
 				html::br(),
-				dynatos_router::anchor("/cached").with_text_content("Cached"),
+				dynatos_router::anchor("/cached").with_text("Cached"),
 				html::br(),
-				dynatos_router::anchor("/empty").with_text_content("Empty"),
+				dynatos_router::anchor("/empty").with_text("Empty"),
 			]),
 	);
 
@@ -77,5 +77,5 @@ fn render_route() -> Option<Element> {
 
 fn page(name: &str) -> Element {
 	tracing::info!(%name, "Rendering page");
-	html::p().with_text_content(format!("Page {name}"))
+	html::p().with_text(format!("Page {name}"))
 }
