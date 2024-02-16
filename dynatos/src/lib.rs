@@ -47,9 +47,9 @@ where
 		effects.set(&effect_key.into(), &effect.into());
 	}
 
-	/// Attaches an effect to this node.
+	/// Attaches an effect to this object.
 	///
-	/// Returns the node, for chaining
+	/// Returns the object, for chaining
 	fn with_effect(self, effect: Effect) -> Self {
 		self.attach_effect(effect);
 		self
