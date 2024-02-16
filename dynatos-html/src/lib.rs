@@ -86,7 +86,7 @@ impl Children for () {
 	}
 }
 
-impl<C, const N: usize> Children for [C; N]
+impl<C> Children for &'_ [C]
 where
 	C: AsRef<web_sys::Node>,
 {
@@ -102,6 +102,24 @@ where
 		}
 
 		Ok(())
+	}
+}
+
+impl<C, const N: usize> Children for [C; N]
+where
+	C: AsRef<web_sys::Node>,
+{
+	fn append_all(self, node: &web_sys::Node) -> Result<(), JsValue> {
+		self.as_slice().append_all(node)
+	}
+}
+
+impl<C> Children for Vec<C>
+where
+	C: AsRef<web_sys::Node>,
+{
+	fn append_all(self, node: &web_sys::Node) -> Result<(), JsValue> {
+		self.as_slice().append_all(node)
 	}
 }
 
