@@ -5,5 +5,7 @@ edition = "2021"
 
 [dependencies]
 
+dynatos-util = { workspace = true }
+
 duplicate = { workspace = true }
 extend = { workspace = true }

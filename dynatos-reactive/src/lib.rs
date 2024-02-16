@@ -4,6 +4,7 @@
 #![feature(unsize, coerce_unsized)]
 
 // Modules
+pub mod derived;
 pub mod effect;
 pub mod signal;
 pub mod trigger;
@@ -11,6 +12,7 @@ pub mod with_default;
 
 // Exports
 pub use self::{
+	derived::Derived,
 	effect::{Effect, WeakEffect},
 	signal::Signal,
 	trigger::Trigger,
