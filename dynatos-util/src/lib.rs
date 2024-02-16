@@ -65,6 +65,17 @@ pub impl js_sys::Object {
 	}
 }
 
+/// Extension trait to remove a property on an object
+#[extend::ext(name = ObjectRemoveProp)]
+pub impl js_sys::Object {
+	/// Removes the `property` from this object.
+	///
+	/// Returns if the property existed
+	fn remove_prop(&self, property: &str) -> bool {
+		Reflect::delete_property(self, &property.into()).expect("Unable to remove object property")
+	}
+}
+
 /// Error for [`ObjectGet::get`]
 #[derive(Clone, Debug)]
 pub enum GetError {
