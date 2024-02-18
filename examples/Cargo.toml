@@ -9,7 +9,6 @@ resolver = "2"
 dynatos = { path = "../dynatos" }
 dynatos-context = { path = "../dynatos-context" }
 dynatos-html = { path = "../dynatos-html" }
-dynatos-logger = { path = "../dynatos-logger" }
 dynatos-reactive = { path = "../dynatos-reactive" }
 dynatos-router = { path = "../dynatos-router" }
 dynatos-title = { path = "../dynatos-title" }
@@ -22,6 +21,8 @@ extend = "1.2.0"
 itertools = "0.12.1"
 js-sys = "0.3.68"
 tracing = "0.1.40"
+tracing-subscriber = "0.3.18"
+tracing-web = "0.1.3"
 url = "2.5.0"
 wasm-bindgen = "0.2.91"
 web-sys = "0.3.68"

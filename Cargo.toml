@@ -4,7 +4,6 @@ members = [
 	"dynatos",
 	"dynatos-context",
 	"dynatos-html",
-	"dynatos-logger",
 	"dynatos-reactive",
 	"dynatos-router",
 	"dynatos-title",
@@ -18,7 +17,6 @@ resolver = "2"
 dynatos = { path = "dynatos" }
 dynatos-context = { path = "dynatos-context" }
 dynatos-html = { path = "dynatos-html" }
-dynatos-logger = { path = "dynatos-logger" }
 dynatos-reactive = { path = "dynatos-reactive" }
 dynatos-router = { path = "dynatos-router" }
 dynatos-title = { path = "dynatos-title" }

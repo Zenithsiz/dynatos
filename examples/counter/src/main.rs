@@ -6,12 +6,21 @@ use {
 	dynatos_html::{html, NodeWithChildren, NodeWithText},
 	dynatos_reactive::{Signal, SignalGet, SignalSet, SignalUpdate},
 	dynatos_util::{ev, EventTargetWithListener, JsResultContext},
+	tracing_subscriber::prelude::*,
 	web_sys::Element,
 };
 
 fn main() {
 	console_error_panic_hook::set_once();
-	dynatos_logger::init();
+	tracing_subscriber::registry()
+		.with(
+			tracing_subscriber::fmt::layer()
+				.with_ansi(false)
+				.without_time()
+				.with_level(false)
+				.with_writer(tracing_web::MakeWebConsoleWriter::new().with_pretty_level()),
+		)
+		.init();
 
 	match self::run() {
 		Ok(()) => tracing::info!("Successfully initialized"),

@@ -11,13 +11,22 @@ use {
 	dynatos_reactive::{SignalGet, SignalSet, SignalUpdate, SignalWithDefault},
 	dynatos_router::{Location, QuerySignal},
 	dynatos_util::{ev, EventTargetWithListener, ObjectSetProp},
+	tracing_subscriber::prelude::*,
 	wasm_bindgen::prelude::wasm_bindgen,
 	web_sys::Element,
 };
 
 fn main() {
 	console_error_panic_hook::set_once();
-	dynatos_logger::init();
+	tracing_subscriber::registry()
+		.with(
+			tracing_subscriber::fmt::layer()
+				.with_ansi(false)
+				.without_time()
+				.with_level(false)
+				.with_writer(tracing_web::MakeWebConsoleWriter::new().with_pretty_level()),
+		)
+		.init();
 
 	match self::run() {
 		Ok(()) => tracing::info!("Successfully initialized"),
