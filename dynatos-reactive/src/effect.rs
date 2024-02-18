@@ -13,7 +13,7 @@ use std::{
 
 thread_local! {
 	/// Effect stack
-	static EFFECT_STACK: RefCell<Vec<WeakEffect>> = RefCell::new(vec![]);
+	static EFFECT_STACK: RefCell<Vec<WeakEffect>> = const { RefCell::new(vec![]) };
 }
 
 /// Effect inner

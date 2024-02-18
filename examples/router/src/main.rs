@@ -1,7 +1,7 @@
 //! Router example
 
 // Features
-#![feature(try_blocks, lazy_cell)]
+#![feature(try_blocks, lazy_cell, lint_reasons)]
 
 // Imports
 use {
@@ -49,6 +49,7 @@ fn run() -> Result<(), anyhow::Error> {
 	);
 
 	#[wasm_bindgen]
+	#[expect(dead_code, reason = "We just want to keep the field alive, not use it")]
 	struct LocationHandle(Handle<Location>);
 	body.set_prop("__dynatos_location_handle", LocationHandle(location_handle));
 

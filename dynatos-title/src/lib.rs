@@ -10,7 +10,7 @@ use {dynatos_util::ObjectSetProp, std::cell::RefCell, wasm_bindgen::prelude::was
 
 thread_local! {
 	/// Title stack.
-	static TITLE_STACK: RefCell<Vec<Option<String>>> = RefCell::new(vec![]);
+	static TITLE_STACK: RefCell<Vec<Option<String>>> = const { RefCell::new(vec![]) };
 }
 
 /// Title.
@@ -120,4 +120,5 @@ fn set_title(title: &str) {
 
 /// A wasm `Title` type.
 #[wasm_bindgen]
+#[expect(dead_code, reason = "We just want to keep the field alive, not use it")]
 struct WasmTitle(Title);

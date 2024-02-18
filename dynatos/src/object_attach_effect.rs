@@ -47,4 +47,5 @@ where
 
 /// A wasm `Effect` type.
 #[wasm_bindgen]
+#[expect(dead_code, reason = "We just want to keep the field alive, not use it")]
 struct WasmEffect(Effect);

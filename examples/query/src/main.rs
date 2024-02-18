@@ -1,7 +1,7 @@
 //! Query example
 
 // Features
-#![feature(try_blocks)]
+#![feature(try_blocks, lint_reasons)]
 
 // Imports
 use {
@@ -37,6 +37,7 @@ fn run() -> Result<(), anyhow::Error> {
 	body.append_child(&child).expect("Unable to append child");
 
 	#[wasm_bindgen]
+	#[expect(dead_code, reason = "We just want to keep the field alive, not use it")]
 	struct LocationHandle(Handle<Location>);
 	body.set_prop("__dynatos_location_handle", LocationHandle(location_handle));
 
