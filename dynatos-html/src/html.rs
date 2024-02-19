@@ -1,7 +1,10 @@
 //! HTML elements
 
 // Imports
-use {wasm_bindgen::JsValue, web_sys::Element};
+use {
+	wasm_bindgen::{JsCast, JsValue},
+	web_sys::{Element, HtmlInputElement},
+};
 
 /// Html namespace
 const HTML_NAMESPACE: &str = "http://www.w3.org/1999/xhtml";
@@ -16,12 +19,22 @@ macro el_name {
 	},
 }
 
+/// Expands to `$ElTy`, if present, otherwise to `Element`
+macro el_ty {
+	($ElTy:ty) => {
+		$ElTy
+	},
+	() => {
+		Element
+	},
+}
+
 /// Declares all elements
 macro decl_elements(
-	$( $fn_name:ident $( = $el_name:literal )? ),* $(,)?
+	$( $fn_name:ident $( : $ElTy:ty )? $( = $el_name:literal )? ),* $(,)?
 ) {
 	$(
-		pub fn $fn_name() -> Element {
+		pub fn $fn_name() -> el_ty![$( $ElTy )?] {
 			// TODO: Cache the document in a thread local?
 			let window = web_sys::window().expect("Unable to get window");
 			let document = window.document().expect("Unable to get document");
@@ -29,6 +42,8 @@ macro decl_elements(
 			let el_name = el_name!($fn_name $(, $el_name)?);
 			document.create_element_ns(Some(HTML_NAMESPACE), el_name)
 				.unwrap_or_else(|err| self::on_create_fail(err, el_name))
+				.dyn_into()
+				.expect("Element was of the incorrect type")
 		}
 	)*
 }
@@ -100,7 +115,7 @@ decl_elements! {
 	iframe,
 	image,
 	img,
-	input,
+	input: HtmlInputElement,
 	ins,
 	kbd,
 	label,
