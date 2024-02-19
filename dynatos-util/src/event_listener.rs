@@ -2,7 +2,8 @@
 
 // Imports
 use wasm_bindgen::{
-	closure::{Closure, IntoWasmClosure, WasmClosure},
+	closure::{Closure, IntoWasmClosure},
+	convert::FromWasmAbi,
 	JsCast,
 };
 
@@ -13,10 +14,10 @@ pub impl web_sys::EventTarget {
 	fn add_event_listener<E, F>(&self, f: F)
 	where
 		E: EventListener,
-		F: IntoWasmClosure<E::Closure> + 'static,
+		F: IntoWasmClosure<dyn Fn(E::Event)> + 'static,
 	{
 		// Build the closure
-		let closure = Closure::<E::Closure>::new(f)
+		let closure = Closure::new(f)
 			.into_js_value()
 			.dyn_into::<web_sys::js_sys::Function>()
 			.expect("Should be a valid function");
@@ -27,6 +28,7 @@ pub impl web_sys::EventTarget {
 			.expect("Unable to add event listener");
 	}
 }
+
 /// Extension trait to define an event listener on an event target with a closure
 #[extend::ext(name = EventTargetWithListener)]
 pub impl<T> T
@@ -36,7 +38,7 @@ where
 	/// Adds an event listener to this target
 	///
 	/// Returns the type, for chaining
-	fn with_event_listener<E>(self, f: impl IntoWasmClosure<E::Closure> + 'static) -> Self
+	fn with_event_listener<E>(self, f: impl IntoWasmClosure<dyn Fn(E::Event)> + 'static) -> Self
 	where
 		E: EventListener,
 	{
@@ -47,8 +49,8 @@ where
 
 /// Event listener
 pub trait EventListener {
-	/// Closure type
-	type Closure: ?Sized + WasmClosure;
+	/// Event type
+	type Event: FromWasmAbi + 'static;
 
 	/// Returns the event name
 	fn name() -> &'static str;
@@ -73,7 +75,7 @@ pub mod ev {
 			pub struct $Event;
 
 			impl EventListener for $Event {
-				type Closure = dyn Fn($ArgTy);
+				type Event = $ArgTy;
 
 				fn name() -> &'static str {
 					$name
