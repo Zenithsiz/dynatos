@@ -10,10 +10,7 @@ use {
 
 /// Extension trait to add reactive prop to an object
 #[extend::ext(name = ObjectDynProp)]
-pub impl<T> T
-where
-	T: AsRef<js_sys::Object>,
-{
+pub impl js_sys::Object {
 	/// Adds a dynamic property to this object
 	fn add_dyn_prop<F, K, V>(&self, f: F)
 	where
@@ -25,7 +22,7 @@ where
 		// Note: It's important that we only keep a `WeakRef` to the object.
 		//       Otherwise, the object will be keeping us alive, while we keep
 		//       the object alive, causing a leak.
-		let object = WeakRef::new(self.as_ref());
+		let object = WeakRef::new(self);
 		let prop_effect = Effect::try_new(move || {
 			// Try to get the object
 			let object = object.get().or_return()?;
@@ -45,20 +42,7 @@ where
 		.or_return()?;
 
 		// Then set it
-		self.as_ref().attach_effect(prop_effect);
-	}
-
-	/// Adds a dynamic property to this object.
-	///
-	/// Returns the object, for chaining
-	fn with_dyn_prop<F, K, V>(self, f: F) -> Self
-	where
-		F: Fn() -> (K, Option<V>) + 'static,
-		K: AsRef<str>,
-		V: Into<JsValue>,
-	{
-		self.add_dyn_prop(f);
-		self
+		self.attach_effect(prop_effect);
 	}
 
 	/// Adds a dynamic property to this object, where only the value is dynamic.
@@ -70,6 +54,26 @@ where
 	{
 		self.add_dyn_prop(move || (key, f()));
 	}
+}
+
+/// Extension trait to add reactive prop to an object
+#[extend::ext(name = ObjectWithDynProp)]
+pub impl<O> O
+where
+	O: AsRef<js_sys::Object>,
+{
+	/// Adds a dynamic property to this object.
+	///
+	/// Returns the object, for chaining
+	fn with_dyn_prop<F, K, V>(self, f: F) -> Self
+	where
+		F: Fn() -> (K, Option<V>) + 'static,
+		K: AsRef<str>,
+		V: Into<JsValue>,
+	{
+		self.as_ref().add_dyn_prop(f);
+		self
+	}
 
 	/// Adds a dynamic property to this object, where only the value is dynamic.
 	///
@@ -80,7 +84,7 @@ where
 		K: AsRef<str> + Copy + 'static,
 		V: Into<JsValue>,
 	{
-		self.add_dyn_prop_value(key, f);
+		self.as_ref().add_dyn_prop_value(key, f);
 		self
 	}
 }

@@ -18,5 +18,5 @@ pub use self::{
 	node_dyn_text::{NodeDynText, NodeWithDynText, WithDynText},
 	object_attach_context::{ObjectAttachContext, ObjectWithContext},
 	object_attach_effect::{ObjectAttachEffect, ObjectWithEffect},
-	object_dyn_prop::ObjectDynProp,
+	object_dyn_prop::{ObjectDynProp, ObjectWithDynProp},
 };
