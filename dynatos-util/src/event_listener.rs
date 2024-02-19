@@ -1,10 +1,13 @@
 //! Event listener
 
 // Imports
-use wasm_bindgen::{
-	closure::{Closure, IntoWasmClosure},
-	convert::FromWasmAbi,
-	JsCast,
+use {
+	crate::{TryOrReturnExt, WeakRef},
+	wasm_bindgen::{
+		closure::{Closure, IntoWasmClosure},
+		convert::FromWasmAbi,
+		JsCast,
+	},
 };
 
 /// Extension trait to define an event listener on an event target with a closure
@@ -43,6 +46,40 @@ where
 		E: EventListener,
 	{
 		self.as_ref().add_event_listener::<E, _>(f);
+		self
+	}
+}
+
+/// Extension trait to define an event listener on an element with a closure
+#[extend::ext(name = ElementAddListener)]
+pub impl<ET> ET
+where
+	ET: AsRef<web_sys::EventTarget> + AsRef<js_sys::Object> + JsCast + 'static,
+{
+	/// Adds an event listener to this target
+	fn add_event_listener_el<E, F>(&self, f: F)
+	where
+		E: EventListener,
+		F: Fn(ET, E::Event) + 'static,
+	{
+		// Build the closure
+		// Note: Important that `el` is a weak reference here, else we
+		//       create a circular reference from node <-> event listener.
+		let el = WeakRef::new(self);
+		<ET as AsRef<web_sys::EventTarget>>::as_ref(self).add_event_listener::<E, _>(move |ev| {
+			let el = el.get().or_return()?;
+			f(el, ev);
+		});
+	}
+
+	/// Adds an event listener to this target
+	///
+	/// Returns the type, for chaining
+	fn with_event_listener_el<E>(self, f: impl Fn(ET, E::Event) + 'static) -> Self
+	where
+		E: EventListener,
+	{
+		self.add_event_listener_el::<E, _>(f);
 		self
 	}
 }
