@@ -3,7 +3,8 @@
 // Imports
 use {
 	crate::ObjectAttachEffect,
-	dynatos_reactive::Effect,
+	dynatos_reactive::{Derived, Effect, Signal, SignalWith, WithDefault},
+	dynatos_router::QuerySignal,
 	dynatos_util::{ObjectRemoveProp, ObjectSetProp, TryOrReturnExt, WeakRef},
 	wasm_bindgen::JsValue,
 };
@@ -12,11 +13,10 @@ use {
 #[extend::ext(name = ObjectDynProp)]
 pub impl js_sys::Object {
 	/// Adds a dynamic property to this object, where only the value is dynamic.
-	fn add_dyn_prop_value<F, K, V>(&self, key: K, f: F)
+	fn add_dyn_prop_value<K, V>(&self, key: K, value: V)
 	where
-		F: Fn() -> Option<V> + 'static,
 		K: AsRef<str> + 'static,
-		V: Into<JsValue>,
+		V: ToDynProp + 'static,
 	{
 		// The object we're attaching to
 		// Note: It's important that we only keep a `WeakRef` to the object.
@@ -30,8 +30,8 @@ pub impl js_sys::Object {
 			let object = object.get().or_return()?;
 
 			// Then get the property
-			let value = f();
 			let key = key.as_ref();
+			let value = value.to_prop();
 
 			// And finally set/remove the property
 			match value {
@@ -59,13 +59,114 @@ where
 	/// Adds a dynamic property to this object, where only the value is dynamic.
 	///
 	/// Returns the object, for chaining
-	fn with_dyn_prop_value<F, K, V>(self, key: K, f: F) -> Self
+	fn with_dyn_prop_value<K, V>(self, key: K, value: V) -> Self
 	where
-		F: Fn() -> Option<V> + 'static,
 		K: AsRef<str> + 'static,
-		V: Into<JsValue>,
+		V: ToDynProp + 'static,
 	{
-		self.as_ref().add_dyn_prop_value(key, f);
+		self.as_ref().add_dyn_prop_value(key, value);
 		self
+	}
+}
+
+/// Trait for values accepted by [`ObjectDynProp`].
+///
+/// This allows it to work with the following types:
+/// - `impl Fn() -> N`
+/// - `impl Fn() -> Option<N>`
+/// - `N`
+/// - `Option<N>`
+/// Where `N` is a dyn prop.
+pub trait ToDynProp {
+	/// Gets the current prop
+	fn to_prop(&self) -> Option<JsValue>;
+}
+
+impl<F, T> ToDynProp for F
+where
+	F: Fn() -> T,
+	T: ToDynProp,
+{
+	fn to_prop(&self) -> Option<JsValue> {
+		self().to_prop()
+	}
+}
+
+impl<T> ToDynProp for Option<T>
+where
+	T: ToDynProp,
+{
+	fn to_prop(&self) -> Option<JsValue> {
+		self.as_ref().and_then(T::to_prop)
+	}
+}
+
+// TODO: Generalize to `impl Into<JsValue>`
+#[duplicate::duplicate_item(
+	Ty;
+	[&'_ str];
+	[&'_ String];
+	[bool];
+	[f32];
+	[f64];
+	[i128];
+	[i16];
+	[i32];
+	[i64];
+	[i8];
+	[isize];
+	[u128];
+	[u16];
+	[u32];
+	[u64];
+	[u8];
+	[usize];
+)]
+impl ToDynProp for Ty {
+	fn to_prop(&self) -> Option<JsValue> {
+		Some(JsValue::from(*self))
+	}
+}
+
+#[duplicate::duplicate_item(
+	Ty;
+	[JsValue];
+	[String];
+)]
+impl ToDynProp for Ty {
+	fn to_prop(&self) -> Option<JsValue> {
+		Some(JsValue::from(self))
+	}
+}
+
+// TODO: Allow impl for `impl SignalGet<Value: WithDynText>`
+#[duplicate::duplicate_item(
+	Sig;
+	[Signal];
+	[Derived];
+)]
+impl<T> ToDynProp for Sig<T>
+where
+	T: ToDynProp,
+{
+	fn to_prop(&self) -> Option<JsValue> {
+		self.with(|prop| prop.to_prop())
+	}
+}
+impl<T> ToDynProp for QuerySignal<T>
+where
+	T: ToDynProp,
+{
+	fn to_prop(&self) -> Option<JsValue> {
+		self.with(|prop| prop.to_prop())
+	}
+}
+impl<S, T> ToDynProp for WithDefault<S, T>
+where
+	S: SignalWith<Value = Option<T>>,
+	T: ToDynProp,
+{
+	fn to_prop(&self) -> Option<JsValue> {
+		self.with(|prop| prop.to_prop())
 	}
 }

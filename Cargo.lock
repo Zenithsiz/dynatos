@@ -38,6 +38,7 @@ dependencies = [
  "dynatos-context",
  "dynatos-html",
  "dynatos-reactive",
+ "dynatos-router",
  "dynatos-util",
  "extend",
  "js-sys",
