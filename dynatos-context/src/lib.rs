@@ -28,6 +28,14 @@ where
 	F: FnOnce(Option<&CtxStack>) -> O,
 {
 	let type_id = TypeId::of::<T>();
+	self::with_ctx_stack_opaque(type_id, f)
+}
+
+/// Uses the context stack for `T` with a type id
+fn with_ctx_stack_opaque<F, O>(type_id: TypeId, f: F) -> O
+where
+	F: FnOnce(Option<&CtxStack>) -> O,
+{
 	CTXS_STACK.with(|ctxs| {
 		let ctxs = ctxs.try_borrow().expect("Cannot access context while modifying it");
 		let stack = ctxs.get(&type_id);
@@ -42,6 +50,14 @@ where
 	F: FnOnce(&mut CtxStack) -> O,
 {
 	let type_id = TypeId::of::<T>();
+	self::with_ctx_stack_mut_opaque(type_id, f)
+}
+
+/// Uses the context stack for `T` mutably with a type id
+fn with_ctx_stack_mut_opaque<F, O>(type_id: TypeId, f: F) -> O
+where
+	F: FnOnce(&mut CtxStack) -> O,
+{
 	CTXS_STACK.with(|ctxs| {
 		let mut ctxs = ctxs.try_borrow_mut().expect("Cannot modify context while accessing it");
 		let stack = ctxs.entry(type_id).or_default();
@@ -62,6 +78,19 @@ pub struct Handle<T: 'static> {
 }
 
 impl<T: 'static> Handle<T> {
+	/// Converts this handle to an opaque handle
+	pub fn into_opaque(self) -> OpaqueHandle {
+		// Create the opaque handle and forget ourselves
+		// Note: This is to ensure we don't try to take the value in the [`Drop`] impl
+		let handle = OpaqueHandle {
+			value_idx: self.value_idx,
+			type_id:   TypeId::of::<T>(),
+		};
+		mem::forget(self);
+
+		handle
+	}
+
 	/// Gets the value from this handle
 	pub fn get(&self) -> T
 	where
@@ -120,6 +149,70 @@ impl<T: 'static> Handle<T> {
 }
 
 impl<T: 'static> Drop for Handle<T> {
+	#[track_caller]
+	fn drop(&mut self) {
+		let _ = self.take_inner();
+	}
+}
+
+/// An opaque handle to a context value.
+///
+/// When dropped, the context value is also dropped.
+pub struct OpaqueHandle {
+	/// Index
+	value_idx: usize,
+
+	/// Type id
+	type_id: TypeId,
+}
+
+impl OpaqueHandle {
+	/// Uses the value from this handle
+	pub fn with<F, O>(&self, f: F) -> O
+	where
+		F: FnOnce(&dyn Any) -> O,
+	{
+		self::with_ctx_stack_opaque(self.type_id, |stack| {
+			let value = stack
+				.expect("Context stack should exist")
+				.get(self.value_idx)
+				.expect("Value was already taken")
+				.as_ref()
+				.expect("Value was already taken");
+			f(value)
+		})
+	}
+
+	/// Takes the value this handle is providing a context for.
+	pub fn take(self) -> Box<dyn Any> {
+		// Get the value and forget ourselves
+		// Note: This is to ensure we don't try to take the value in the [`Drop`] impl
+		let value = self.take_inner();
+		mem::forget(self);
+
+		value
+	}
+
+	/// Inner method for [`take`](Self::take), and the [`Drop`] impl.
+	fn take_inner(&self) -> Box<dyn Any> {
+		self::with_ctx_stack_mut_opaque(self.type_id, |stack| {
+			// Get the value
+			let value = stack
+				.get_mut(self.value_idx)
+				.and_then(Option::take)
+				.expect("Value was already taken");
+
+			// Then remove any empty entries from the end
+			while stack.last().is_some_and(|value| value.is_none()) {
+				stack.pop().expect("Should have a value at the end");
+			}
+
+			value
+		})
+	}
+}
+
+impl Drop for OpaqueHandle {
 	#[track_caller]
 	fn drop(&mut self) {
 		let _ = self.take_inner();
