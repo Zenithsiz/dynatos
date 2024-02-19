@@ -13,7 +13,7 @@ mod object_dyn_prop;
 
 // Exports
 pub use self::{
-	element_dyn_attr::ElementDynAttr,
+	element_dyn_attr::{ElementDynAttr, ElementWithDynAttr},
 	node_dyn_child::{NodeDynChild, ToDynNode},
 	node_dyn_text::{NodeDynText, WithDynText},
 	object_attach_context::{ObjectAttachContext, ObjectWithContext},
