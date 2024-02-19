@@ -5,14 +5,12 @@
 
 // Imports
 use {
-	dynatos::NodeDynText,
-	dynatos_context::Handle,
+	dynatos::{NodeDynText, ObjectAttachContext},
 	dynatos_html::{html, NodeWithChildren, NodeWithText},
 	dynatos_reactive::{SignalGet, SignalSet, SignalUpdate, SignalWithDefault},
 	dynatos_router::{Location, QuerySignal},
-	dynatos_util::{ev, EventTargetWithListener, ObjectSetProp},
+	dynatos_util::{ev, EventTargetWithListener},
 	tracing_subscriber::prelude::*,
-	wasm_bindgen::prelude::wasm_bindgen,
 	web_sys::Element,
 };
 
@@ -40,15 +38,8 @@ fn run() -> Result<(), anyhow::Error> {
 	let body = document.body().expect("Unable to get document body");
 
 	let location = Location::new();
-	let location_handle = dynatos_context::provide(location);
 
-	let child = self::page();
-	body.append_child(&child).expect("Unable to append child");
-
-	#[wasm_bindgen]
-	#[expect(dead_code, reason = "We just want to keep the field alive, not use it")]
-	struct LocationHandle(Handle<Location>);
-	body.set_prop("__dynatos_location_handle", LocationHandle(location_handle));
+	body.with_context::<Location>(location).with_child(self::page());
 
 	Ok(())
 }

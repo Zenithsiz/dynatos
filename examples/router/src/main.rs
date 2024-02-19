@@ -5,15 +5,12 @@
 
 // Imports
 use {
-	dynatos::NodeDynChild,
-	dynatos_context::Handle,
+	dynatos::{NodeDynChild, ObjectAttachContext},
 	dynatos_html::{html, NodeWithChildren, NodeWithText},
 	dynatos_reactive::SignalGet,
 	dynatos_router::Location,
-	dynatos_util::ObjectSetProp,
 	std::cell::LazyCell,
 	tracing_subscriber::prelude::*,
-	wasm_bindgen::prelude::wasm_bindgen,
 	web_sys::Element,
 };
 
@@ -41,9 +38,8 @@ fn run() -> Result<(), anyhow::Error> {
 	let body = document.body().expect("Unable to get document body");
 
 	let location = Location::new();
-	let location_handle = dynatos_context::provide(location);
 
-	(&body).with_child(
+	body.with_context(location).with_child(
 		html::div()
 			.with_children([html::p().with_text("Header"), html::hr()])
 			.with_dyn_child(self::render_route)
@@ -56,11 +52,6 @@ fn run() -> Result<(), anyhow::Error> {
 				dynatos_router::anchor("/empty").with_text("Empty"),
 			]),
 	);
-
-	#[wasm_bindgen]
-	#[expect(dead_code, reason = "We just want to keep the field alive, not use it")]
-	struct LocationHandle(Handle<Location>);
-	body.set_prop("__dynatos_location_handle", LocationHandle(location_handle));
 
 	Ok(())
 }

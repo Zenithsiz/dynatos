@@ -7,6 +7,7 @@
 mod element_dyn_attr;
 mod node_dyn_child;
 mod node_dyn_text;
+mod object_attach_context;
 mod object_attach_effect;
 mod object_dyn_prop;
 
@@ -15,6 +16,7 @@ pub use self::{
 	element_dyn_attr::ElementDynAttr,
 	node_dyn_child::{NodeDynChild, ToDynNode},
 	node_dyn_text::{NodeDynText, WithDynText},
+	object_attach_context::ObjectAttachContext,
 	object_attach_effect::ObjectAttachEffect,
 	object_dyn_prop::ObjectDynProp,
 };
