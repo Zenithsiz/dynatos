@@ -2,7 +2,7 @@
 
 // Imports
 use {
-	dynatos::{ElementWithDynAttr, NodeDynText},
+	dynatos::{ElementWithDynAttr, NodeWithDynText},
 	dynatos_html::{html, NodeWithChildren, NodeWithText},
 	dynatos_reactive::{Signal, SignalGet, SignalSet, SignalUpdate},
 	dynatos_util::{ev, EventTargetWithListener, JsResultContext},

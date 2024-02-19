@@ -9,20 +9,17 @@ use {
 
 /// Extension trait to add reactive text to a node
 #[extend::ext(name = NodeDynText)]
-pub impl<T> T
-where
-	T: AsRef<web_sys::Node>,
-{
+pub impl web_sys::Node {
 	/// Adds dynamic text to this node
-	fn set_dyn_text<U>(&self, text: U)
+	fn set_dyn_text<T>(&self, text: T)
 	where
-		U: WithDynText + 'static,
+		T: WithDynText + 'static,
 	{
 		// Create the value to attach
 		// Note: It's important that we only keep a `WeakRef` to the node.
 		//       Otherwise, the node will be keeping us alive, while we keep
 		//       the node alive, causing a leak.
-		let node = WeakRef::new(self.as_ref());
+		let node = WeakRef::new(self);
 		let text_effect = Effect::try_new(move || {
 			// Try to get the node
 			let node = node.get().or_return()?;
@@ -33,17 +30,24 @@ where
 		.or_return()?;
 
 		// Then set it
-		self.as_ref().attach_effect(text_effect);
+		self.attach_effect(text_effect);
 	}
+}
 
+/// Extension trait to add reactive text to a node
+#[extend::ext(name = NodeWithDynText)]
+pub impl<N> N
+where
+	N: AsRef<web_sys::Node>,
+{
 	/// Adds dynamic text to this node.
 	///
 	/// Returns the node, for chaining
-	fn with_dyn_text<U>(self, text: U) -> Self
+	fn with_dyn_text<T>(self, text: T) -> Self
 	where
-		U: WithDynText + 'static,
+		T: WithDynText + 'static,
 	{
-		self.set_dyn_text(text);
+		self.as_ref().set_dyn_text(text);
 		self
 	}
 }
