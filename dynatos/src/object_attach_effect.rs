@@ -16,13 +16,13 @@ where
 {
 	/// Attaches an effect to this object
 	fn attach_effect(&self, effect: Effect) {
-		// Get the effects array, or create it, if it doesn't exist
+		// Get the effects map, or create it, if it doesn't exist
 		// TODO: Use an static anonymous symbol?
 		let prop_name: &str = "__dynatos_effects";
 		let obj = self.as_ref();
 		let effects = match obj.get::<js_sys::Map>(prop_name) {
 			Ok(effects) => effects,
-			Err(dynatos_util::GetError::WrongType(err)) => panic!("Effects array was the wrong type: {err:?}"),
+			Err(dynatos_util::GetError::WrongType(err)) => panic!("Effects map was the wrong type: {err:?}"),
 			Err(dynatos_util::GetError::Missing) => {
 				let effects = js_sys::Map::new();
 				obj.set_prop(prop_name, &effects);
