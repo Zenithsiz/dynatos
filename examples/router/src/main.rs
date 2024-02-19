@@ -5,7 +5,7 @@
 
 // Imports
 use {
-	dynatos::{NodeDynChild, ObjectAttachContext},
+	dynatos::{NodeDynChild, ObjectWithContext},
 	dynatos_html::{html, NodeWithChildren, NodeWithText},
 	dynatos_reactive::SignalGet,
 	dynatos_router::Location,

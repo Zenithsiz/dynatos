@@ -10,22 +10,18 @@ use {
 /// Extension trait to add an effect to an object
 // TODO: Allow removing effects?
 #[extend::ext(name = ObjectAttachEffect)]
-pub impl<T> T
-where
-	T: AsRef<js_sys::Object>,
-{
+pub impl js_sys::Object {
 	/// Attaches an effect to this object
 	fn attach_effect(&self, effect: Effect) {
 		// Get the effects map, or create it, if it doesn't exist
 		// TODO: Use an static anonymous symbol?
 		let prop_name: &str = "__dynatos_effects";
-		let obj = self.as_ref();
-		let effects = match obj.get::<js_sys::Map>(prop_name) {
+		let effects = match self.get::<js_sys::Map>(prop_name) {
 			Ok(effects) => effects,
 			Err(dynatos_util::GetError::WrongType(err)) => panic!("Effects map was the wrong type: {err:?}"),
 			Err(dynatos_util::GetError::Missing) => {
 				let effects = js_sys::Map::new();
-				obj.set_prop(prop_name, &effects);
+				self.set_prop(prop_name, &effects);
 				effects
 			},
 		};
@@ -35,12 +31,19 @@ where
 		let effect = WasmEffect(effect);
 		effects.set(&effect_key.into(), &effect.into());
 	}
+}
 
+/// Extension trait to add an effect to an object
+#[extend::ext(name = ObjectWithEffect)]
+pub impl<O> O
+where
+	O: AsRef<js_sys::Object>,
+{
 	/// Attaches an effect to this object.
 	///
 	/// Returns the object, for chaining
 	fn with_effect(self, effect: Effect) -> Self {
-		self.attach_effect(effect);
+		self.as_ref().attach_effect(effect);
 		self
 	}
 }

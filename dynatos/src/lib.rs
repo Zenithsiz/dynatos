@@ -16,7 +16,7 @@ pub use self::{
 	element_dyn_attr::ElementDynAttr,
 	node_dyn_child::{NodeDynChild, ToDynNode},
 	node_dyn_text::{NodeDynText, WithDynText},
-	object_attach_context::ObjectAttachContext,
-	object_attach_effect::ObjectAttachEffect,
+	object_attach_context::{ObjectAttachContext, ObjectWithContext},
+	object_attach_effect::{ObjectAttachEffect, ObjectWithEffect},
 	object_dyn_prop::ObjectDynProp,
 };
