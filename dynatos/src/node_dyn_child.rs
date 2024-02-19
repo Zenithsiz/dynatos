@@ -12,10 +12,7 @@ use {
 
 /// Extension trait to add a reactive child to an node
 #[extend::ext(name = NodeDynChild)]
-pub impl<T> T
-where
-	T: AsRef<web_sys::Node>,
-{
+pub impl web_sys::Node {
 	/// Adds a dynamic child to this node
 	fn add_dyn_child<C>(&self, child: C)
 	where
@@ -29,7 +26,7 @@ where
 		//       of the node, in case of `f` returning `None`.
 		// TODO: Find a better solution for when `f` returns `None` that doesn't involve
 		//       adding an element to the dom?
-		let node = WeakRef::new(self.as_ref());
+		let node = WeakRef::new(self);
 		let prev_child = RefCell::new(None::<web_sys::Node>);
 		let empty_child = web_sys::Node::from(html::template());
 		let child_effect = Effect::try_new(move || {
@@ -88,9 +85,16 @@ where
 		.or_return()?;
 
 		// Then set it
-		self.as_ref().attach_effect(child_effect);
+		self.attach_effect(child_effect);
 	}
+}
 
+/// Extension trait to add a reactive child to an node
+#[extend::ext(name = NodeWithDynChild)]
+pub impl<N> N
+where
+	N: AsRef<web_sys::Node>,
+{
 	/// Adds a dynamic child to this node.
 	///
 	/// Returns the node, for chaining
@@ -98,7 +102,7 @@ where
 	where
 		C: ToDynNode + 'static,
 	{
-		self.add_dyn_child(child);
+		self.as_ref().add_dyn_child(child);
 		self
 	}
 }
