@@ -3,11 +3,7 @@
 // Imports
 use {
 	crate::{TryOrReturnExt, WeakRef},
-	wasm_bindgen::{
-		closure::{Closure, IntoWasmClosure},
-		convert::FromWasmAbi,
-		JsCast,
-	},
+	wasm_bindgen::{closure::Closure, convert::FromWasmAbi, JsCast},
 };
 
 /// Extension trait to define an event listener on an event target with a closure
@@ -17,10 +13,10 @@ pub impl web_sys::EventTarget {
 	fn add_event_listener<E, F>(&self, f: F)
 	where
 		E: EventListener,
-		F: IntoWasmClosure<dyn Fn(E::Event)> + 'static,
+		F: Fn(E::Event) + 'static,
 	{
 		// Build the closure
-		let closure = Closure::new(f)
+		let closure = Closure::<dyn Fn(E::Event)>::new(f)
 			.into_js_value()
 			.dyn_into::<web_sys::js_sys::Function>()
 			.expect("Should be a valid function");
@@ -41,7 +37,7 @@ where
 	/// Adds an event listener to this target
 	///
 	/// Returns the type, for chaining
-	fn with_event_listener<E>(self, f: impl IntoWasmClosure<dyn Fn(E::Event)> + 'static) -> Self
+	fn with_event_listener<E>(self, f: impl Fn(E::Event) + 'static) -> Self
 	where
 		E: EventListener,
 	{

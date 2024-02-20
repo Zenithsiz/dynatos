@@ -6,7 +6,6 @@ use {
 	dynatos_util::{ev, EventTargetAddListener},
 	url::Url,
 	wasm_bindgen::JsValue,
-	web_sys::PopStateEvent,
 };
 
 /// Inner
@@ -34,7 +33,7 @@ impl Location {
 		let window = web_sys::window().expect("Unable to get window");
 		window.add_event_listener::<ev::PopState, _>({
 			let inner = inner.clone();
-			move |_ev: PopStateEvent| {
+			move |_ev| {
 				let new_location = self::parse_location_url();
 				inner.update(|inner| inner.location = new_location);
 			}

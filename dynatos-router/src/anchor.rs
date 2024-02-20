@@ -6,7 +6,7 @@ use {
 	dynatos_html::{html, ElementWithAttr},
 	dynatos_reactive::SignalSet,
 	dynatos_util::{ev, EventTargetWithListener},
-	web_sys::{Element, PointerEvent},
+	web_sys::Element,
 };
 
 /// Creates a reactive anchor element.
@@ -18,7 +18,7 @@ where
 {
 	html::a()
 		.with_attr("href", new_location.as_ref())
-		.with_event_listener::<ev::Click>(move |ev: PointerEvent| {
+		.with_event_listener::<ev::Click>(move |ev| {
 			ev.prevent_default();
 			dynatos_context::with_expect::<Location, _, _>(|location| {
 				let new_location = new_location.as_ref();
