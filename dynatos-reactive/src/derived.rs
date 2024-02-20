@@ -5,7 +5,7 @@
 
 // Imports
 use {
-	crate::{Effect, Signal, SignalGet, SignalSet, SignalWith},
+	crate::{Effect, Signal, SignalSet, SignalWith},
 	std::fmt,
 };
 
@@ -32,17 +32,6 @@ impl<T> Derived<T> {
 		});
 
 		Self { effect, value }
-	}
-}
-
-impl<T> SignalGet for Derived<T>
-where
-	T: Copy,
-{
-	type Value = T;
-
-	fn get(&self) -> Self::Value {
-		self.with(|value| *value)
 	}
 }
 

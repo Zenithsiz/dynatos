@@ -20,12 +20,16 @@ pub use self::{
 };
 
 /// Signal get
-pub trait SignalGet {
-	/// Value type
-	type Value;
-
+#[extend::ext(name = SignalGet)]
+pub impl<S> S
+where
+	S: SignalWith,
+	S::Value: Copy,
+{
 	/// Gets the signal value, by copying it
-	fn get(&self) -> Self::Value;
+	fn get(&self) -> S::Value {
+		self.with(|value| *value)
+	}
 }
 
 /// Signal cloned
@@ -35,6 +39,7 @@ where
 	S: SignalWith,
 	S::Value: Clone,
 {
+	/// Gets the signal value, by cloning it
 	fn get_cloned(&self) -> S::Value {
 		self.with(|value| value.clone())
 	}

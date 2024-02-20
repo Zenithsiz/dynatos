@@ -1,7 +1,7 @@
 //! `Option<T>` Signal with default value
 
 // Imports
-use crate::{SignalGet, SignalReplace, SignalSet, SignalUpdate, SignalWith};
+use crate::{SignalReplace, SignalSet, SignalUpdate, SignalWith};
 
 /// Wrapper for a `Signal<Option<T>>` with a default value
 #[derive(Clone)]
@@ -17,18 +17,6 @@ impl<S, T> WithDefault<S, T> {
 	/// Wraps a signal with a default value
 	pub fn new(inner: S, default: T) -> Self {
 		Self { inner, default }
-	}
-}
-
-impl<S, T> SignalGet for WithDefault<S, T>
-where
-	S: SignalGet<Value = Option<T>>,
-	T: Copy,
-{
-	type Value = T;
-
-	fn get(&self) -> Self::Value {
-		self.inner.get().unwrap_or(self.default)
 	}
 }
 

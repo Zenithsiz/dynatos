@@ -148,18 +148,6 @@ impl<T, E> Clone for LazyLoadable<T, E> {
 	}
 }
 
-impl<T, E> SignalGet for LazyLoadable<T, E>
-where
-	T: Copy,
-	E: Clone,
-{
-	type Value = Loadable<T, E>;
-
-	fn get(&self) -> Self::Value {
-		self.with(|value| value.clone())
-	}
-}
-
 // TODO: Use a `Loadable<&T, E>` when `SignalWith` allows?
 impl<T, E> SignalWith for LazyLoadable<T, E>
 where

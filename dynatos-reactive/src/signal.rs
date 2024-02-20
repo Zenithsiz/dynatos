@@ -5,7 +5,7 @@
 
 // Imports
 use {
-	crate::{Effect, SignalGet, SignalReplace, SignalSet, SignalUpdate, SignalWith, Trigger, WeakEffect},
+	crate::{Effect, SignalReplace, SignalSet, SignalUpdate, SignalWith, Trigger, WeakEffect},
 	std::{cell::RefCell, fmt, marker::Unsize, mem, ops::CoerceUnsized, rc::Rc},
 };
 
@@ -42,17 +42,6 @@ impl<T> Signal<T> {
 //       Use `Rc::downcast::<Inner<T>>(self.inner as Rc<dyn Any>)`
 
 impl<T: ?Sized, U: ?Sized> CoerceUnsized<Signal<U>> for Signal<T> where T: Unsize<U> {}
-
-impl<T> SignalGet for Signal<T>
-where
-	T: Copy,
-{
-	type Value = T;
-
-	fn get(&self) -> Self::Value {
-		self.with(|value| *value)
-	}
-}
 
 impl<T: ?Sized> SignalWith for Signal<T> {
 	type Value = T;

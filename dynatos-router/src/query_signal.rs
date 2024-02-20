@@ -3,7 +3,7 @@
 // Imports
 use {
 	crate::Location,
-	dynatos_reactive::{Effect, Signal, SignalGet, SignalReplace, SignalSet, SignalUpdate, SignalWith},
+	dynatos_reactive::{Effect, Signal, SignalReplace, SignalSet, SignalUpdate, SignalWith},
 	std::{collections::HashMap, error::Error as StdError, mem, rc::Rc, str::FromStr},
 };
 
@@ -59,17 +59,6 @@ impl<T> QuerySignal<T> {
 			inner,
 			update_effect: update,
 		}
-	}
-}
-
-impl<T> SignalGet for QuerySignal<T>
-where
-	T: Copy,
-{
-	type Value = Option<T>;
-
-	fn get(&self) -> Self::Value {
-		self.with(|value| *value)
 	}
 }
 
