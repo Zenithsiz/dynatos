@@ -11,10 +11,10 @@ use {
 #[extend::ext(name = ElementDynAttr)]
 pub impl web_sys::Element {
 	/// Adds a dynamic attribute to this element
-	fn set_dyn_attr<F, K, V>(&self, f: F)
+	fn set_dyn_attr<F, K, V>(&self, key: K, f: F)
 	where
-		F: Fn() -> (K, Option<V>) + 'static,
-		K: AsRef<str>,
+		F: Fn() -> Option<V> + 'static,
+		K: AsRef<str> + 'static,
 		V: AsRef<str>,
 	{
 		// Create the value to attach
@@ -27,7 +27,7 @@ pub impl web_sys::Element {
 			let element = element.get().or_return()?;
 
 			// And set the attribute
-			let (key, value) = f();
+			let value = f();
 			let key = key.as_ref();
 			match value {
 				Some(value) => {
@@ -47,23 +47,13 @@ pub impl web_sys::Element {
 		self.attach_effect(attr_effect);
 	}
 
-	/// Adds a dynamic attribute to this element, where only the value is dynamic.
-	fn set_dyn_attr_value<F, K, V>(&self, key: K, f: F)
-	where
-		F: Fn() -> Option<V> + 'static,
-		K: AsRef<str> + Copy + 'static,
-		V: AsRef<str>,
-	{
-		self.set_dyn_attr(move || (key, f()));
-	}
-
-	/// Adds a dynamic attribute to this element, without a value, given a predicate
+	/// Adds a dynamic attribute to this element, with an empty value, given a predicate
 	fn set_dyn_attr_if<F, K>(&self, key: K, f: F)
 	where
 		F: Fn() -> bool + 'static,
-		K: AsRef<str> + Copy + 'static,
+		K: AsRef<str> + 'static,
 	{
-		self.set_dyn_attr(move || (key, f().then_some("")));
+		self.set_dyn_attr(key, move || f().then_some(""));
 	}
 }
 
@@ -73,29 +63,16 @@ pub impl<E> E
 where
 	E: AsRef<web_sys::Element>,
 {
-	/// Adds a dynamic attribute to this element.
-	///
-	/// Returns the element, for chaining
-	fn with_dyn_attr<F, K, V>(self, f: F) -> Self
-	where
-		F: Fn() -> (K, Option<V>) + 'static,
-		K: AsRef<str>,
-		V: AsRef<str>,
-	{
-		self.as_ref().set_dyn_attr(f);
-		self
-	}
-
 	/// Adds a dynamic attribute to this element, where only the value is dynamic.
 	///
 	/// Returns the element, for chaining
-	fn with_dyn_attr_value<F, K, V>(self, key: K, f: F) -> Self
+	fn with_dyn_attr<F, K, V>(self, key: K, f: F) -> Self
 	where
 		F: Fn() -> Option<V> + 'static,
-		K: AsRef<str> + Copy + 'static,
+		K: AsRef<str> + 'static,
 		V: AsRef<str>,
 	{
-		self.as_ref().set_dyn_attr_value(key, f);
+		self.as_ref().set_dyn_attr(key, f);
 		self
 	}
 
@@ -105,7 +82,7 @@ where
 	fn with_dyn_attr_if<F, K>(self, key: K, f: F) -> Self
 	where
 		F: Fn() -> bool + 'static,
-		K: AsRef<str> + Copy + 'static,
+		K: AsRef<str> + 'static,
 	{
 		self.as_ref().set_dyn_attr_if(key, f);
 		self

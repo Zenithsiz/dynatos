@@ -42,9 +42,9 @@ fn run() -> Result<(), anyhow::Error> {
 fn counter() -> Element {
 	let value = Signal::new(0);
 	html::div()
-		.with_dyn_attr({
+		.with_dyn_attr("data-value", {
 			let value = value.clone();
-			move || ("data-value", Some(value.get().to_string()))
+			move || Some(value.get().to_string())
 		})
 		.with_children([
 			html::button().with_text("Clear").with_event_listener::<ev::Click>({
