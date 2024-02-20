@@ -3,7 +3,7 @@
 // Imports
 use {
 	crate::ObjectAttachEffect,
-	dynatos_reactive::Effect,
+	dynatos_reactive::{Derived, Effect, Signal, SignalWith},
 	dynatos_util::{TryOrReturnExt, WeakRef},
 };
 
@@ -13,9 +13,9 @@ pub impl web_sys::Element {
 	/// Adds a dynamic attribute to this element
 	fn set_dyn_attr<F, K, V>(&self, key: K, f: F)
 	where
-		F: Fn() -> Option<V> + 'static,
+		F: Fn() -> V + 'static,
 		K: AsRef<str> + 'static,
-		V: AsRef<str>,
+		V: WithDynAttr,
 	{
 		// Create the value to attach
 		// Note: It's important that we only keep a `WeakRef` to the element.
@@ -27,19 +27,15 @@ pub impl web_sys::Element {
 			let element = element.get().or_return()?;
 
 			// And set the attribute
-			let value = f();
 			let key = key.as_ref();
-			match value {
-				Some(value) => {
-					let value = value.as_ref();
-					element
-						.set_attribute(key, value)
-						.unwrap_or_else(|err| panic!("Unable to set attribute {key:?} with value {value:?}: {err:?}"))
-				},
+			f().with_attr(|value| match value {
+				Some(value) => element
+					.set_attribute(key, value)
+					.unwrap_or_else(|err| panic!("Unable to set attribute {key:?} with value {value:?}: {err:?}")),
 				None => element
 					.remove_attribute(key)
 					.unwrap_or_else(|err| panic!("Unable to remove attribute {key:?}: {err:?}")),
-			}
+			})
 		})
 		.or_return()?;
 
@@ -68,9 +64,9 @@ where
 	/// Returns the element, for chaining
 	fn with_dyn_attr<F, K, V>(self, key: K, f: F) -> Self
 	where
-		F: Fn() -> Option<V> + 'static,
+		F: Fn() -> V + 'static,
 		K: AsRef<str> + 'static,
-		V: AsRef<str>,
+		V: WithDynAttr,
 	{
 		self.as_ref().set_dyn_attr(key, f);
 		self
@@ -86,5 +82,82 @@ where
 	{
 		self.as_ref().set_dyn_attr_if(key, f);
 		self
+	}
+}
+
+/// Trait for values accepted by [`ElementDynAttr`].
+///
+/// This allows it to work with the following types:
+/// - `impl Fn() -> N`
+/// - `impl Fn() -> Option<N>`
+/// - `N`
+/// - `Option<N>`
+/// Where `N` is a text type.
+pub trait WithDynAttr {
+	/// Calls `f` with the inner attribute
+	fn with_attr<F, O>(&self, f: F) -> O
+	where
+		F: FnOnce(Option<&str>) -> O;
+}
+
+impl<FT, T> WithDynAttr for FT
+where
+	FT: Fn() -> T,
+	T: WithDynAttr,
+{
+	fn with_attr<F, O>(&self, f: F) -> O
+	where
+		F: FnOnce(Option<&str>) -> O,
+	{
+		let text = self();
+		text.with_attr(f)
+	}
+}
+
+#[duplicate::duplicate_item(
+	Ty;
+	[str];
+	[&'static str];
+	[String];
+)]
+impl WithDynAttr for Ty {
+	fn with_attr<F, O>(&self, f: F) -> O
+	where
+		F: FnOnce(Option<&str>) -> O,
+	{
+		f(Some(self))
+	}
+}
+
+impl<T> WithDynAttr for Option<T>
+where
+	T: WithDynAttr,
+{
+	fn with_attr<F, O>(&self, f: F) -> O
+	where
+		F: FnOnce(Option<&str>) -> O,
+	{
+		match self {
+			Some(s) => s.with_attr(f),
+			None => f(None),
+		}
+	}
+}
+
+// TODO: Allow impl for `impl SignalGet<Value: WithDynText>`
+#[duplicate::duplicate_item(
+	Sig;
+	[Signal];
+	[Derived];
+)]
+impl<T> WithDynAttr for Sig<T>
+where
+	T: WithDynAttr,
+{
+	fn with_attr<F, O>(&self, f: F) -> O
+	where
+		F: FnOnce(Option<&str>) -> O,
+	{
+		self.with(|text| text.with_attr(f))
 	}
 }
