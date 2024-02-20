@@ -7,7 +7,7 @@ use std::{
 };
 
 /// Loadable value.
-#[derive(Debug)]
+#[derive(Clone, Copy, Debug)]
 pub enum Loadable<T, E> {
 	/// Empty
 	Empty,
@@ -131,16 +131,6 @@ impl<T, E> Loadable<&T, E> {
 		T: Clone,
 	{
 		self.map(T::clone)
-	}
-}
-
-impl<T: Clone, E: Clone> Clone for Loadable<T, E> {
-	fn clone(&self) -> Self {
-		match self {
-			Self::Empty => Self::Empty,
-			Self::Err(err) => Self::Err(err.clone()),
-			Self::Loaded(value) => Self::Loaded(value.clone()),
-		}
 	}
 }
 
