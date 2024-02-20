@@ -1,0 +1,13 @@
+[package]
+name = "dynatos-builder-macros"
+version = "0.1.0"
+edition = "2021"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+
+convert_case = { workspace = true }
+quote = { workspace = true }
+syn = { workspace = true }

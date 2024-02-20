@@ -1,0 +1,8 @@
+[package]
+name = "dynatos-builder"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+
+dynatos-builder-macros = { workspace = true }
