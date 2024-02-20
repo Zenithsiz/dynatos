@@ -126,5 +126,14 @@ pub mod ev {
 
 		/// `popstate` Event
 		PopState(PopStateEvent) = "popstate";
+
+		/// `pointermove` event
+		PointerMove(PointerEvent) = "pointermove";
+
+		/// `pointerdown` event
+		PointerDown(PointerEvent) = "pointerdown";
+
+		/// `pointerup` event
+		PointerUp(PointerEvent) = "pointerup";
 	}
 }
