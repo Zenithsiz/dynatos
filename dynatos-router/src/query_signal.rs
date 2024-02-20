@@ -3,7 +3,7 @@
 // Imports
 use {
 	crate::Location,
-	dynatos_reactive::{Effect, Signal, SignalReplace, SignalSet, SignalUpdate, SignalWith},
+	dynatos_reactive::{Effect, Signal, SignalGetCloned, SignalReplace, SignalSet, SignalUpdate, SignalWith},
 	std::{collections::HashMap, error::Error as StdError, mem, rc::Rc, str::FromStr},
 };
 
@@ -38,7 +38,7 @@ impl<T> QuerySignal<T> {
 			let key = Rc::clone(&key);
 			move || {
 				// Get the location and find our query key, if any
-				let location = dynatos_context::with_expect::<Location, _, _>(|location| location.with(Clone::clone));
+				let location = dynatos_context::with_expect::<Location, _, _>(|location| location.get_cloned());
 				let value = location
 					.query_pairs()
 					.find_map(|(query, value)| (query == *key).then_some(value))
