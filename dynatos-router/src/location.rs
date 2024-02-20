@@ -2,7 +2,7 @@
 
 // Imports
 use {
-	dynatos_reactive::{Signal, SignalGet, SignalSet, SignalUpdate, SignalWith},
+	dynatos_reactive::{Signal, SignalSet, SignalUpdate, SignalWith},
 	dynatos_util::{ev, EventTargetAddListener},
 	url::Url,
 	wasm_bindgen::JsValue,
@@ -40,14 +40,6 @@ impl Location {
 		});
 
 		Self(inner)
-	}
-}
-
-impl SignalGet for Location {
-	type Value = Url;
-
-	fn get(&self) -> Self::Value {
-		self.with(|location| location.clone())
 	}
 }
 

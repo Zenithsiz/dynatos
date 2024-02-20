@@ -38,7 +38,7 @@ impl<T> QuerySignal<T> {
 			let key = Rc::clone(&key);
 			move || {
 				// Get the location and find our query key, if any
-				let location = dynatos_context::with_expect::<Location, _, _>(|location| location.get());
+				let location = dynatos_context::with_expect::<Location, _, _>(|location| location.with(Clone::clone));
 				let value = location
 					.query_pairs()
 					.find_map(|(query, value)| (query == *key).then_some(value))

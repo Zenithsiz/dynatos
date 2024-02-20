@@ -7,7 +7,7 @@
 use {
 	dynatos::{NodeWithDynChild, ObjectWithContext},
 	dynatos_html::{html, NodeWithChildren, NodeWithText},
-	dynatos_reactive::SignalGet,
+	dynatos_reactive::SignalWith,
 	dynatos_router::Location,
 	std::cell::LazyCell,
 	tracing_subscriber::prelude::*,
@@ -61,7 +61,7 @@ thread_local! {
 }
 
 fn render_route() -> Option<Element> {
-	let location = dynatos_context::with_expect::<Location, _, _>(|location| location.get());
+	let location = dynatos_context::with_expect::<Location, _, _>(|location| location.with(Clone::clone));
 
 	tracing::info!(%location, "Rendering route");
 	match location.path().trim_end_matches('/') {
