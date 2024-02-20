@@ -3,7 +3,8 @@
 // Imports
 use {
 	crate::ObjectAttachEffect,
-	dynatos_reactive::{Derived, Effect, Signal, SignalWith},
+	dynatos_reactive::{Derived, Effect, Signal, SignalWith, WithDefault},
+	dynatos_router::QuerySignal,
 	dynatos_util::{TryOrReturnExt, WeakRef},
 };
 
@@ -119,6 +120,29 @@ where
 )]
 impl<T> WithDynText for Sig<T>
 where
+	T: WithDynText,
+{
+	fn with_text<F, O>(&self, f: F) -> O
+	where
+		F: FnOnce(Option<&str>) -> O,
+	{
+		self.with(|text| text.with_text(f))
+	}
+}
+impl<T> WithDynText for QuerySignal<T>
+where
+	T: WithDynText,
+{
+	fn with_text<F, O>(&self, f: F) -> O
+	where
+		F: FnOnce(Option<&str>) -> O,
+	{
+		self.with(|text| text.with_text(f))
+	}
+}
+impl<S, T> WithDynText for WithDefault<S, T>
+where
+	S: SignalWith<Value = Option<T>>,
 	T: WithDynText,
 {
 	fn with_text<F, O>(&self, f: F) -> O
