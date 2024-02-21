@@ -43,10 +43,10 @@ pub impl web_sys::Element {
 	}
 
 	/// Adds a dynamic attribute to this element, with an empty value, given a predicate
-	fn set_dyn_attr_if<P, K>(&self, key: K, pred: P)
+	fn set_dyn_attr_if<K, P>(&self, key: K, pred: P)
 	where
-		P: DynAttrPred + 'static,
 		K: AsRef<str> + 'static,
+		P: DynAttrPred + 'static,
 	{
 		self.set_dyn_attr(key, move || pred.eval().then_some(""));
 	}
@@ -73,10 +73,10 @@ where
 	/// Adds a dynamic attribute to this element, without a value, given a predicate
 	///
 	/// Returns the element, for chaining
-	fn with_dyn_attr_if<P, K>(self, key: K, pred: P) -> Self
+	fn with_dyn_attr_if<K, P>(self, key: K, pred: P) -> Self
 	where
-		P: DynAttrPred + 'static,
 		K: AsRef<str> + 'static,
+		P: DynAttrPred + 'static,
 	{
 		self.as_ref().set_dyn_attr_if(key, pred);
 		self
