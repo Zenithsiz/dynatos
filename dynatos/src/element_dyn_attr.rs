@@ -11,11 +11,10 @@ use {
 #[extend::ext(name = ElementDynAttr)]
 pub impl web_sys::Element {
 	/// Adds a dynamic attribute to this element
-	fn set_dyn_attr<F, K, V>(&self, key: K, f: F)
+	fn set_dyn_attr<K, V>(&self, key: K, value: V)
 	where
-		F: Fn() -> V + 'static,
 		K: AsRef<str> + 'static,
-		V: WithDynAttr,
+		V: WithDynAttr + 'static,
 	{
 		// Create the value to attach
 		// Note: It's important that we only keep a `WeakRef` to the element.
@@ -28,7 +27,7 @@ pub impl web_sys::Element {
 
 			// And set the attribute
 			let key = key.as_ref();
-			f().with_attr(|value| match value {
+			value.with_attr(|value| match value {
 				Some(value) => element
 					.set_attribute(key, value)
 					.unwrap_or_else(|err| panic!("Unable to set attribute {key:?} with value {value:?}: {err:?}")),
@@ -62,13 +61,12 @@ where
 	/// Adds a dynamic attribute to this element, where only the value is dynamic.
 	///
 	/// Returns the element, for chaining
-	fn with_dyn_attr<F, K, V>(self, key: K, f: F) -> Self
+	fn with_dyn_attr<K, V>(self, key: K, value: V) -> Self
 	where
-		F: Fn() -> V + 'static,
 		K: AsRef<str> + 'static,
-		V: WithDynAttr,
+		V: WithDynAttr + 'static,
 	{
-		self.as_ref().set_dyn_attr(key, f);
+		self.as_ref().set_dyn_attr(key, value);
 		self
 	}
 
