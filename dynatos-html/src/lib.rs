@@ -191,20 +191,20 @@ where
 	}
 }
 
-/// Extension trait to *append* a class in a builder-style.
-#[extend::ext_sized(name = ElementWithClass)]
+/// Extension trait to *append* a class
+#[extend::ext_sized(name = ElementAddClass)]
 pub impl<T> T
 where
 	T: AsRef<web_sys::Element>,
 {
-	fn with_class<C>(self, class: C) -> Self
+	fn add_class<C>(&self, class: C)
 	where
 		C: AsRef<str>,
 	{
-		self.with_classes([class])
+		self.add_classes([class]);
 	}
 
-	fn with_classes<I, C>(self, classes: I) -> Self
+	fn add_classes<I, C>(&self, classes: I)
 	where
 		I: IntoIterator<Item = C>,
 		C: AsRef<str>,
@@ -219,7 +219,30 @@ where
 			.chain(classes.iter().map(C::as_ref))
 			.join(" ");
 
-		self.as_ref().set_class_name(&class_name);
+		self.as_ref().set_class_name(&class_name)
+	}
+}
+
+/// Extension trait to *append* a class in a builder-style.
+#[extend::ext_sized(name = ElementWithClass)]
+pub impl<T> T
+where
+	T: AsRef<web_sys::Element>,
+{
+	fn with_class<C>(self, class: C) -> Self
+	where
+		C: AsRef<str>,
+	{
+		self.as_ref().add_class(class);
+		self
+	}
+
+	fn with_classes<I, C>(self, classes: I) -> Self
+	where
+		I: IntoIterator<Item = C>,
+		C: AsRef<str>,
+	{
+		self.as_ref().add_classes(classes);
 		self
 	}
 }
