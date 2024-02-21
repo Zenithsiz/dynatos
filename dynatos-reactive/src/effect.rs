@@ -195,3 +195,79 @@ impl fmt::Debug for WeakEffect {
 		f.debug_struct("WeakEffect").finish_non_exhaustive()
 	}
 }
+
+#[cfg(test)]
+mod test {
+	// Imports
+	use {super::*, std::cell::OnceCell};
+
+	/// Leaks a value and returns a `&'static T`
+	///
+	/// This is useful because `&'static T` is `Copy`,
+	/// so we don't need to worry about cloning `Rc`s to
+	/// pass variables to effects.
+	fn leaked<T>(value: T) -> &'static T {
+		Box::leak(Box::new(value))
+	}
+
+	/// Ensures the function returned by `Effect::running` is the same as the future being run.
+	#[test]
+	fn running() {
+		// Create an effect, and save the running effect within it to `running`.
+		let running = self::leaked(OnceCell::new());
+		let effect = Effect::new(move || {
+			running
+				.set(Effect::running().expect("Future wasn't running"))
+				.expect("Unable to set running effect");
+		});
+
+		// Then ensure the running effect is the same as the one created.
+		let running = running
+			.get()
+			.expect("Running effect missing")
+			.upgrade()
+			.expect("Running effect was dropped");
+		assert_eq!(effect, running);
+	}
+
+	/// Ensures the function returned by `Effect::running` is the same as the future being run,
+	/// while running stacked futures
+	#[test]
+	fn running_stacked() {
+		// Create 2 stacked effects, saving the running within each to `running1` and `running2`.
+		// `running1` contains the top-level effect, while `running2` contains the inner one.
+		let running_top = self::leaked(OnceCell::new());
+		let running_bottom = self::leaked(OnceCell::new());
+		let effect = Effect::new(move || {
+			running_top
+				.set(Effect::running().expect("Future wasn't running"))
+				.expect("Unable to set running effect");
+
+			let effect = Effect::new(move || {
+				running_bottom
+					.set(Effect::running().expect("Future wasn't running"))
+					.expect("Unable to set running effect");
+			});
+
+			// Then ensure the bottom-level running effect is the same as the one created.
+			let running_bottom = running_bottom
+				.get()
+				.expect("Running effect missing")
+				.upgrade()
+				.expect("Running effect was dropped");
+			assert_eq!(effect, running_bottom);
+		});
+
+		// Then ensure the top-level running effect is the same as the one created.
+		let running_top = running_top
+			.get()
+			.expect("Running effect missing")
+			.upgrade()
+			.expect("Running effect was dropped");
+		assert_eq!(effect, running_top);
+
+		// And that the bottom-level running effect was already dropped
+		let running_bottom = running_bottom.get().expect("Running effect missing").upgrade();
+		assert_eq!(running_bottom, None);
+	}
+}

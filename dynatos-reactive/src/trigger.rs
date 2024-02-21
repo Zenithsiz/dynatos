@@ -106,3 +106,43 @@ impl IntoSubscriber for T {
 		body
 	}
 }
+
+#[cfg(test)]
+mod test {
+	// Imports
+	use {
+		super::*,
+		std::{cell::Cell, mem},
+	};
+
+	#[test]
+	fn basic() {
+		thread_local! {
+			/// Counts the number of times the effect was run
+			static TRIGGERS: Cell<usize> = const { Cell::new(0) };
+		}
+
+		// Create the effect and reset the flag
+		let effect = Effect::new(move || TRIGGERS.set(TRIGGERS.get() + 1));
+
+		// Then create the trigger, and ensure it wasn't triggered
+		// by just creating it and adding the subscriber
+		let trigger = Trigger::new();
+		trigger.add_subscriber(effect.downgrade());
+		assert_eq!(TRIGGERS.get(), 1, "Trigger was triggered early");
+
+		// Then trigger and ensure it was triggered
+		trigger.trigger();
+		assert_eq!(TRIGGERS.get(), 2, "Trigger was not triggered");
+
+		// Then add the subscriber again and ensure the effect isn't run twice
+		trigger.add_subscriber(effect.downgrade());
+		trigger.trigger();
+		assert_eq!(TRIGGERS.get(), 3, "Trigger ran effect multiple times");
+
+		// Finally drop the effect and try again
+		mem::drop(effect);
+		trigger.trigger();
+		assert_eq!(TRIGGERS.get(), 3, "Trigger was triggered after effect was dropped");
+	}
+}
