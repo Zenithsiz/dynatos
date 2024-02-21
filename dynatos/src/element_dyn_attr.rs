@@ -44,12 +44,12 @@ pub impl web_sys::Element {
 	}
 
 	/// Adds a dynamic attribute to this element, with an empty value, given a predicate
-	fn set_dyn_attr_if<F, K>(&self, key: K, f: F)
+	fn set_dyn_attr_if<P, K>(&self, key: K, pred: P)
 	where
-		F: Fn() -> bool + 'static,
+		P: DynAttrPred + 'static,
 		K: AsRef<str> + 'static,
 	{
-		self.set_dyn_attr(key, move || f().then_some(""));
+		self.set_dyn_attr(key, move || pred.eval().then_some(""));
 	}
 }
 
@@ -75,23 +75,22 @@ where
 	/// Adds a dynamic attribute to this element, without a value, given a predicate
 	///
 	/// Returns the element, for chaining
-	fn with_dyn_attr_if<F, K>(self, key: K, f: F) -> Self
+	fn with_dyn_attr_if<P, K>(self, key: K, pred: P) -> Self
 	where
-		F: Fn() -> bool + 'static,
+		P: DynAttrPred + 'static,
 		K: AsRef<str> + 'static,
 	{
-		self.as_ref().set_dyn_attr_if(key, f);
+		self.as_ref().set_dyn_attr_if(key, pred);
 		self
 	}
 }
 
-/// Trait for values accepted by [`ElementDynAttr`].
+/// Trait for values accepted by [`ElementDynAttr::set_dyn_attr`].
 ///
 /// This allows it to work with the following types:
-/// - `impl Fn() -> N`
-/// - `impl Fn() -> Option<N>`
 /// - `N`
-/// - `Option<N>`
+/// - `Signal<N>`
+/// - `impl Fn() -> N`
 /// Where `N` is a text type.
 pub trait WithDynAttr {
 	/// Calls `f` with the inner attribute
@@ -159,5 +158,48 @@ where
 		F: FnOnce(Option<&str>) -> O,
 	{
 		self.with(|text| text.with_attr(f))
+	}
+}
+
+/// Trait for values accepted by [`ElementDynAttr::set_dyn_attr_if`].
+///
+/// This allows it to work with the following types:
+/// - `B`
+/// - `Signal<B>`
+/// - `impl Fn() -> B`
+/// Where `B` is a boolean or type that implements `ToBoolDynAttr`
+pub trait DynAttrPred {
+	/// Evaluates this predicate
+	fn eval(&self) -> bool;
+}
+
+impl<FT, T> DynAttrPred for FT
+where
+	FT: Fn() -> T,
+	T: DynAttrPred,
+{
+	fn eval(&self) -> bool {
+		self().eval()
+	}
+}
+
+impl DynAttrPred for bool {
+	fn eval(&self) -> bool {
+		*self
+	}
+}
+
+// TODO: Allow impl for `impl SignalGet<Value: WithDynText>`
+#[duplicate::duplicate_item(
+	Sig;
+	[Signal];
+	[Derived];
+)]
+impl<T> DynAttrPred for Sig<T>
+where
+	T: DynAttrPred,
+{
+	fn eval(&self) -> bool {
+		self.with(T::eval)
 	}
 }
