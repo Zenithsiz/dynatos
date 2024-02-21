@@ -31,7 +31,7 @@ impl Location {
 
 		// Add an event listener on the document for when the user navigates manually
 		let window = web_sys::window().expect("Unable to get window");
-		window.add_event_listener::<ev::PopState, _>({
+		window.add_event_listener::<ev::PopState>({
 			let inner = inner.clone();
 			move |_ev| {
 				let new_location = self::parse_location_url();

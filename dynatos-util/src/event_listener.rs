@@ -10,10 +10,9 @@ use {
 #[extend::ext(name = EventTargetAddListener)]
 pub impl web_sys::EventTarget {
 	/// Adds an event listener to this target
-	fn add_event_listener<E, F>(&self, f: F)
+	fn add_event_listener<E>(&self, f: impl Fn(E::Event) + 'static)
 	where
 		E: EventListener,
-		F: Fn(E::Event) + 'static,
 	{
 		// Build the closure
 		let closure = Closure::<dyn Fn(E::Event)>::new(f)
@@ -41,7 +40,7 @@ where
 	where
 		E: EventListener,
 	{
-		self.as_ref().add_event_listener::<E, _>(f);
+		self.as_ref().add_event_listener::<E>(f);
 		self
 	}
 }
@@ -62,7 +61,7 @@ where
 		// Note: Important that `el` is a weak reference here, else we
 		//       create a circular reference from node <-> event listener.
 		let el = WeakRef::new(self);
-		<ET as AsRef<web_sys::EventTarget>>::as_ref(self).add_event_listener::<E, _>(move |ev| {
+		<ET as AsRef<web_sys::EventTarget>>::as_ref(self).add_event_listener::<E>(move |ev| {
 			let el = el.get().or_return()?;
 			f(el, ev);
 		});
