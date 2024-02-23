@@ -239,6 +239,18 @@ where
 
 		Loadable::Loaded(None)
 	}
+
+	/// [`Iterator::scan`]-like adaptor
+	fn scan_loaded<St, B, F>(self, init: St, f: F) -> ScanLoaded<I, St, F>
+	where
+		F: FnMut(&mut St, T) -> Option<B>,
+	{
+		ScanLoaded {
+			inner: self,
+			f,
+			state: init,
+		}
+	}
 }
 
 /// Iterator returned by [`IteratorLoadableExt::flatten_loaded`]
@@ -287,6 +299,36 @@ where
 				Loadable::Loaded(iter) => self.value_it = Some(iter.into_iter()),
 			}
 		}
+	}
+}
+
+/// Iterator returned by [`IteratorLoadableExt::scan_loaded`]
+#[derive(Clone, Copy, Debug)]
+pub struct ScanLoaded<I, St, F> {
+	/// Inner iterator
+	inner: I,
+
+	/// Function
+	f: F,
+
+	/// State
+	state: St,
+}
+
+impl<I, T, E, St, B, F> Iterator for ScanLoaded<I, St, F>
+where
+	I: Iterator<Item = Loadable<T, E>>,
+	F: FnMut(&mut St, T) -> Option<B>,
+{
+	type Item = Loadable<B, E>;
+
+	fn next(&mut self) -> Option<Self::Item> {
+		let value = match self.inner.next()? {
+			Loadable::Empty => return Some(Loadable::Empty),
+			Loadable::Err(err) => return Some(Loadable::Err(err)),
+			Loadable::Loaded(value) => value,
+		};
+		(self.f)(&mut self.state, value).map(Loadable::Loaded)
 	}
 }
 
