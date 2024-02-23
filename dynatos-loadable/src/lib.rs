@@ -5,10 +5,10 @@
 
 // Modules
 mod lazy_loadable;
-mod loadable;
+pub mod loadable;
 
 // Exports
 pub use self::{
 	lazy_loadable::LazyLoadable,
-	loadable::{IntoLoaded, Loadable},
+	loadable::{IntoLoaded, IteratorLoadableExt, Loadable},
 };

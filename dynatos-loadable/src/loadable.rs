@@ -208,6 +208,71 @@ where
 	}
 }
 
+/// Extension trait for iterators of `Loadable<T, E>`
+#[extend::ext(name = IteratorLoadableExt)]
+pub impl<I, T, E> I
+where
+	I: Iterator<Item = Loadable<T, E>>,
+{
+	/// Flattens an iterator of `Loadable<T, E>` to `Loadable<T::Item, E>`, where `T: IntoIterator`
+	fn flatten_loaded(self) -> FlattenLoaded<I, T, E>
+	where
+		T: IntoIterator,
+	{
+		FlattenLoaded {
+			inner:    self,
+			value_it: None,
+		}
+	}
+}
+
+/// Iterator returned by [`IteratorLoadableExt::flatten_loaded`]
+pub struct FlattenLoaded<I, T, E>
+where
+	I: Iterator<Item = Loadable<T, E>>,
+	T: IntoIterator,
+{
+	/// Inner iterator
+	inner: I,
+
+	/// Current value iterator
+	value_it: Option<T::IntoIter>,
+}
+
+impl<I, T, E> Iterator for FlattenLoaded<I, T, E>
+where
+	I: Iterator<Item = Loadable<T, E>>,
+	T: IntoIterator,
+{
+	type Item = Loadable<T::Item, E>;
+
+	fn next(&mut self) -> Option<Self::Item> {
+		// Loop until we find the next value
+		loop {
+			// If we have a value iterator, try to yield it first
+			if let Some(it) = &mut self.value_it {
+				match it.next() {
+					// If there was still a value, yield it
+					Some(value) => return Some(Loadable::Loaded(value)),
+
+					// Otherwise, get rid of the iterator
+					None => self.value_it = None,
+				}
+			}
+
+			// If the inner value didn't have anything, try to get the next value
+			match self.inner.next()? {
+				// If empty, or error, return them
+				Loadable::Empty => return Some(Loadable::Empty),
+				Loadable::Err(err) => return Some(Loadable::Err(err)),
+
+				// On loaded, set the value iterator and try to extract it again
+				Loadable::Loaded(iter) => self.value_it = Some(iter.into_iter()),
+			}
+		}
+	}
+}
+
 /// Extension trait to create a [`Loadable::Loaded`] from a value.
 #[extend::ext(name = IntoLoaded)]
 pub impl<T> T {
