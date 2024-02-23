@@ -242,6 +242,8 @@ where
 }
 
 /// Iterator returned by [`IteratorLoadableExt::flatten_loaded`]
+// TODO: Impl `Clone, Copy, Debug` with the correct bounds.
+#[derive(Clone, Copy, Debug)]
 pub struct FlattenLoaded<I, T, E>
 where
 	I: Iterator<Item = Loadable<T, E>>,
