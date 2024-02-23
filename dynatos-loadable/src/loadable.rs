@@ -224,6 +224,21 @@ where
 			value_it: None,
 		}
 	}
+
+	/// Finds the position of a value in an iterator of `Loadable<T, E>`.
+	fn position_loaded<F>(self, mut pred: F) -> Loadable<Option<usize>, E>
+	where
+		F: FnMut(T) -> bool,
+	{
+		for (item_idx, item) in self.enumerate() {
+			let item = item?;
+			if pred(item) {
+				return Loadable::Loaded(Some(item_idx));
+			}
+		}
+
+		Loadable::Loaded(None)
+	}
 }
 
 /// Iterator returned by [`IteratorLoadableExt::flatten_loaded`]
