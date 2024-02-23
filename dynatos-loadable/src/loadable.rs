@@ -182,6 +182,32 @@ where
 	}
 }
 
+/// Collects an iterator of `Loadable<T, E>` into a `Loadable<C, E>`,
+/// where `C` is a collection of `T`s.
+///
+/// If any empty, or error loadables are found, this immediately short-circuits
+/// and returns them
+impl<C, T, E> FromIterator<Loadable<T, E>> for Loadable<C, E>
+where
+	C: Default + Extend<T>,
+{
+	fn from_iter<I: IntoIterator<Item = Loadable<T, E>>>(iter: I) -> Self {
+		let mut collection = C::default();
+		for item in iter.into_iter() {
+			// If we find any empty, or errors, return them immediately
+			let item = match item {
+				Loadable::Empty => return Self::Empty,
+				Loadable::Err(err) => return Self::Err(err),
+				Loadable::Loaded(value) => value,
+			};
+
+			collection.extend_one(item);
+		}
+
+		Self::Loaded(collection)
+	}
+}
+
 /// Extension trait to create a [`Loadable::Loaded`] from a value.
 #[extend::ext(name = IntoLoaded)]
 pub impl<T> T {

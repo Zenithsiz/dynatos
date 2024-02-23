@@ -1,9 +1,4 @@
 {
-  "cSpell.words": [
-    "Dynatos",
-    "itertools",
-    "popstate",
-    "unsize"
-  ],
-  "rust-analyzer.linkedProjects": ["Cargo.toml", "examples/Cargo.toml"]
+	"cSpell.words": ["Dynatos", "itertools", "loadables", "popstate", "unsize"],
+	"rust-analyzer.linkedProjects": ["Cargo.toml", "examples/Cargo.toml"]
 }
