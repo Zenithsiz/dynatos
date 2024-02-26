@@ -4,7 +4,7 @@
 use crate::{SignalReplace, SignalSet, SignalUpdate, SignalWith};
 
 /// Wrapper for a `Signal<Option<T>>` with a default value
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct WithDefault<S, T> {
 	/// Inner signal
 	inner: S,

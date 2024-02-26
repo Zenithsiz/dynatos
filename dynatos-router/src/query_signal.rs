@@ -8,7 +8,7 @@ use {
 };
 
 /// Query signal
-#[derive(Clone)]
+#[derive(Clone, Debug)]
 pub struct QuerySignal<T> {
 	/// Key
 	key: Rc<str>,
