@@ -74,7 +74,7 @@ where
 	}
 }
 
-/// Types that may be used for [`ElementWithTextContent`]
+/// Types that may be used for [`NodeWithChildren`]
 pub trait Children {
 	/// Appends all children in this type
 	fn append_all(self, node: &web_sys::Node) -> Result<(), JsValue>;
