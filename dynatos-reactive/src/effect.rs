@@ -19,8 +19,8 @@ thread_local! {
 
 /// Effect inner
 struct Inner {
-	/// Whether to ignore running the effect
-	ignore: bool,
+	/// Whether this effect is currently suppressed
+	suppressed: bool,
 
 	/// Effect runner
 	run: Box<dyn Fn()>,
@@ -43,8 +43,8 @@ impl Effect {
 	{
 		// Create the effect
 		let inner = Inner {
-			ignore: false,
-			run:    Box::new(run),
+			suppressed: false,
+			run:        Box::new(run),
 		};
 		let effect = Self {
 			inner: Rc::new(RefCell::new(inner)),
@@ -98,9 +98,9 @@ impl Effect {
 		// Push the effect, run the closure and pop it
 		EFFECT_STACK.with_borrow_mut(|effects| effects.push(self.downgrade()));
 
-		// Then run it, if it's not ignored
+		// Then run it, if it's not suppressed
 		let inner = self.inner.borrow();
-		if !inner.ignore {
+		if !inner.suppressed {
 			(inner.run)();
 		}
 
@@ -115,12 +115,12 @@ impl Effect {
 	where
 		F: FnOnce() -> O,
 	{
-		// Set the ignore flag and run `f`
-		let last = mem::replace(&mut self.inner.borrow_mut().ignore, true);
+		// Set the suppress flag and run `f`
+		let last = mem::replace(&mut self.inner.borrow_mut().suppressed, true);
 		let output = f();
 
 		// Then restore it
-		self.inner.borrow_mut().ignore = last;
+		self.inner.borrow_mut().suppressed = last;
 
 		output
 	}
