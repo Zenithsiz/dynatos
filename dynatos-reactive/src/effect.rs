@@ -8,6 +8,7 @@ use std::{
 	cell::RefCell,
 	fmt,
 	hash::Hash,
+	mem,
 	rc::{Rc, Weak},
 };
 
@@ -18,8 +19,11 @@ thread_local! {
 
 /// Effect inner
 struct Inner {
+	/// Whether to ignore running the effect
+	ignore: bool,
+
 	/// Effect runner
-	run: Option<Box<dyn Fn()>>,
+	run: Box<dyn Fn()>,
 }
 
 /// Effect
@@ -39,7 +43,8 @@ impl Effect {
 	{
 		// Create the effect
 		let inner = Inner {
-			run: Some(Box::new(run)),
+			ignore: false,
+			run:    Box::new(run),
 		};
 		let effect = Self {
 			inner: Rc::new(RefCell::new(inner)),
@@ -98,10 +103,10 @@ impl Effect {
 		// Push the effect, run the closure and pop it
 		EFFECT_STACK.with_borrow_mut(|effects| effects.push(self.downgrade()));
 
-		// Then run it
+		// Then run it, if it's not ignored
 		let inner = self.inner.borrow();
-		if let Some(run) = inner.run.as_ref() {
-			run();
+		if !inner.ignore {
+			(inner.run)();
 		}
 
 		// And finally pop the effect from the stack
@@ -115,12 +120,12 @@ impl Effect {
 	where
 		F: FnOnce() -> O,
 	{
-		// Remove the run function and run `f`
-		let run = self.inner.borrow_mut().run.take();
+		// Set the ignore flag and run `f`
+		let last = mem::replace(&mut self.inner.borrow_mut().ignore, true);
 		let output = f();
 
-		// Then put it back
-		self.inner.borrow_mut().run = run;
+		// Then restore it
+		self.inner.borrow_mut().ignore = last;
 
 		output
 	}
