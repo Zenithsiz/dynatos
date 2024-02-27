@@ -118,17 +118,17 @@ impl<T: fmt::Debug> fmt::Debug for Signal<T> {
 
 /// Types that may be converted into a subscriber
 pub trait IntoSubscriber {
-	fn into_subscriber(self) -> WeakEffect;
+	fn into_subscriber(self) -> WeakEffect<dyn Fn()>;
 }
 
 #[duplicate::duplicate_item(
 	T body;
-	[ Effect ] [ self.downgrade() ];
-	[ &'_ Effect ] [ self.downgrade() ];
-	[ WeakEffect ] [ self ];
+	[ Effect<dyn Fn()> ] [ self.downgrade() ];
+	[ &'_ Effect<dyn Fn()> ] [ self.downgrade() ];
+	[ WeakEffect<dyn Fn()> ] [ self ];
 )]
 impl IntoSubscriber for T {
-	fn into_subscriber(self) -> WeakEffect {
+	fn into_subscriber(self) -> WeakEffect<dyn Fn()> {
 		body
 	}
 }

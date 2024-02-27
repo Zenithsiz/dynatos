@@ -12,7 +12,7 @@ use {
 /// Trigger inner
 struct Inner {
 	/// Subscribers
-	subscribers: HashSet<WeakEffect>,
+	subscribers: HashSet<WeakEffect<dyn Fn()>>,
 }
 
 /// Trigger
@@ -92,17 +92,17 @@ impl fmt::Debug for Trigger {
 
 /// Types that may be converted into a subscriber
 pub trait IntoSubscriber {
-	fn into_subscriber(self) -> WeakEffect;
+	fn into_subscriber(self) -> WeakEffect<dyn Fn()>;
 }
 
 #[duplicate::duplicate_item(
 	T body;
-	[ Effect ] [ self.downgrade() ];
-	[ &'_ Effect ] [ self.downgrade() ];
-	[ WeakEffect ] [ self ];
+	[ Effect<dyn Fn()> ] [ self.downgrade() ];
+	[ &'_ Effect<dyn Fn()> ] [ self.downgrade() ];
+	[ WeakEffect<dyn Fn()> ] [ self ];
 )]
 impl IntoSubscriber for T {
-	fn into_subscriber(self) -> WeakEffect {
+	fn into_subscriber(self) -> WeakEffect<dyn Fn()> {
 		body
 	}
 }
@@ -128,7 +128,7 @@ mod test {
 		// Then create the trigger, and ensure it wasn't triggered
 		// by just creating it and adding the subscriber
 		let trigger = Trigger::new();
-		trigger.add_subscriber(effect.downgrade());
+		trigger.add_subscriber(effect.downgrade() as WeakEffect<dyn Fn()>);
 		assert_eq!(TRIGGERS.get(), 1, "Trigger was triggered early");
 
 		// Then trigger and ensure it was triggered
@@ -136,7 +136,7 @@ mod test {
 		assert_eq!(TRIGGERS.get(), 2, "Trigger was not triggered");
 
 		// Then add the subscriber again and ensure the effect isn't run twice
-		trigger.add_subscriber(effect.downgrade());
+		trigger.add_subscriber(effect.downgrade() as WeakEffect<dyn Fn()>);
 		trigger.trigger();
 		assert_eq!(TRIGGERS.get(), 3, "Trigger ran effect multiple times");
 

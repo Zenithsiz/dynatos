@@ -17,7 +17,7 @@ pub struct QueryArraySignal<T> {
 	inner: Signal<Vec<T>>,
 
 	/// Update effect.
-	update_effect: Effect,
+	update_effect: Effect<dyn Fn()>,
 }
 
 impl<T> QueryArraySignal<T> {

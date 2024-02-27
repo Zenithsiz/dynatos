@@ -43,7 +43,7 @@ pub struct LazyLoadable<T, E> {
 	load_status: Signal<LoadStatus>,
 
 	/// Effect
-	effect: Effect,
+	effect: Effect<dyn Fn()>,
 }
 
 impl<T, E> LazyLoadable<T, E> {

@@ -44,7 +44,7 @@ use {
 /// See the module documentation for more information.
 pub struct Derived<T> {
 	/// Effect
-	effect: Effect,
+	effect: Effect<dyn Fn()>,
 
 	/// Value
 	value: Signal<Option<T>>,

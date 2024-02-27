@@ -3,52 +3,55 @@
 //! An effect is a function that is re-run whenever
 //! one of it's dependencies changes.
 
+// TODO: Downcasting? It isn't trivial due to the usages of `Rc<Inner<dyn Fn()>>`,
+//       which doesn't allow casting to `Rc<dyn Any>`, required by `Rc::downcast`.
+
 // Imports
 use std::{
-	cell::RefCell,
+	cell::{Cell, RefCell},
 	fmt,
 	hash::Hash,
-	mem,
+	marker::Unsize,
+	ops::CoerceUnsized,
 	rc::{Rc, Weak},
 };
 
 thread_local! {
 	/// Effect stack
-	static EFFECT_STACK: RefCell<Vec<WeakEffect>> = const { RefCell::new(vec![]) };
+	static EFFECT_STACK: RefCell<Vec<WeakEffect<dyn Fn()>>> = const { RefCell::new(vec![]) };
 }
 
 /// Effect inner
-struct Inner {
+struct Inner<F: ?Sized> {
 	/// Whether this effect is currently suppressed
-	suppressed: bool,
+	suppressed: Cell<bool>,
 
 	/// Effect runner
-	run: Box<dyn Fn()>,
+	run: F,
 }
+
+impl<F1: ?Sized, F2: ?Sized> CoerceUnsized<Inner<F2>> for Inner<F1> where F1: CoerceUnsized<F2> {}
 
 /// Effect
-#[derive(Clone)]
-pub struct Effect {
+pub struct Effect<F: ?Sized> {
 	/// Inner
-	inner: Rc<RefCell<Inner>>,
+	inner: Rc<Inner<F>>,
 }
 
-impl Effect {
+impl<F> Effect<F> {
 	/// Creates a new computed effect.
 	///
 	/// Runs the effect once to gather dependencies.
-	pub fn new<F>(run: F) -> Self
+	pub fn new(run: F) -> Self
 	where
 		F: Fn() + 'static,
 	{
 		// Create the effect
 		let inner = Inner {
-			suppressed: false,
-			run:        Box::new(run),
+			suppressed: Cell::new(false),
+			run,
 		};
-		let effect = Self {
-			inner: Rc::new(RefCell::new(inner)),
-		};
+		let effect = Self { inner: Rc::new(inner) };
 
 		// And run it once to gather dependencies.
 		effect.run();
@@ -59,7 +62,7 @@ impl Effect {
 	/// Tries to create a new effect.
 	///
 	/// If the effects ends up being inert, returns `None`
-	pub fn try_new<F>(run: F) -> Option<Self>
+	pub fn try_new(run: F) -> Option<Self>
 	where
 		F: Fn() + 'static,
 	{
@@ -69,9 +72,11 @@ impl Effect {
 			false => Some(effect),
 		}
 	}
+}
 
+impl<F: ?Sized> Effect<F> {
 	/// Downgrades this effect
-	pub fn downgrade(&self) -> WeakEffect {
+	pub fn downgrade(&self) -> WeakEffect<F> {
 		WeakEffect {
 			inner: Rc::downgrade(&self.inner),
 		}
@@ -94,14 +99,16 @@ impl Effect {
 	}
 
 	/// Runs the effect
-	pub fn run(&self) {
+	pub fn run(&self)
+	where
+		F: Fn() + Unsize<dyn Fn()> + 'static,
+	{
 		// Push the effect, run the closure and pop it
 		EFFECT_STACK.with_borrow_mut(|effects| effects.push(self.downgrade()));
 
 		// Then run it, if it's not suppressed
-		let inner = self.inner.borrow();
-		if !inner.suppressed {
-			(inner.run)();
+		if !self.inner.suppressed.get() {
+			(self.inner.run)();
 		}
 
 		// And finally pop the effect from the stack
@@ -111,61 +118,80 @@ impl Effect {
 	}
 
 	/// Suppresses this effect from running while calling this function
-	pub fn suppressed<F, O>(&self, f: F) -> O
+	pub fn suppressed<F2, O>(&self, f: F2) -> O
 	where
-		F: FnOnce() -> O,
+		F2: FnOnce() -> O,
 	{
 		// Set the suppress flag and run `f`
-		let last = mem::replace(&mut self.inner.borrow_mut().suppressed, true);
+		let last_suppressed = self.inner.suppressed.replace(true);
 		let output = f();
 
 		// Then restore it
-		self.inner.borrow_mut().suppressed = last;
+		self.inner.suppressed.set(last_suppressed);
 
 		output
 	}
 }
 
-impl PartialEq for Effect {
-	fn eq(&self, other: &Self) -> bool {
-		Rc::ptr_eq(&self.inner, &other.inner)
+impl<F1: ?Sized, F2: ?Sized> PartialEq<Effect<F2>> for Effect<F1> {
+	fn eq(&self, other: &Effect<F2>) -> bool {
+		self.inner_ptr() == other.inner_ptr()
 	}
 }
 
-impl Eq for Effect {}
+impl<F: ?Sized> Eq for Effect<F> {}
 
-impl Hash for Effect {
+impl<F: ?Sized> Clone for Effect<F> {
+	fn clone(&self) -> Self {
+		Self {
+			inner: Rc::clone(&self.inner),
+		}
+	}
+}
+
+impl<F: ?Sized> Hash for Effect<F> {
 	fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
-		self.inner.as_ptr().hash(state);
+		Rc::as_ptr(&self.inner).hash(state);
 	}
 }
 
-impl fmt::Debug for Effect {
+impl<F: ?Sized> fmt::Debug for Effect<F> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		f.debug_struct("Effect").finish_non_exhaustive()
 	}
 }
 
+impl<T: ?Sized, U: ?Sized> CoerceUnsized<Effect<U>> for Effect<T> where T: Unsize<U> {}
+
 
 /// Weak effect
 ///
 /// Used to break ownership between a signal and it's subscribers
-#[derive(Clone)]
-pub struct WeakEffect {
+pub struct WeakEffect<F: ?Sized> {
 	/// Inner
-	inner: Weak<RefCell<Inner>>,
+	inner: Weak<Inner<F>>,
 }
 
-impl WeakEffect {
+impl<F: ?Sized> WeakEffect<F> {
 	/// Upgrades this effect
-	pub fn upgrade(&self) -> Option<Effect> {
+	pub fn upgrade(&self) -> Option<Effect<F>> {
 		self.inner.upgrade().map(|inner| Effect { inner })
+	}
+
+	/// Returns the pointer of this effect
+	///
+	/// This can be used for creating maps based on equality
+	pub fn inner_ptr(&self) -> *const () {
+		Weak::as_ptr(&self.inner).cast()
 	}
 
 	/// Runs this effect, if it exists.
 	///
 	/// Returns if the effect still existed
-	pub fn try_run(&self) -> bool {
+	pub fn try_run(&self) -> bool
+	where
+		F: Fn() + Unsize<dyn Fn()> + 'static,
+	{
 		// Try to upgrade, else return that it was missing
 		let Some(effect) = self.upgrade() else {
 			return false;
@@ -176,28 +202,39 @@ impl WeakEffect {
 	}
 }
 
-impl PartialEq for WeakEffect {
-	fn eq(&self, other: &Self) -> bool {
-		Weak::ptr_eq(&self.inner, &other.inner)
+impl<F1: ?Sized, F2: ?Sized> PartialEq<WeakEffect<F2>> for WeakEffect<F1> {
+	fn eq(&self, other: &WeakEffect<F2>) -> bool {
+		self.inner_ptr() == other.inner_ptr()
 	}
 }
 
-impl Eq for WeakEffect {}
+impl<F: ?Sized> Eq for WeakEffect<F> {}
 
-impl Hash for WeakEffect {
+impl<F: ?Sized> Clone for WeakEffect<F> {
+	fn clone(&self) -> Self {
+		Self {
+			inner: Weak::clone(&self.inner),
+		}
+	}
+}
+
+
+impl<F: ?Sized> Hash for WeakEffect<F> {
 	fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
 		self.inner.as_ptr().hash(state);
 	}
 }
 
-impl fmt::Debug for WeakEffect {
+impl<F: ?Sized> fmt::Debug for WeakEffect<F> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		f.debug_struct("WeakEffect").finish_non_exhaustive()
 	}
 }
 
+impl<T: ?Sized, U: ?Sized> CoerceUnsized<WeakEffect<U>> for WeakEffect<T> where T: Unsize<U> {}
+
 /// Returns the current running effect
-pub fn running() -> Option<WeakEffect> {
+pub fn running() -> Option<WeakEffect<dyn Fn()>> {
 	EFFECT_STACK.with_borrow(|effects| effects.last().cloned())
 }
 

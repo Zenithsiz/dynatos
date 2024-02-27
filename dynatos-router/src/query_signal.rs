@@ -17,7 +17,7 @@ pub struct QuerySignal<T> {
 	inner: Signal<Option<T>>,
 
 	/// Update effect.
-	update_effect: Effect,
+	update_effect: Effect<dyn Fn()>,
 }
 
 impl<T> QuerySignal<T> {

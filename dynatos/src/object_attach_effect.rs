@@ -12,7 +12,7 @@ use {
 #[extend::ext(name = ObjectAttachEffect)]
 pub impl js_sys::Object {
 	/// Attaches an effect to this object
-	fn attach_effect(&self, effect: Effect) {
+	fn attach_effect(&self, effect: Effect<dyn Fn()>) {
 		// Get the effects map, or create it, if it doesn't exist
 		// TODO: Use an static anonymous symbol?
 		let prop_name: &str = "__dynatos_effects";
@@ -42,7 +42,7 @@ where
 	/// Attaches an effect to this object.
 	///
 	/// Returns the object, for chaining
-	fn with_effect(self, effect: Effect) -> Self {
+	fn with_effect(self, effect: Effect<dyn Fn()>) -> Self {
 		self.as_ref().attach_effect(effect);
 		self
 	}
@@ -51,4 +51,4 @@ where
 /// A wasm `Effect` type.
 #[wasm_bindgen]
 #[expect(dead_code, reason = "We just want to keep the field alive, not use it")]
-struct WasmEffect(Effect);
+struct WasmEffect(Effect<dyn Fn()>);
