@@ -1,4 +1,4 @@
-//! Utilities for [`dynatos`]
+//! Utilities for `dynatos`
 
 // Features
 #![feature(decl_macro, never_type, try_trait_v2, control_flow_enum)]

@@ -1,4 +1,4 @@
-//! Routing for [`dynatos`]
+//! Routing for `dynatos`
 
 // Features
 #![feature(lint_reasons)]

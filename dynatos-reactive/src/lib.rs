@@ -1,4 +1,4 @@
-//! Reactivity for [`dynatos`]
+//! Reactivity for `dynatos`
 
 // Features
 #![feature(unsize, coerce_unsized)]

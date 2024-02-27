@@ -1,4 +1,4 @@
-//! Title management for [`dynatos`]
+//! Title management for `dynatos`
 
 // TODO: It seems that titles aren't getting dropped for some reason.
 

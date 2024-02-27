@@ -1,4 +1,4 @@
-//! Function component builder for [`dynatos`]
+//! Function component builder for `dynatos`
 
 // Exports
 pub use dynatos_builder_macros::builder;

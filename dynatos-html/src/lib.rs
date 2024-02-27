@@ -1,4 +1,4 @@
-//! Html wrappers for [`dynatos`]
+//! Html wrappers for `dynatos`
 
 // Features
 #![feature(decl_macro)]

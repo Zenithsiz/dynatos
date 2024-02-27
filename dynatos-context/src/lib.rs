@@ -1,4 +1,4 @@
-//! Context passing for [`dynatos`]
+//! Context passing for `dynatos`
 
 // Features
 #![feature(try_blocks)]
