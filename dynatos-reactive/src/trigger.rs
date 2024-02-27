@@ -112,7 +112,7 @@ mod test {
 		// Then create the trigger, and ensure it wasn't triggered
 		// by just creating it and adding the subscriber
 		let trigger = Trigger::new();
-		trigger.add_subscriber(effect.downgrade() as WeakEffect<dyn Fn()>);
+		trigger.add_subscriber(&effect);
 		assert_eq!(TRIGGERS.get(), 1, "Trigger was triggered early");
 
 		// Then trigger and ensure it was triggered
@@ -120,7 +120,7 @@ mod test {
 		assert_eq!(TRIGGERS.get(), 2, "Trigger was not triggered");
 
 		// Then add the subscriber again and ensure the effect isn't run twice
-		trigger.add_subscriber(effect.downgrade() as WeakEffect<dyn Fn()>);
+		trigger.add_subscriber(&effect);
 		trigger.trigger();
 		assert_eq!(TRIGGERS.get(), 3, "Trigger ran effect multiple times");
 

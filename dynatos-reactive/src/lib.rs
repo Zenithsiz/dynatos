@@ -19,6 +19,9 @@ pub use self::{
 	with_default::{SignalWithDefault, WithDefault},
 };
 
+// Imports
+use std::marker::Unsize;
+
 /// Signal get
 #[extend::ext(name = SignalGet)]
 pub impl<S> S
@@ -81,16 +84,20 @@ pub trait SignalUpdate {
 
 /// Types that may be converted into a subscriber
 pub trait IntoSubscriber {
+	/// Converts this type into a weak effect.
 	fn into_subscriber(self) -> WeakEffect<dyn Fn()>;
 }
 
 #[duplicate::duplicate_item(
 	T body;
-	[ Effect<dyn Fn()> ] [ self.downgrade() ];
-	[ &'_ Effect<dyn Fn()> ] [ self.downgrade() ];
-	[ WeakEffect<dyn Fn()> ] [ self ];
+	[ Effect ] [ self.downgrade() ];
+	[ &'_ Effect ] [ self.downgrade() ];
+	[ WeakEffect ] [ self ];
 )]
-impl IntoSubscriber for T {
+impl<F> IntoSubscriber for T<F>
+where
+	F: ?Sized + Fn() + Unsize<dyn Fn()> + 'static,
+{
 	fn into_subscriber(self) -> WeakEffect<dyn Fn()> {
 		body
 	}
