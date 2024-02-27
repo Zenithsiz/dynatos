@@ -77,11 +77,6 @@ impl Effect {
 		}
 	}
 
-	/// Returns the current running effect
-	pub fn running() -> Option<WeakEffect> {
-		EFFECT_STACK.with_borrow(|effects| effects.last().cloned())
-	}
-
 	/// Returns if this effect is inert.
 	///
 	/// An inert effect is one that will never be updated.
@@ -201,10 +196,18 @@ impl fmt::Debug for WeakEffect {
 	}
 }
 
+/// Returns the current running effect
+pub fn running() -> Option<WeakEffect> {
+	EFFECT_STACK.with_borrow(|effects| effects.last().cloned())
+}
+
 #[cfg(test)]
 mod test {
 	// Imports
-	use {super::*, std::cell::OnceCell};
+	use {
+		super::{super::effect, *},
+		std::cell::OnceCell,
+	};
 
 	/// Leaks a value and returns a `&'static T`
 	///
@@ -222,7 +225,7 @@ mod test {
 		let running = self::leaked(OnceCell::new());
 		let effect = Effect::new(move || {
 			running
-				.set(Effect::running().expect("Future wasn't running"))
+				.set(effect::running().expect("Future wasn't running"))
 				.expect("Unable to set running effect");
 		});
 
@@ -245,12 +248,12 @@ mod test {
 		let running_bottom = self::leaked(OnceCell::new());
 		let effect = Effect::new(move || {
 			running_top
-				.set(Effect::running().expect("Future wasn't running"))
+				.set(effect::running().expect("Future wasn't running"))
 				.expect("Unable to set running effect");
 
 			let effect = Effect::new(move || {
 				running_bottom
-					.set(Effect::running().expect("Future wasn't running"))
+					.set(effect::running().expect("Future wasn't running"))
 					.expect("Unable to set running effect");
 			});
 

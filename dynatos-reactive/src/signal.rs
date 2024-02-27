@@ -5,7 +5,7 @@
 
 // Imports
 use {
-	crate::{Effect, SignalReplace, SignalSet, SignalUpdate, SignalWith, Trigger, WeakEffect},
+	crate::{effect, Effect, SignalReplace, SignalSet, SignalUpdate, SignalWith, Trigger, WeakEffect},
 	std::{cell::RefCell, fmt, marker::Unsize, mem, ops::CoerceUnsized, rc::Rc},
 };
 
@@ -50,7 +50,7 @@ impl<T: ?Sized> SignalWith for Signal<T> {
 	where
 		F: FnOnce(&Self::Value) -> O,
 	{
-		if let Some(effect) = Effect::running() {
+		if let Some(effect) = effect::running() {
 			self.inner.trigger.add_subscriber(effect);
 		}
 
