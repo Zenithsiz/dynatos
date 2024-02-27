@@ -5,7 +5,7 @@
 
 // Imports
 use {
-	crate::{Effect, WeakEffect},
+	crate::{IntoSubscriber, WeakEffect},
 	std::{cell::RefCell, collections::HashSet, fmt, rc::Rc},
 };
 
@@ -90,28 +90,12 @@ impl fmt::Debug for Trigger {
 	}
 }
 
-/// Types that may be converted into a subscriber
-pub trait IntoSubscriber {
-	fn into_subscriber(self) -> WeakEffect<dyn Fn()>;
-}
-
-#[duplicate::duplicate_item(
-	T body;
-	[ Effect<dyn Fn()> ] [ self.downgrade() ];
-	[ &'_ Effect<dyn Fn()> ] [ self.downgrade() ];
-	[ WeakEffect<dyn Fn()> ] [ self ];
-)]
-impl IntoSubscriber for T {
-	fn into_subscriber(self) -> WeakEffect<dyn Fn()> {
-		body
-	}
-}
-
 #[cfg(test)]
 mod test {
 	// Imports
 	use {
 		super::*,
+		crate::Effect,
 		std::{cell::Cell, mem},
 	};
 

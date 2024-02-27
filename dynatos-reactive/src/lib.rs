@@ -78,3 +78,20 @@ pub trait SignalUpdate {
 	where
 		F: FnOnce(&mut Self::Value) -> O;
 }
+
+/// Types that may be converted into a subscriber
+pub trait IntoSubscriber {
+	fn into_subscriber(self) -> WeakEffect<dyn Fn()>;
+}
+
+#[duplicate::duplicate_item(
+	T body;
+	[ Effect<dyn Fn()> ] [ self.downgrade() ];
+	[ &'_ Effect<dyn Fn()> ] [ self.downgrade() ];
+	[ WeakEffect<dyn Fn()> ] [ self ];
+)]
+impl IntoSubscriber for T {
+	fn into_subscriber(self) -> WeakEffect<dyn Fn()> {
+		body
+	}
+}

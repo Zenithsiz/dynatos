@@ -5,7 +5,7 @@
 
 // Imports
 use {
-	crate::{effect, Effect, SignalReplace, SignalSet, SignalUpdate, SignalWith, Trigger, WeakEffect},
+	crate::{effect, SignalReplace, SignalSet, SignalUpdate, SignalWith, Trigger},
 	std::{cell::RefCell, fmt, marker::Unsize, mem, ops::CoerceUnsized, rc::Rc},
 };
 
@@ -113,22 +113,5 @@ impl<T: fmt::Debug> fmt::Debug for Signal<T> {
 			.field("value", &*self.inner.value.borrow())
 			.field("trigger", &self.inner.trigger)
 			.finish()
-	}
-}
-
-/// Types that may be converted into a subscriber
-pub trait IntoSubscriber {
-	fn into_subscriber(self) -> WeakEffect<dyn Fn()>;
-}
-
-#[duplicate::duplicate_item(
-	T body;
-	[ Effect<dyn Fn()> ] [ self.downgrade() ];
-	[ &'_ Effect<dyn Fn()> ] [ self.downgrade() ];
-	[ WeakEffect<dyn Fn()> ] [ self ];
-)]
-impl IntoSubscriber for T {
-	fn into_subscriber(self) -> WeakEffect<dyn Fn()> {
-		body
 	}
 }
