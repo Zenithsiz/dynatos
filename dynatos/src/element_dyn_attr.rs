@@ -3,7 +3,8 @@
 // Imports
 use {
 	crate::ObjectAttachEffect,
-	dynatos_reactive::{Derived, Effect, Signal, SignalWith},
+	dynatos_reactive::{Derived, Effect, Signal, SignalWith, WithDefault},
+	dynatos_router::QuerySignal,
 	dynatos_util::{TryOrReturnExt, WeakRef},
 };
 
@@ -142,23 +143,14 @@ where
 }
 
 // TODO: Allow impl for `impl SignalGet<Value: WithDynText>`
-impl<T> WithDynAttr for Signal<T>
-where
-	T: WithDynAttr,
-{
-	fn with_attr<F, O>(&self, f: F) -> O
-	where
-		F: FnOnce(Option<&str>) -> O,
-	{
-		self.with(|text| text.with_attr(f))
-	}
-}
-
-impl<T, F> WithDynAttr for Derived<T, F>
-where
-	T: WithDynAttr,
-	F: ?Sized,
-{
+#[duplicate::duplicate_item(
+	Generics Ty;
+	[T] [Signal<T> where T: WithDynAttr];
+	[T, F] [Derived<T, F> where T: WithDynAttr, F: ?Sized];
+	[T] [QuerySignal<T> where T: WithDynAttr];
+	[S, T] [WithDefault<S, T> where S:SignalWith<Value = Option<T>>, T: WithDynAttr];
+)]
+impl<Generics> WithDynAttr for Ty {
 	fn with_attr<F2, O>(&self, f: F2) -> O
 	where
 		F2: FnOnce(Option<&str>) -> O,
@@ -196,19 +188,13 @@ impl DynAttrPred for bool {
 }
 
 // TODO: Allow impl for `impl SignalGet<Value: WithDynText>`
-impl<T> DynAttrPred for Signal<T>
-where
-	T: DynAttrPred,
-{
-	fn eval(&self) -> bool {
-		self.with(T::eval)
-	}
-}
-
-impl<T, F: ?Sized> DynAttrPred for Derived<T, F>
-where
-	T: DynAttrPred,
-{
+#[duplicate::duplicate_item(
+	Generics Ty;
+	[T] [Signal<T> where T: DynAttrPred];
+	[T, F] [Derived<T, F> where T: DynAttrPred, F: ?Sized];
+	[S, T] [WithDefault<S, T> where S:SignalWith<Value = Option<T>>, T: DynAttrPred];
+)]
+impl<Generics> DynAttrPred for Ty {
 	fn eval(&self) -> bool {
 		self.with(T::eval)
 	}

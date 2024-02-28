@@ -140,36 +140,14 @@ impl ToDynProp for Ty {
 }
 
 // TODO: Allow impl for `impl SignalGet<Value: WithDynText>`
-impl<T> ToDynProp for Signal<T>
-where
-	T: ToDynProp,
-{
-	fn to_prop(&self) -> Option<JsValue> {
-		self.with(|prop| prop.to_prop())
-	}
-}
-impl<T, F> ToDynProp for Derived<T, F>
-where
-	T: ToDynProp,
-	F: ?Sized,
-{
-	fn to_prop(&self) -> Option<JsValue> {
-		self.with(|prop| prop.to_prop())
-	}
-}
-impl<T> ToDynProp for QuerySignal<T>
-where
-	T: ToDynProp,
-{
-	fn to_prop(&self) -> Option<JsValue> {
-		self.with(|prop| prop.to_prop())
-	}
-}
-impl<S, T> ToDynProp for WithDefault<S, T>
-where
-	S: SignalWith<Value = Option<T>>,
-	T: ToDynProp,
-{
+#[duplicate::duplicate_item(
+	Generics Ty;
+	[T] [Signal<T> where T: ToDynProp];
+	[T, F] [Derived<T, F> where T: ToDynProp, F: ?Sized];
+	[T] [QuerySignal<T> where T: ToDynProp];
+	[S, T] [WithDefault<S, T> where S:SignalWith<Value = Option<T>>, T: ToDynProp];
+)]
+impl<Generics> ToDynProp for Ty {
 	fn to_prop(&self) -> Option<JsValue> {
 		self.with(|prop| prop.to_prop())
 	}

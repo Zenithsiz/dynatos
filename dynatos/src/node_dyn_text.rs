@@ -113,48 +113,17 @@ where
 }
 
 // TODO: Allow impl for `impl SignalGet<Value: WithDynText>`
-impl<T> WithDynText for Signal<T>
-where
-	T: WithDynText,
-{
-	fn with_text<F, O>(&self, f: F) -> O
-	where
-		F: FnOnce(Option<&str>) -> O,
-	{
-		self.with(|text| text.with_text(f))
-	}
-}
-impl<T, F> WithDynText for Derived<T, F>
-where
-	T: WithDynText,
-	F: ?Sized,
-{
+#[duplicate::duplicate_item(
+	Generics Ty;
+	[T] [Signal<T> where T: WithDynText];
+	[T, F] [Derived<T, F> where T: WithDynText, F: ?Sized];
+	[T] [QuerySignal<T> where T: WithDynText];
+	[S, T] [WithDefault<S, T> where S:SignalWith<Value = Option<T>>, T: WithDynText];
+)]
+impl<Generics> WithDynText for Ty {
 	fn with_text<F2, O>(&self, f: F2) -> O
 	where
 		F2: FnOnce(Option<&str>) -> O,
-	{
-		self.with(|text| text.with_text(f))
-	}
-}
-impl<T> WithDynText for QuerySignal<T>
-where
-	T: WithDynText,
-{
-	fn with_text<F, O>(&self, f: F) -> O
-	where
-		F: FnOnce(Option<&str>) -> O,
-	{
-		self.with(|text| text.with_text(f))
-	}
-}
-impl<S, T> WithDynText for WithDefault<S, T>
-where
-	S: SignalWith<Value = Option<T>>,
-	T: WithDynText,
-{
-	fn with_text<F, O>(&self, f: F) -> O
-	where
-		F: FnOnce(Option<&str>) -> O,
 	{
 		self.with(|text| text.with_text(f))
 	}
