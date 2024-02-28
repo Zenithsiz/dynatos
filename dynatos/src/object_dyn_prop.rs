@@ -140,14 +140,18 @@ impl ToDynProp for Ty {
 }
 
 // TODO: Allow impl for `impl SignalGet<Value: WithDynText>`
-#[duplicate::duplicate_item(
-	Sig;
-	[Signal];
-	[Derived];
-)]
-impl<T> ToDynProp for Sig<T>
+impl<T> ToDynProp for Signal<T>
 where
 	T: ToDynProp,
+{
+	fn to_prop(&self) -> Option<JsValue> {
+		self.with(|prop| prop.to_prop())
+	}
+}
+impl<T, F> ToDynProp for Derived<T, F>
+where
+	T: ToDynProp,
+	F: ?Sized,
 {
 	fn to_prop(&self) -> Option<JsValue> {
 		self.with(|prop| prop.to_prop())

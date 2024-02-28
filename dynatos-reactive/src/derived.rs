@@ -30,71 +30,99 @@
 //! not only store the latest value, it also needs to create an effect that is re-run
 //! each time any dependencies are updated.
 
-// TODO: Make `Derived` always `usize`-sized
-//       by merging the `effect::Inner` and `signal::Inner` somehow?
-
 // Imports
 use {
 	crate::{Effect, Signal, SignalSet, SignalWith},
-	std::fmt,
+	std::{fmt, marker::Unsize, ops::CoerceUnsized},
 };
 
 /// Derived signal.
 ///
 /// See the module documentation for more information.
-pub struct Derived<T> {
+pub struct Derived<T, F: ?Sized> {
 	/// Effect
-	effect: Effect<dyn Fn()>,
-
-	/// Value
-	value: Signal<Option<T>>,
+	effect: Effect<EffectFn<T, F>>,
 }
 
-impl<T> Derived<T> {
+impl<T, F> Derived<T, F> {
 	/// Creates a new derived signal
-	pub fn new<F>(f: F) -> Self
+	pub fn new(f: F) -> Self
 	where
 		T: 'static,
 		F: Fn() -> T + 'static,
 	{
 		let value = Signal::new(None);
-		let effect = Effect::new({
-			let value = value.clone();
-			move || value.set(Some(f()))
-		});
+		let effect = Effect::new(EffectFn { value, f });
 
-		Self { effect, value }
+		Self { effect }
 	}
 }
 
-impl<T> SignalWith for Derived<T> {
+impl<T, F: ?Sized> SignalWith for Derived<T, F> {
 	type Value = T;
 
-	fn with<F, O>(&self, f: F) -> O
+	fn with<F2, O>(&self, f: F2) -> O
 	where
-		F: FnOnce(&Self::Value) -> O,
+		F2: FnOnce(&Self::Value) -> O,
 	{
-		self.value.with(|value| {
+		let effect_fn = self.effect.inner_fn();
+		effect_fn.value.with(|value| {
 			let value = value.as_ref().expect("Value wasn't initialized");
 			f(value)
 		})
 	}
 }
 
-impl<T> Clone for Derived<T> {
+impl<T, F: ?Sized> Clone for Derived<T, F> {
 	fn clone(&self) -> Self {
 		Self {
 			effect: self.effect.clone(),
-			value:  self.value.clone(),
 		}
 	}
 }
 
-impl<T: fmt::Debug> fmt::Debug for Derived<T> {
+impl<T: fmt::Debug, F: ?Sized> fmt::Debug for Derived<T, F> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		f.debug_struct("Derived")
-			.field("effect", &self.effect)
-			.field("value", &self.value)
-			.finish()
+		let effect_fn = self.effect.inner_fn();
+		f.debug_struct("Derived").field("value", &effect_fn.value).finish()
+	}
+}
+
+impl<T, F1: ?Sized, F2: ?Sized> CoerceUnsized<Derived<T, F2>> for Derived<T, F1> where F1: Unsize<F2> {}
+
+/// Effect function
+struct EffectFn<T, F: ?Sized> {
+	/// Value
+	// TODO: Remove the indirection of the inner signal here.
+	value: Signal<Option<T>>,
+
+	/// Function
+	f: F,
+}
+
+impl<T, F> FnOnce<()> for EffectFn<T, F>
+where
+	F: Fn() -> T,
+{
+	type Output = ();
+
+	extern "rust-call" fn call_once(mut self, args: ()) -> Self::Output {
+		self.call_mut(args)
+	}
+}
+impl<T, F> FnMut<()> for EffectFn<T, F>
+where
+	F: Fn() -> T,
+{
+	extern "rust-call" fn call_mut(&mut self, args: ()) -> Self::Output {
+		self.call(args)
+	}
+}
+impl<T, F> Fn<()> for EffectFn<T, F>
+where
+	F: Fn() -> T,
+{
+	extern "rust-call" fn call(&self, _args: ()) -> Self::Output {
+		self.value.set(Some((self.f)()));
 	}
 }

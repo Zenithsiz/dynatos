@@ -113,18 +113,25 @@ where
 }
 
 // TODO: Allow impl for `impl SignalGet<Value: WithDynText>`
-#[duplicate::duplicate_item(
-	Sig;
-	[Signal];
-	[Derived];
-)]
-impl<T> WithDynText for Sig<T>
+impl<T> WithDynText for Signal<T>
 where
 	T: WithDynText,
 {
 	fn with_text<F, O>(&self, f: F) -> O
 	where
 		F: FnOnce(Option<&str>) -> O,
+	{
+		self.with(|text| text.with_text(f))
+	}
+}
+impl<T, F> WithDynText for Derived<T, F>
+where
+	T: WithDynText,
+	F: ?Sized,
+{
+	fn with_text<F2, O>(&self, f: F2) -> O
+	where
+		F2: FnOnce(Option<&str>) -> O,
 	{
 		self.with(|text| text.with_text(f))
 	}

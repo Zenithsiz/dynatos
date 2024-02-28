@@ -142,18 +142,26 @@ where
 }
 
 // TODO: Allow impl for `impl SignalGet<Value: WithDynText>`
-#[duplicate::duplicate_item(
-	Sig;
-	[Signal];
-	[Derived];
-)]
-impl<T> WithDynAttr for Sig<T>
+impl<T> WithDynAttr for Signal<T>
 where
 	T: WithDynAttr,
 {
 	fn with_attr<F, O>(&self, f: F) -> O
 	where
 		F: FnOnce(Option<&str>) -> O,
+	{
+		self.with(|text| text.with_attr(f))
+	}
+}
+
+impl<T, F> WithDynAttr for Derived<T, F>
+where
+	T: WithDynAttr,
+	F: ?Sized,
+{
+	fn with_attr<F2, O>(&self, f: F2) -> O
+	where
+		F2: FnOnce(Option<&str>) -> O,
 	{
 		self.with(|text| text.with_attr(f))
 	}
@@ -188,12 +196,16 @@ impl DynAttrPred for bool {
 }
 
 // TODO: Allow impl for `impl SignalGet<Value: WithDynText>`
-#[duplicate::duplicate_item(
-	Sig;
-	[Signal];
-	[Derived];
-)]
-impl<T> DynAttrPred for Sig<T>
+impl<T> DynAttrPred for Signal<T>
+where
+	T: DynAttrPred,
+{
+	fn eval(&self) -> bool {
+		self.with(T::eval)
+	}
+}
+
+impl<T, F: ?Sized> DynAttrPred for Derived<T, F>
 where
 	T: DynAttrPred,
 {
