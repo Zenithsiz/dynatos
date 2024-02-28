@@ -4,6 +4,7 @@
 use {
 	dynatos_reactive::Effect,
 	dynatos_util::{ObjectGet, ObjectSetProp},
+	std::marker::Unsize,
 	wasm_bindgen::prelude::wasm_bindgen,
 };
 
@@ -12,7 +13,10 @@ use {
 #[extend::ext(name = ObjectAttachEffect)]
 pub impl js_sys::Object {
 	/// Attaches an effect to this object
-	fn attach_effect(&self, effect: Effect<dyn Fn()>) {
+	fn attach_effect<F>(&self, effect: Effect<F>)
+	where
+		F: ?Sized + Fn() + Unsize<dyn Fn()>,
+	{
 		// Get the effects map, or create it, if it doesn't exist
 		// TODO: Use an static anonymous symbol?
 		let prop_name: &str = "__dynatos_effects";
@@ -42,7 +46,10 @@ where
 	/// Attaches an effect to this object.
 	///
 	/// Returns the object, for chaining
-	fn with_effect(self, effect: Effect<dyn Fn()>) -> Self {
+	fn with_effect<F>(self, effect: Effect<F>) -> Self
+	where
+		F: ?Sized + Fn() + Unsize<dyn Fn()>,
+	{
 		self.as_ref().attach_effect(effect);
 		self
 	}
