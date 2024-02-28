@@ -75,6 +75,11 @@ impl<F> Effect<F> {
 }
 
 impl<F: ?Sized> Effect<F> {
+	/// Accesses the inner function
+	pub fn inner_fn(&self) -> &F {
+		&self.inner.run
+	}
+
 	/// Downgrades this effect
 	pub fn downgrade(&self) -> WeakEffect<F> {
 		WeakEffect {
