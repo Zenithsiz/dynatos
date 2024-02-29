@@ -1,7 +1,7 @@
 //! Context passing for `dynatos`
 
 // Features
-#![feature(try_blocks)]
+#![feature(try_blocks, test)]
 
 // Imports
 use std::{
@@ -313,6 +313,10 @@ fn on_missing_context<T, O>() -> O {
 
 #[cfg(test)]
 mod test {
+	// Imports
+	extern crate test;
+	use test::Bencher;
+
 	#[test]
 	fn simple() {
 		let handle = crate::provide::<i32>(5);
@@ -373,5 +377,46 @@ mod test {
 			assert_eq!(handle.take(), value);
 		}
 		assert_eq!(crate::get::<i32>(), None);
+	}
+
+	// Type and value to test for the accesses
+	// Note: We currently use half a page size, to avoid
+	//       any issues with being near or over the page size.
+	type AccessTy = [u8; 2048];
+	const ACCESS_TY_DEFAULT: AccessTy = [123; 2048];
+
+	#[bench]
+	fn access_static(bencher: &mut Bencher) {
+		static VALUE: AccessTy = ACCESS_TY_DEFAULT;
+
+		bencher.iter(|| VALUE)
+	}
+
+	#[bench]
+	fn access(bencher: &mut Bencher) {
+		let _handle = crate::provide::<AccessTy>(ACCESS_TY_DEFAULT);
+
+		bencher.iter(crate::get::<AccessTy>)
+	}
+
+	#[bench]
+	fn access_expect(bencher: &mut Bencher) {
+		let _handle = crate::provide::<AccessTy>(ACCESS_TY_DEFAULT);
+
+		bencher.iter(crate::expect::<AccessTy>)
+	}
+
+	#[bench]
+	fn access_with(bencher: &mut Bencher) {
+		let _handle = crate::provide::<AccessTy>(ACCESS_TY_DEFAULT);
+
+		bencher.iter(|| crate::with::<AccessTy, _, _>(|value| test::black_box(value.copied())))
+	}
+
+	#[bench]
+	fn access_with_expect(bencher: &mut Bencher) {
+		let _handle = crate::provide::<AccessTy>(ACCESS_TY_DEFAULT);
+
+		bencher.iter(|| crate::with_expect::<AccessTy, _, _>(|value| test::black_box(*value)))
 	}
 }
