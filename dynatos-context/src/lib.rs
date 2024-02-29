@@ -1,25 +1,36 @@
 //! Context passing for `dynatos`
 
 // Features
-#![feature(try_blocks, test)]
+#![feature(try_blocks, thread_local, test, const_collections_with_hasher)]
 
 // Imports
 use std::{
 	any::{self, Any, TypeId},
 	cell::RefCell,
 	collections::HashMap,
+	hash::{BuildHasher, DefaultHasher},
 	marker::PhantomData,
 	mem,
 };
 
-type CtxsStack = RefCell<HashMap<TypeId, CtxStack>>;
+type CtxsStack = RefCell<HashMap<TypeId, CtxStack, RandomState>>;
 type CtxStack = Vec<Option<Box<dyn Any>>>;
 
-thread_local! {
-	/// Context stack
-	// TODO: Use type with less indirections?
-	static CTXS_STACK: CtxsStack = RefCell::new(HashMap::new());
+/// Hash builder for `CTXS_STACK`
+struct RandomState;
+
+impl BuildHasher for RandomState {
+	type Hasher = DefaultHasher;
+
+	fn build_hasher(&self) -> Self::Hasher {
+		DefaultHasher::default()
+	}
 }
+
+/// Context stack
+// TODO: Use type with less indirections?
+#[thread_local]
+static CTXS_STACK: CtxsStack = RefCell::new(HashMap::with_hasher(RandomState));
 
 /// Uses the context stack for `T`
 fn with_ctx_stack<T, F, O>(f: F) -> O
@@ -36,11 +47,11 @@ fn with_ctx_stack_opaque<F, O>(type_id: TypeId, f: F) -> O
 where
 	F: FnOnce(Option<&CtxStack>) -> O,
 {
-	CTXS_STACK.with(|ctxs| {
-		let ctxs = ctxs.try_borrow().expect("Cannot access context while modifying it");
-		let stack = ctxs.get(&type_id);
-		f(stack)
-	})
+	let ctxs = CTXS_STACK
+		.try_borrow()
+		.expect("Cannot access context while modifying it");
+	let stack = ctxs.get(&type_id);
+	f(stack)
 }
 
 /// Uses the context stack for `T` mutably
@@ -58,11 +69,11 @@ fn with_ctx_stack_mut_opaque<F, O>(type_id: TypeId, f: F) -> O
 where
 	F: FnOnce(&mut CtxStack) -> O,
 {
-	CTXS_STACK.with(|ctxs| {
-		let mut ctxs = ctxs.try_borrow_mut().expect("Cannot modify context while accessing it");
-		let stack = ctxs.entry(type_id).or_default();
-		f(stack)
-	})
+	let mut ctxs = CTXS_STACK
+		.try_borrow_mut()
+		.expect("Cannot modify context while accessing it");
+	let stack = ctxs.entry(type_id).or_default();
+	f(stack)
 }
 
 /// A handle to a context value.
