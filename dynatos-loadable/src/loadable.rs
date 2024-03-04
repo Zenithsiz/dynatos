@@ -6,6 +6,8 @@ use std::{
 	ops::{ControlFlow, FromResidual, Try},
 };
 
+use dynatos_reactive::SignalGetCopy;
+
 /// Loadable value.
 #[derive(Clone, Copy, Debug)]
 pub enum Loadable<T, E> {
@@ -205,6 +207,12 @@ where
 		}
 
 		Self::Loaded(collection)
+	}
+}
+
+impl<T: Copy, E> SignalGetCopy<Loadable<T, E>> for Loadable<&'_ T, E> {
+	fn copy(self) -> Loadable<T, E> {
+		self.map(|value| *value)
 	}
 }
 
