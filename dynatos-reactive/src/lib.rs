@@ -23,16 +23,16 @@ pub use self::{
 use std::marker::Unsize;
 
 /// Types which may be copied by [`SignalGet`]
-trait SignalGetInner<T>: Sized {
+pub trait SignalGetCopy<T>: Sized {
 	fn copy(self) -> T;
 }
 
-impl<T: Copy> SignalGetInner<T> for &'_ T {
+impl<T: Copy> SignalGetCopy<T> for &'_ T {
 	fn copy(self) -> T {
 		*self
 	}
 }
-impl<T: Copy> SignalGetInner<Option<T>> for Option<&'_ T> {
+impl<T: Copy> SignalGetCopy<Option<T>> for Option<&'_ T> {
 	fn copy(self) -> Option<T> {
 		self.copied()
 	}
@@ -47,7 +47,7 @@ pub trait SignalGet<T> {
 impl<S, T> SignalGet<T> for S
 where
 	S: SignalWith,
-	for<'a> S::Value<'a>: SignalGetInner<T>,
+	for<'a> S::Value<'a>: SignalGetCopy<T>,
 {
 	fn get(&self) -> T {
 		self.with(|value| value.copy())
