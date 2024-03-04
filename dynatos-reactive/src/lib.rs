@@ -1,7 +1,7 @@
 //! Reactivity for `dynatos`
 
 // Features
-#![feature(unsize, coerce_unsized, unboxed_closures, fn_traits)]
+#![feature(unsize, coerce_unsized, unboxed_closures, fn_traits, test)]
 
 // Modules
 pub mod derived;

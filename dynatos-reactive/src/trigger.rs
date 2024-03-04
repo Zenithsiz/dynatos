@@ -88,13 +88,16 @@ impl fmt::Debug for Trigger {
 	}
 }
 
+
 #[cfg(test)]
 mod test {
 	// Imports
+	extern crate test;
 	use {
 		super::*,
 		crate::Effect,
 		std::{cell::Cell, mem},
+		test::Bencher,
 	};
 
 	#[test]
@@ -126,5 +129,54 @@ mod test {
 		mem::drop(effect);
 		trigger.trigger();
 		assert_eq!(TRIGGERS.get(), 3, "Trigger was triggered after effect was dropped");
+	}
+
+	#[bench]
+	fn clone_100(bencher: &mut Bencher) {
+		let triggers = std::array::from_fn::<_, 100, _>(|_| Trigger::new());
+		bencher.iter(|| {
+			for trigger in &triggers {
+				let trigger = test::black_box(trigger.clone());
+				mem::forget(trigger);
+			}
+		});
+	}
+
+	/// Benches triggering a trigger with `N` no-op effects.
+	fn trigger_noop_n<const N: usize>(bencher: &mut Bencher) {
+		let trigger = Trigger::new();
+		let effects = std::array::from_fn::<_, N, _>(|_| Effect::new(|| ()));
+		for effect in &effects {
+			trigger.add_subscriber(effect);
+		}
+
+		bencher.iter(|| {
+			trigger.trigger();
+		});
+	}
+
+	#[bench]
+	fn trigger_empty(bencher: &mut Bencher) {
+		self::trigger_noop_n::<0>(bencher);
+	}
+
+	#[bench]
+	fn trigger_noop(bencher: &mut Bencher) {
+		self::trigger_noop_n::<1>(bencher);
+	}
+
+	#[bench]
+	fn trigger_noop_10(bencher: &mut Bencher) {
+		self::trigger_noop_n::<10>(bencher);
+	}
+
+	#[bench]
+	fn trigger_noop_100(bencher: &mut Bencher) {
+		self::trigger_noop_n::<100>(bencher);
+	}
+
+	#[bench]
+	fn trigger_noop_1000(bencher: &mut Bencher) {
+		self::trigger_noop_n::<1000>(bencher);
 	}
 }
