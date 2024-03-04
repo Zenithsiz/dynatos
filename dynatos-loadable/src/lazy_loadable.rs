@@ -155,14 +155,14 @@ where
 	T: 'static,
 	E: Clone + 'static,
 {
-	type Value<'a> = &'a Loadable<T, E>;
+	type Value<'a> = Loadable<&'a T, E>;
 
 	fn with<F, O>(&self, f: F) -> O
 	where
 		F: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
 		self.load();
-		self.inner.with(f)
+		self.inner.with(|loadable| f(loadable.as_ref()))
 	}
 }
 
