@@ -58,12 +58,12 @@ impl<T, F> Derived<T, F> {
 	}
 }
 
-impl<T, F: ?Sized> SignalWith for Derived<T, F> {
-	type Value = T;
+impl<T: 'static, F: ?Sized> SignalWith for Derived<T, F> {
+	type Value<'a> = &'a T;
 
 	fn with<F2, O>(&self, f: F2) -> O
 	where
-		F2: FnOnce(&Self::Value) -> O,
+		F2: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
 		let effect_fn = self.effect.inner_fn();
 		effect_fn.value.with(|value| {

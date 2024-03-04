@@ -62,12 +62,12 @@ impl<T> QuerySignal<T> {
 	}
 }
 
-impl<T> SignalWith for QuerySignal<T> {
-	type Value = Option<T>;
+impl<T: 'static> SignalWith for QuerySignal<T> {
+	type Value<'a> = &'a Option<T>;
 
 	fn with<F, O>(&self, f: F) -> O
 	where
-		F: FnOnce(&Self::Value) -> O,
+		F: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
 		self.inner.with(|value| f(value))
 	}
@@ -75,7 +75,7 @@ impl<T> SignalWith for QuerySignal<T> {
 
 impl<T> SignalSet<Option<T>> for QuerySignal<T>
 where
-	T: ToString,
+	T: ToString + 'static,
 {
 	fn set(&self, new_value: Option<T>) {
 		self.update(|value| *value = new_value);
@@ -84,7 +84,7 @@ where
 
 impl<T> SignalSet<T> for QuerySignal<T>
 where
-	T: ToString,
+	T: ToString + 'static,
 {
 	fn set(&self, new_value: T) {
 		self.update(|value| *value = Some(new_value));
@@ -93,7 +93,7 @@ where
 
 impl<T> SignalReplace<Option<T>> for QuerySignal<T>
 where
-	T: ToString,
+	T: ToString + 'static,
 {
 	fn replace(&self, new_value: Option<T>) -> Option<T> {
 		self.update(|value| mem::replace(value, new_value))
@@ -102,7 +102,7 @@ where
 
 impl<T> SignalUpdate for QuerySignal<T>
 where
-	T: ToString,
+	T: ToString + 'static,
 {
 	type Value = Option<T>;
 

@@ -22,13 +22,14 @@ impl<S, T> WithDefault<S, T> {
 
 impl<S, T> SignalWith for WithDefault<S, T>
 where
-	S: SignalWith<Value = Option<T>>,
+	S: for<'a> SignalWith<Value<'a> = &'a Option<T>>,
+	T: 'static,
 {
-	type Value = T;
+	type Value<'a> = &'a T;
 
 	fn with<F, O>(&self, f: F) -> O
 	where
-		F: FnOnce(&Self::Value) -> O,
+		F: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
 		self.inner.with(|value| match value {
 			Some(value) => f(value),

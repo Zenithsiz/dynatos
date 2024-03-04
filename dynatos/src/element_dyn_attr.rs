@@ -145,10 +145,10 @@ where
 // TODO: Allow impl for `impl SignalGet<Value: WithDynText>`
 #[duplicate::duplicate_item(
 	Generics Ty;
-	[T] [Signal<T> where T: WithDynAttr];
-	[T, F] [Derived<T, F> where T: WithDynAttr, F: ?Sized];
-	[T] [QuerySignal<T> where T: WithDynAttr];
-	[S, T] [WithDefault<S, T> where S:SignalWith<Value = Option<T>>, T: WithDynAttr];
+	[T] [Signal<T> where T: WithDynAttr + 'static];
+	[T, F] [Derived<T, F> where T: WithDynAttr + 'static, F: ?Sized];
+	[T] [QuerySignal<T> where T: WithDynAttr + 'static];
+	[S, T] [WithDefault<S, T> where S: for<'a> SignalWith<Value<'a> = &'a Option<T>>, T: WithDynAttr + 'static];
 )]
 impl<Generics> WithDynAttr for Ty {
 	fn with_attr<F2, O>(&self, f: F2) -> O
@@ -190,9 +190,9 @@ impl DynAttrPred for bool {
 // TODO: Allow impl for `impl SignalGet<Value: WithDynText>`
 #[duplicate::duplicate_item(
 	Generics Ty;
-	[T] [Signal<T> where T: DynAttrPred];
-	[T, F] [Derived<T, F> where T: DynAttrPred, F: ?Sized];
-	[S, T] [WithDefault<S, T> where S:SignalWith<Value = Option<T>>, T: DynAttrPred];
+	[T] [Signal<T> where T: DynAttrPred + 'static];
+	[T, F] [Derived<T, F> where T: DynAttrPred + 'static, F: ?Sized];
+	[S, T] [WithDefault<S, T> where S: for<'a> SignalWith<Value<'a> = &'a Option<T>>, T: DynAttrPred + 'static];
 )]
 impl<Generics> DynAttrPred for Ty {
 	fn eval(&self) -> bool {

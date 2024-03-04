@@ -1,7 +1,7 @@
 //! Reactivity for `dynatos`
 
 // Features
-#![feature(unsize, coerce_unsized, unboxed_closures, fn_traits, test)]
+#![feature(unsize, coerce_unsized, unboxed_closures, fn_traits, test, associated_type_bounds)]
 
 // Modules
 pub mod derived;
@@ -28,12 +28,12 @@ pub trait SignalGet<T> {
 	fn get(&self) -> T;
 }
 
-impl<S> SignalGet<S::Value> for S
+impl<S, T> SignalGet<T> for S
 where
-	S: SignalWith,
-	S::Value: Copy,
+	S: for<'a> SignalWith<Value<'a> = &'a T>,
+	T: Copy,
 {
-	fn get(&self) -> S::Value {
+	fn get(&self) -> T {
 		self.with(|value| *value)
 	}
 }
@@ -44,12 +44,12 @@ pub trait SignalGetCloned<T> {
 	fn get_cloned(&self) -> T;
 }
 
-impl<S> SignalGetCloned<S::Value> for S
+impl<S, T> SignalGetCloned<T> for S
 where
-	S: SignalWith,
-	S::Value: Clone,
+	S: for<'a> SignalWith<Value<'a> = &'a T>,
+	T: Clone,
 {
-	fn get_cloned(&self) -> S::Value {
+	fn get_cloned(&self) -> T {
 		self.with(|value| value.clone())
 	}
 }
@@ -57,12 +57,12 @@ where
 /// Signal with
 pub trait SignalWith {
 	/// Value type
-	type Value: ?Sized;
+	type Value<'a>: ?Sized;
 
 	/// Uses the signal value
 	fn with<F, O>(&self, f: F) -> O
 	where
-		F: FnOnce(&Self::Value) -> O;
+		F: for<'a> FnOnce(Self::Value<'a>) -> O;
 }
 
 /// Signal set

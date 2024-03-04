@@ -142,10 +142,10 @@ impl ToDynProp for Ty {
 // TODO: Allow impl for `impl SignalGet<Value: WithDynText>`
 #[duplicate::duplicate_item(
 	Generics Ty;
-	[T] [Signal<T> where T: ToDynProp];
-	[T, F] [Derived<T, F> where T: ToDynProp, F: ?Sized];
-	[T] [QuerySignal<T> where T: ToDynProp];
-	[S, T] [WithDefault<S, T> where S:SignalWith<Value = Option<T>>, T: ToDynProp];
+	[T] [Signal<T> where T: ToDynProp + 'static];
+	[T, F] [Derived<T, F> where T: ToDynProp + 'static, F: ?Sized];
+	[T] [QuerySignal<T> where T: ToDynProp + 'static];
+	[S, T] [WithDefault<S, T> where S: for<'a> SignalWith<Value<'a> = &'a Option<T>>, T: ToDynProp + 'static];
 )]
 impl<Generics> ToDynProp for Ty {
 	fn to_prop(&self) -> Option<JsValue> {

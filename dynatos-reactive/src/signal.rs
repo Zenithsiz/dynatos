@@ -43,12 +43,12 @@ impl<T> Signal<T> {
 
 impl<T: ?Sized, U: ?Sized> CoerceUnsized<Signal<U>> for Signal<T> where T: Unsize<U> {}
 
-impl<T: ?Sized> SignalWith for Signal<T> {
-	type Value = T;
+impl<T: ?Sized + 'static> SignalWith for Signal<T> {
+	type Value<'a> = &'a T;
 
 	fn with<F, O>(&self, f: F) -> O
 	where
-		F: FnOnce(&Self::Value) -> O,
+		F: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
 		if let Some(effect) = effect::running() {
 			self.inner.trigger.add_subscriber(effect);

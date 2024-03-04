@@ -115,10 +115,10 @@ where
 // TODO: Allow impl for `impl SignalGet<Value: WithDynText>`
 #[duplicate::duplicate_item(
 	Generics Ty;
-	[T] [Signal<T> where T: WithDynText];
-	[T, F] [Derived<T, F> where T: WithDynText, F: ?Sized];
-	[T] [QuerySignal<T> where T: WithDynText];
-	[S, T] [WithDefault<S, T> where S:SignalWith<Value = Option<T>>, T: WithDynText];
+	[T] [Signal<T> where T: WithDynText + 'static];
+	[T, F] [Derived<T, F> where T: WithDynText + 'static, F: ?Sized];
+	[T] [QuerySignal<T> where T: WithDynText + 'static];
+	[S, T] [WithDefault<S, T> where S: for<'a> SignalWith<Value<'a> = &'a Option<T>>, T: WithDynText + 'static];
 )]
 impl<Generics> WithDynText for Ty {
 	fn with_text<F2, O>(&self, f: F2) -> O

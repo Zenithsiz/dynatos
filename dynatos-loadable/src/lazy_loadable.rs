@@ -119,7 +119,8 @@ impl<T, E> LazyLoadable<T, E> {
 	/// Reactively accesses the value, without loading it.
 	pub fn with_unloaded<R>(&self, f: impl FnOnce(Loadable<&T, E>) -> R) -> R
 	where
-		E: Clone,
+		T: 'static,
+		E: Clone + 'static,
 	{
 		self.inner.with(|value| f(value.as_ref()))
 	}
@@ -151,13 +152,14 @@ impl<T, E> Clone for LazyLoadable<T, E> {
 // TODO: Use a `Loadable<&T, E>` when `SignalWith` allows?
 impl<T, E> SignalWith for LazyLoadable<T, E>
 where
-	E: Clone,
+	T: 'static,
+	E: Clone + 'static,
 {
-	type Value = Loadable<T, E>;
+	type Value<'a> = &'a Loadable<T, E>;
 
 	fn with<F, O>(&self, f: F) -> O
 	where
-		F: FnOnce(&Self::Value) -> O,
+		F: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
 		self.load();
 		self.inner.with(f)

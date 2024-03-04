@@ -44,11 +44,11 @@ impl Location {
 }
 
 impl SignalWith for Location {
-	type Value = Url;
+	type Value<'a> = &'a Url;
 
 	fn with<F, O>(&self, f: F) -> O
 	where
-		F: FnOnce(&Self::Value) -> O,
+		F: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
 		self.0.with(|inner| f(&inner.location))
 	}

@@ -63,12 +63,12 @@ impl<T> QueryArraySignal<T> {
 	}
 }
 
-impl<T> SignalWith for QueryArraySignal<T> {
-	type Value = Vec<T>;
+impl<T: 'static> SignalWith for QueryArraySignal<T> {
+	type Value<'a> = &'a Vec<T>;
 
 	fn with<F, O>(&self, f: F) -> O
 	where
-		F: FnOnce(&Self::Value) -> O,
+		F: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
 		self.inner.with(|value| f(value))
 	}
@@ -76,7 +76,7 @@ impl<T> SignalWith for QueryArraySignal<T> {
 
 impl<T> SignalSet<Vec<T>> for QueryArraySignal<T>
 where
-	T: ToString,
+	T: ToString + 'static,
 {
 	fn set(&self, new_value: Vec<T>) {
 		self.update(|value| *value = new_value);
@@ -85,7 +85,7 @@ where
 
 impl<T> SignalReplace<Vec<T>> for QueryArraySignal<T>
 where
-	T: ToString,
+	T: ToString + 'static,
 {
 	fn replace(&self, new_value: Vec<T>) -> Vec<T> {
 		self.update(|value| mem::replace(value, new_value))
@@ -94,7 +94,7 @@ where
 
 impl<T> SignalUpdate for QueryArraySignal<T>
 where
-	T: ToString,
+	T: ToString + 'static,
 {
 	type Value = Vec<T>;
 
