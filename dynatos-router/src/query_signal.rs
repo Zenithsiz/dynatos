@@ -73,15 +73,6 @@ impl<T: 'static> SignalWith for QuerySignal<T> {
 	}
 }
 
-impl<T> SignalSet<Option<T>> for QuerySignal<T>
-where
-	T: ToString + 'static,
-{
-	fn set(&self, new_value: Option<T>) {
-		self.update(|value| *value = new_value);
-	}
-}
-
 impl<T> SignalSet<T> for QuerySignal<T>
 where
 	T: ToString + 'static,

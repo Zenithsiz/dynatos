@@ -5,7 +5,7 @@
 
 // Imports
 use {
-	crate::{effect, SignalReplace, SignalSet, SignalUpdate, SignalWith, Trigger},
+	crate::{effect, SignalReplace, SignalUpdate, SignalWith, Trigger},
 	std::{cell::RefCell, fmt, marker::Unsize, mem, ops::CoerceUnsized, rc::Rc},
 };
 
@@ -60,12 +60,6 @@ impl<T: ?Sized + 'static> SignalWith for Signal<T> {
 			.try_borrow()
 			.expect("Cannot use signal value while updating");
 		f(&value)
-	}
-}
-
-impl<T> SignalSet<T> for Signal<T> {
-	fn set(&self, new_value: T) {
-		self.update(|value| *value = new_value);
 	}
 }
 

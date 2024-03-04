@@ -103,6 +103,15 @@ pub trait SignalSet<Value> {
 	fn set(&self, new_value: Value);
 }
 
+impl<S, T> SignalSet<T> for S
+where
+	S: SignalUpdate<Value = T>,
+{
+	fn set(&self, new_value: T) {
+		self.update(|value| *value = new_value);
+	}
+}
+
 /// Signal replace
 pub trait SignalReplace<Value> {
 	/// Replaces the signal value, returning the previous value

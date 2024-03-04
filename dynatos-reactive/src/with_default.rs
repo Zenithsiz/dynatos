@@ -38,15 +38,6 @@ where
 	}
 }
 
-impl<S, T> SignalSet<T> for WithDefault<S, T>
-where
-	S: SignalSet<Option<T>>,
-{
-	fn set(&self, new_value: T) {
-		self.inner.set(Some(new_value))
-	}
-}
-
 impl<S, T> SignalSet<Option<T>> for WithDefault<S, T>
 where
 	S: SignalSet<Option<T>>,

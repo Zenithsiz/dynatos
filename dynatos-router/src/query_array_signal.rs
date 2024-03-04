@@ -74,15 +74,6 @@ impl<T: 'static> SignalWith for QueryArraySignal<T> {
 	}
 }
 
-impl<T> SignalSet<Vec<T>> for QueryArraySignal<T>
-where
-	T: ToString + 'static,
-{
-	fn set(&self, new_value: Vec<T>) {
-		self.update(|value| *value = new_value);
-	}
-}
-
 impl<T> SignalReplace<Vec<T>> for QueryArraySignal<T>
 where
 	T: ToString + 'static,
