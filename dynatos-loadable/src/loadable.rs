@@ -6,7 +6,7 @@ use std::{
 	ops::{ControlFlow, FromResidual, Try},
 };
 
-use dynatos_reactive::SignalGetCopy;
+use dynatos_reactive::{SignalGetClone, SignalGetCopy};
 
 /// Loadable value.
 #[derive(Clone, Copy, Debug)]
@@ -213,6 +213,12 @@ where
 impl<T: Copy, E> SignalGetCopy<Loadable<T, E>> for Loadable<&'_ T, E> {
 	fn copy(self) -> Loadable<T, E> {
 		self.map(|value| *value)
+	}
+}
+
+impl<T: Clone, E> SignalGetClone<Loadable<T, E>> for Loadable<&'_ T, E> {
+	fn clone(self) -> Loadable<T, E> {
+		self.map(|value| value.clone())
 	}
 }
 
