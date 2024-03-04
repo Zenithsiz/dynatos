@@ -23,26 +23,32 @@ pub use self::{
 use std::marker::Unsize;
 
 /// Signal get
-#[extend::ext(name = SignalGet)]
-pub impl<S> S
+pub trait SignalGet<T> {
+	/// Gets the signal value, by copying it.
+	fn get(&self) -> T;
+}
+
+impl<S> SignalGet<S::Value> for S
 where
 	S: SignalWith,
 	S::Value: Copy,
 {
-	/// Gets the signal value, by copying it
 	fn get(&self) -> S::Value {
 		self.with(|value| *value)
 	}
 }
 
 /// Signal cloned
-#[extend::ext(name = SignalGetCloned)]
-pub impl<S> S
+pub trait SignalGetCloned<T> {
+	/// Gets the signal value, by cloning it.
+	fn get_cloned(&self) -> T;
+}
+
+impl<S> SignalGetCloned<S::Value> for S
 where
 	S: SignalWith,
 	S::Value: Clone,
 {
-	/// Gets the signal value, by cloning it
 	fn get_cloned(&self) -> S::Value {
 		self.with(|value| value.clone())
 	}
