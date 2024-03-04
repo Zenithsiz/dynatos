@@ -64,7 +64,7 @@ impl<T> QueryArraySignal<T> {
 }
 
 impl<T: 'static> SignalWith for QueryArraySignal<T> {
-	type Value<'a> = &'a Vec<T>;
+	type Value<'a> = &'a [T];
 
 	fn with<F, O>(&self, f: F) -> O
 	where
