@@ -115,3 +115,65 @@ impl<T: fmt::Debug> fmt::Debug for Signal<T> {
 			.finish()
 	}
 }
+
+#[cfg(test)]
+mod test {
+	// Imports
+	extern crate test;
+	use {super::*, crate::SignalGet, std::mem, test::Bencher};
+
+	#[bench]
+	fn clone_100(bencher: &mut Bencher) {
+		let signals = std::array::from_fn::<_, 100, _>(|_| Signal::new(0_i32));
+		bencher.iter(|| {
+			for signal in &signals {
+				let signal = test::black_box(signal.clone());
+				mem::forget(signal);
+			}
+		});
+	}
+
+	/// Reference for [`access_100`]
+	#[bench]
+	fn access_100_value(bencher: &mut Bencher) {
+		let values = std::array::from_fn::<_, 100, _>(|_| 123_usize);
+		bencher.iter(|| {
+			for value in &values {
+				test::black_box(*value);
+			}
+		});
+	}
+
+	#[bench]
+	fn access_100(bencher: &mut Bencher) {
+		let signals = std::array::from_fn::<_, 100, _>(|_| Signal::new(123_usize));
+		bencher.iter(|| {
+			for signal in &signals {
+				test::black_box(signal.get());
+			}
+		});
+	}
+
+	/// Reference for `update_100_*`
+	#[bench]
+	fn update_100_value(bencher: &mut Bencher) {
+		let mut values = std::array::from_fn::<_, 100, _>(|_| 123_usize);
+		bencher.iter(|| {
+			for value in &mut values {
+				*value += 1;
+				test::black_box(*value);
+			}
+		});
+	}
+
+	#[bench]
+	fn update_100_empty(bencher: &mut Bencher) {
+		let signals = std::array::from_fn::<_, 100, _>(|_| Signal::new(123_usize));
+		bencher.iter(|| {
+			for signal in &signals {
+				signal.update(|value| *value += 1);
+				test::black_box(signal);
+			}
+		});
+	}
+}
