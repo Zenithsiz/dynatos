@@ -144,11 +144,19 @@ impl ToDynProp for Ty {
 	Generics Ty;
 	[T] [Signal<T> where T: ToDynProp + 'static];
 	[T, F] [Derived<T, F> where T: ToDynProp + 'static, F: ?Sized];
-	[T] [QuerySignal<T> where T: ToDynProp + 'static];
-	[S, T] [WithDefault<S, T> where S: for<'a> SignalWith<Value<'a> = &'a Option<T>>, T: ToDynProp + 'static];
+	[S, T] [WithDefault<S, T> where S: for<'a> SignalWith<Value<'a> = Option<&'a T>>, T: ToDynProp + 'static];
 )]
 impl<Generics> ToDynProp for Ty {
 	fn to_prop(&self) -> Option<JsValue> {
 		self.with(|prop| prop.to_prop())
+	}
+}
+
+impl<T> ToDynProp for QuerySignal<T>
+where
+	T: ToDynProp + 'static,
+{
+	fn to_prop(&self) -> Option<JsValue> {
+		self.with(|prop| prop.and_then(T::to_prop))
 	}
 }

@@ -22,7 +22,7 @@ impl<S, T> WithDefault<S, T> {
 
 impl<S, T> SignalWith for WithDefault<S, T>
 where
-	S: for<'a> SignalWith<Value<'a> = &'a Option<T>>,
+	S: for<'a> SignalWith<Value<'a> = Option<&'a T>>,
 	T: 'static,
 {
 	type Value<'a> = &'a T;

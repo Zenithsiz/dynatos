@@ -63,13 +63,13 @@ impl<T> QuerySignal<T> {
 }
 
 impl<T: 'static> SignalWith for QuerySignal<T> {
-	type Value<'a> = &'a Option<T>;
+	type Value<'a> = Option<&'a T>;
 
 	fn with<F, O>(&self, f: F) -> O
 	where
 		F: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
-		self.inner.with(|value| f(value))
+		self.inner.with(|value| f(value.as_ref()))
 	}
 }
 

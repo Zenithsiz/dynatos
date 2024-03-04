@@ -147,8 +147,7 @@ where
 	Generics Ty;
 	[T] [Signal<T> where T: WithDynAttr + 'static];
 	[T, F] [Derived<T, F> where T: WithDynAttr + 'static, F: ?Sized];
-	[T] [QuerySignal<T> where T: WithDynAttr + 'static];
-	[S, T] [WithDefault<S, T> where S: for<'a> SignalWith<Value<'a> = &'a Option<T>>, T: WithDynAttr + 'static];
+	[S, T] [WithDefault<S, T> where S: for<'a> SignalWith<Value<'a> = Option<&'a T>>, T: WithDynAttr + 'static];
 )]
 impl<Generics> WithDynAttr for Ty {
 	fn with_attr<F2, O>(&self, f: F2) -> O
@@ -156,6 +155,20 @@ impl<Generics> WithDynAttr for Ty {
 		F2: FnOnce(Option<&str>) -> O,
 	{
 		self.with(|text| text.with_attr(f))
+	}
+}
+impl<T> WithDynAttr for QuerySignal<T>
+where
+	T: WithDynAttr + 'static,
+{
+	fn with_attr<F2, O>(&self, f: F2) -> O
+	where
+		F2: FnOnce(Option<&str>) -> O,
+	{
+		self.with(|text| match text {
+			Some(text) => text.with_attr(f),
+			None => None::<T>.with_attr(f),
+		})
 	}
 }
 
@@ -192,7 +205,7 @@ impl DynAttrPred for bool {
 	Generics Ty;
 	[T] [Signal<T> where T: DynAttrPred + 'static];
 	[T, F] [Derived<T, F> where T: DynAttrPred + 'static, F: ?Sized];
-	[S, T] [WithDefault<S, T> where S: for<'a> SignalWith<Value<'a> = &'a Option<T>>, T: DynAttrPred + 'static];
+	[S, T] [WithDefault<S, T> where S: for<'a> SignalWith<Value<'a> = Option<&'a T>>, T: DynAttrPred + 'static];
 )]
 impl<Generics> DynAttrPred for Ty {
 	fn eval(&self) -> bool {
