@@ -12,32 +12,30 @@ use {
 /// Trigger inner
 struct Inner {
 	/// Subscribers
-	subscribers: HashSet<WeakEffect<dyn Fn()>>,
+	subscribers: RefCell<HashSet<WeakEffect<dyn Fn()>>>,
 }
 
 /// Trigger
 pub struct Trigger {
 	/// Inner
-	inner: Rc<RefCell<Inner>>,
+	inner: Rc<Inner>,
 }
 
 impl Trigger {
 	/// Creates a new trigger
 	pub fn new() -> Self {
 		let inner = Inner {
-			subscribers: HashSet::new(),
+			subscribers: RefCell::new(HashSet::new()),
 		};
-		Self {
-			inner: Rc::new(RefCell::new(inner)),
-		}
+		Self { inner: Rc::new(inner) }
 	}
 
 	/// Adds a subscriber to this trigger.
 	///
 	/// Returns if the subscriber already existed.
 	pub fn add_subscriber<S: IntoSubscriber>(&self, subscriber: S) -> bool {
-		let mut inner = self.inner.borrow_mut();
-		let new_effect = inner.subscribers.insert(subscriber.into_subscriber());
+		let mut subscribers = self.inner.subscribers.borrow_mut();
+		let new_effect = subscribers.insert(subscriber.into_subscriber());
 		!new_effect
 	}
 
@@ -45,8 +43,8 @@ impl Trigger {
 	///
 	/// Returns if the subscriber existed
 	pub fn remove_subscriber<S: IntoSubscriber>(&self, subscriber: S) -> bool {
-		let mut inner = self.inner.borrow_mut();
-		inner.subscribers.remove(&subscriber.into_subscriber())
+		let mut subscribers = self.inner.subscribers.borrow_mut();
+		subscribers.remove(&subscriber.into_subscriber())
 	}
 
 	/// Triggers this trigger.
@@ -61,7 +59,7 @@ impl Trigger {
 		// TODO: Have a 2nd field `to_add_subscribers` where subscribers are added if
 		//       the main field is locked, and after this loop move any subscribers from
 		//       it to the main field?
-		let subscribers = self.inner.borrow().subscribers.iter().cloned().collect::<Vec<_>>();
+		let subscribers = self.inner.subscribers.borrow().iter().cloned().collect::<Vec<_>>();
 		for subscriber in subscribers {
 			if !subscriber.try_run() {
 				self.remove_subscriber(subscriber);
