@@ -1,10 +1,19 @@
 //! Utilities for `dynatos`
 
 // Features
-#![feature(decl_macro, never_type, try_trait_v2, control_flow_enum)]
+#![feature(
+	decl_macro,
+	never_type,
+	try_trait_v2,
+	control_flow_enum,
+	new_uninit,
+	cell_update,
+	inline_const
+)]
 
 // Modules
 mod event_listener;
+pub mod seg_vec;
 pub mod try_or_return;
 pub mod weak_ref;
 
