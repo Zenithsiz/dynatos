@@ -4,6 +4,7 @@
 #![feature(unsize, coerce_unsized, unboxed_closures, fn_traits, test, associated_type_bounds)]
 
 // Modules
+pub mod async_signal;
 pub mod derived;
 pub mod effect;
 pub mod signal;
@@ -12,6 +13,7 @@ pub mod with_default;
 
 // Exports
 pub use self::{
+	async_signal::AsyncSignal,
 	derived::Derived,
 	effect::{Effect, WeakEffect},
 	signal::{

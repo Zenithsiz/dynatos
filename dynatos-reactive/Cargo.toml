@@ -5,7 +5,10 @@ edition = "2021"
 
 [dependencies]
 
+dynatos-context = { workspace = true }
 dynatos-util = { workspace = true }
 
 duplicate = { workspace = true }
 extend = { workspace = true }
+pin-cell = { workspace = true }
+pin-project = { workspace = true }
