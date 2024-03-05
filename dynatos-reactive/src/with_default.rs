@@ -59,14 +59,14 @@ where
 
 impl<S, T> SignalUpdate for WithDefault<S, T>
 where
-	S: SignalUpdate<Value = Option<T>>,
-	T: Copy,
+	S: for<'a> SignalUpdate<Value<'a> = &'a mut Option<T>>,
+	T: Copy + 'static,
 {
-	type Value = T;
+	type Value<'a> = &'a mut T;
 
 	fn update<F, O>(&self, f: F) -> O
 	where
-		F: FnOnce(&mut Self::Value) -> O,
+		F: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
 		self.inner.update(|value| f(value.get_or_insert(self.default)))
 	}

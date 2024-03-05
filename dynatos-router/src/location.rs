@@ -55,11 +55,11 @@ impl SignalWith for Location {
 }
 
 impl SignalUpdate for Location {
-	type Value = Url;
+	type Value<'a> = &'a mut Url;
 
 	fn update<F, O>(&self, f: F) -> O
 	where
-		F: FnOnce(&mut Self::Value) -> O,
+		F: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
 		self.0.update(|inner| {
 			let output = f(&mut inner.location);

@@ -87,11 +87,11 @@ impl<T> SignalUpdate for QueryArraySignal<T>
 where
 	T: ToString + 'static,
 {
-	type Value = Vec<T>;
+	type Value<'a> = &'a mut Vec<T>;
 
 	fn update<F, O>(&self, f: F) -> O
 	where
-		F: FnOnce(&mut Self::Value) -> O,
+		F: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
 		// Update the value
 		let output = self.inner.update(f);

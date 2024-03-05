@@ -102,6 +102,7 @@ struct EffectFn<T, F: ?Sized> {
 
 impl<T, F> FnOnce<()> for EffectFn<T, F>
 where
+	T: 'static,
 	F: Fn() -> T,
 {
 	type Output = ();
@@ -112,6 +113,7 @@ where
 }
 impl<T, F> FnMut<()> for EffectFn<T, F>
 where
+	T: 'static,
 	F: Fn() -> T,
 {
 	extern "rust-call" fn call_mut(&mut self, args: ()) -> Self::Output {
@@ -120,6 +122,7 @@ where
 }
 impl<T, F> Fn<()> for EffectFn<T, F>
 where
+	T: 'static,
 	F: Fn() -> T,
 {
 	extern "rust-call" fn call(&self, _args: ()) -> Self::Output {

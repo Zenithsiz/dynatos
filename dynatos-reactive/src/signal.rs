@@ -63,18 +63,18 @@ impl<T: ?Sized + 'static> SignalWith for Signal<T> {
 	}
 }
 
-impl<T> SignalReplace<T> for Signal<T> {
+impl<T: 'static> SignalReplace<T> for Signal<T> {
 	fn replace(&self, new_value: T) -> T {
 		self.update(|value| mem::replace(value, new_value))
 	}
 }
 
-impl<T: ?Sized> SignalUpdate for Signal<T> {
-	type Value = T;
+impl<T: ?Sized + 'static> SignalUpdate for Signal<T> {
+	type Value<'a> = &'a mut T;
 
 	fn update<F, O>(&self, f: F) -> O
 	where
-		F: FnOnce(&mut Self::Value) -> O,
+		F: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
 		// Update the value and get the output
 		let output = {

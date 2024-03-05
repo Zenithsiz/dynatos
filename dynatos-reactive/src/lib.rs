@@ -99,16 +99,16 @@ pub trait SignalWith {
 
 /// Types which may be set by [`SignalSet`]
 pub trait SignalSetWith<T>: Sized {
-	fn set(&mut self, new_value: T);
+	fn set(self, new_value: T);
 }
 
-impl<T> SignalSetWith<T> for T {
-	fn set(&mut self, new_value: T) {
+impl<T> SignalSetWith<T> for &'_ mut T {
+	fn set(self, new_value: T) {
 		*self = new_value;
 	}
 }
-impl<T> SignalSetWith<T> for Option<T> {
-	fn set(&mut self, new_value: T) {
+impl<T> SignalSetWith<T> for &'_ mut Option<T> {
+	fn set(self, new_value: T) {
 		*self = Some(new_value);
 	}
 }
@@ -122,7 +122,7 @@ pub trait SignalSet<Value> {
 impl<S, T> SignalSet<T> for S
 where
 	S: SignalUpdate,
-	S::Value: SignalSetWith<T>,
+	for<'a> S::Value<'a>: SignalSetWith<T>,
 {
 	fn set(&self, new_value: T) {
 		self.update(|value| SignalSetWith::set(value, new_value));
@@ -138,12 +138,12 @@ pub trait SignalReplace<Value> {
 /// Signal update
 pub trait SignalUpdate {
 	/// Value type
-	type Value: ?Sized;
+	type Value<'a>: ?Sized;
 
 	/// Updates the signal value
 	fn update<F, O>(&self, f: F) -> O
 	where
-		F: FnOnce(&mut Self::Value) -> O;
+		F: for<'a> FnOnce(Self::Value<'a>) -> O;
 }
 
 /// Types that may be converted into a subscriber

@@ -130,7 +130,8 @@ impl<T, E> LazyLoadable<T, E> {
 	/// Will notify any subscribers of the value.
 	pub fn update_unloaded<R>(&self, f: impl FnOnce(Loadable<&mut T, E>) -> R) -> R
 	where
-		E: Clone,
+		T: 'static,
+		E: Clone + 'static,
 	{
 		let mut output = None;
 		self.inner.update(|inner| output = Some(f(inner.as_mut())));
@@ -168,15 +169,16 @@ where
 
 impl<T, E> SignalUpdate for LazyLoadable<T, E>
 where
-	E: Clone,
+	T: 'static,
+	E: Clone + 'static,
 {
-	type Value = Loadable<T, E>;
+	type Value<'a> = Loadable<&'a mut T, E>;
 
 	fn update<F, O>(&self, f: F) -> O
 	where
-		F: FnOnce(&mut Self::Value) -> O,
+		F: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
 		self.load();
-		self.inner.update(f)
+		self.inner.update(|loadable| f(loadable.as_mut()))
 	}
 }
