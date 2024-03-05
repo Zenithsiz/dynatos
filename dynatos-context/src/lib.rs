@@ -1,7 +1,7 @@
 //! Context passing for `dynatos`
 
 // Features
-#![feature(try_blocks, thread_local, test, const_collections_with_hasher)]
+#![feature(try_blocks, thread_local, test, const_collections_with_hasher, negative_impls)]
 
 // Imports
 use std::{
@@ -158,6 +158,9 @@ impl<T: 'static> Handle<T> {
 		})
 	}
 }
+
+impl<T> !Send for Handle<T> {}
+impl<T> !Sync for Handle<T> {}
 
 impl<T: 'static> Drop for Handle<T> {
 	#[track_caller]
