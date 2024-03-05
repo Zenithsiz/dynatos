@@ -184,6 +184,15 @@ where
 	}
 }
 
+impl<T, E> FromResidual<Option<Infallible>> for Loadable<T, E> {
+	fn from_residual(residual: Option<Infallible>) -> Self {
+		match residual {
+			Some(never) => match never {},
+			None => Self::Empty,
+		}
+	}
+}
+
 /// Collects an iterator of `Loadable<T, E>` into a `Loadable<C, E>`,
 /// where `C` is a collection of `T`s.
 ///
