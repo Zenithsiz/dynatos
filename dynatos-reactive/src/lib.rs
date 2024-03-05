@@ -97,6 +97,22 @@ pub trait SignalWith {
 		F: for<'a> FnOnce(Self::Value<'a>) -> O;
 }
 
+/// Types which may be set by [`SignalSet`]
+pub trait SignalSetWith<T>: Sized {
+	fn set(&mut self, new_value: T);
+}
+
+impl<T> SignalSetWith<T> for T {
+	fn set(&mut self, new_value: T) {
+		*self = new_value;
+	}
+}
+impl<T> SignalSetWith<T> for Option<T> {
+	fn set(&mut self, new_value: T) {
+		*self = Some(new_value);
+	}
+}
+
 /// Signal set
 pub trait SignalSet<Value> {
 	/// Sets the signal value
@@ -105,10 +121,11 @@ pub trait SignalSet<Value> {
 
 impl<S, T> SignalSet<T> for S
 where
-	S: SignalUpdate<Value = T>,
+	S: SignalUpdate,
+	S::Value: SignalSetWith<T>,
 {
 	fn set(&self, new_value: T) {
-		self.update(|value| *value = new_value);
+		self.update(|value| SignalSetWith::set(value, new_value));
 	}
 }
 

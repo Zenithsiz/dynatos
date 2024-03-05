@@ -6,6 +6,7 @@ use {
 	dynatos_html::{html, ElementWithAttr},
 	dynatos_reactive::SignalSet,
 	dynatos_util::{ev, EventTargetWithListener},
+	url::Url,
 	web_sys::Element,
 };
 
@@ -21,8 +22,11 @@ where
 		.with_event_listener::<ev::Click>(move |ev| {
 			ev.prevent_default();
 			dynatos_context::with_expect::<Location, _, _>(|location| {
-				let new_location = new_location.as_ref();
-				location.set(new_location);
+				let new_location = &new_location.as_ref();
+				match new_location.parse::<Url>() {
+					Ok(new_location) => location.set(new_location),
+					Err(err) => tracing::warn!("Unable to parse new location as a valid url {new_location:?}: {err}"),
+				}
 			});
 		})
 }

@@ -2,7 +2,7 @@
 
 // Imports
 use {
-	dynatos_reactive::{Signal, SignalSet, SignalUpdate, SignalWith},
+	dynatos_reactive::{Signal, SignalUpdate, SignalWith},
 	dynatos_util::{ev, EventTargetAddListener},
 	url::Url,
 	wasm_bindgen::JsValue,
@@ -51,22 +51,6 @@ impl SignalWith for Location {
 		F: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
 		self.0.with(|inner| f(&inner.location))
-	}
-}
-
-impl SignalSet<&'_ str> for Location {
-	fn set(&self, new_location: &'_ str) {
-		let window = web_sys::window().expect("Unable to get window");
-		let history = window.history().expect("Unable to get history");
-
-		// Push the new location into history
-		history
-			.push_state_with_url(&JsValue::UNDEFINED, "", Some(new_location))
-			.expect("Unable to push history");
-
-		// Then parse the location back
-		let new_location = self::parse_location_url();
-		self.0.update(|inner| inner.location = new_location);
 	}
 }
 

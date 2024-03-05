@@ -1,7 +1,7 @@
 //! `Option<T>` Signal with default value
 
 // Imports
-use crate::{SignalReplace, SignalSet, SignalUpdate, SignalWith};
+use crate::{SignalReplace, SignalUpdate, SignalWith};
 
 /// Wrapper for a `Signal<Option<T>>` with a default value
 #[derive(Clone, Debug)]
@@ -35,15 +35,6 @@ where
 			Some(value) => f(value),
 			None => f(&self.default),
 		})
-	}
-}
-
-impl<S, T> SignalSet<Option<T>> for WithDefault<S, T>
-where
-	S: SignalSet<Option<T>>,
-{
-	fn set(&self, new_value: Option<T>) {
-		self.inner.set(new_value)
 	}
 }
 
