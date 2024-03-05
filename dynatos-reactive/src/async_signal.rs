@@ -86,6 +86,31 @@ impl<F: Future> AsyncSignal<F> {
 		});
 		Self { inner }
 	}
+
+	/// Uses the inner value, without polling the future.
+	// TODO: Better name that indicates that we don't poll?
+	pub fn with_inner<F2, O>(&self, f: F2) -> O
+	where
+		F2: for<'a> FnOnce(Option<&'a F::Output>) -> O,
+	{
+		// If there's an effect running, add it to the subscribers
+		if let Some(effect) = effect::running() {
+			self.inner.waker.trigger.add_subscriber(effect);
+		}
+
+		// Then use the value
+		let value = self.inner.value.borrow();
+		match &*value {
+			Some(value) => f(Some(value)),
+			None => {
+				// Note: We can't have `value` borrowed if it's `None`, or else
+				//       our branch above to initialize wouldn't be able to write
+				//       the value if we're being used recursively.
+				mem::drop(value);
+				f(None)
+			},
+		}
+	}
 }
 
 impl<F: Future> Clone for AsyncSignal<F> {
@@ -116,12 +141,7 @@ where
 	where
 		F2: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
-		// If there's an effect running, add it to the subscribers
-		if let Some(effect) = effect::running() {
-			self.inner.waker.trigger.add_subscriber(effect);
-		}
-
-		// Then try to poll the future, if we don't have a value yet
+		// Try to poll the future, if we don't have a value yet
 		if self.inner.value.borrow().is_none() {
 			// Get the inner future through pin-project + pin-cell.
 			let inner = self.inner.as_ref().project_ref();
@@ -136,18 +156,8 @@ where
 			}
 		}
 
-		// Finally use the value
-		let value = self.inner.value.borrow();
-		match &*value {
-			Some(value) => f(Some(value)),
-			None => {
-				// Note: We can't have `value` borrowed if it's `None`, or else
-				//       our branch above to initialize wouldn't be able to write
-				//       the value if we're being used recursively.
-				mem::drop(value);
-				f(None)
-			},
-		}
+		// Then use the value
+		self.with_inner(f)
 	}
 }
 
