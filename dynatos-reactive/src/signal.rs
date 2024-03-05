@@ -137,7 +137,7 @@ mod test {
 		let signals = std::array::from_fn::<_, 100, _>(|_| Signal::new(0_i32));
 		bencher.iter(|| {
 			for signal in &signals {
-				let signal = test::black_box(Signal::clone(signal));
+				let signal = test::black_box(signal.clone());
 				mem::forget(signal);
 			}
 		});

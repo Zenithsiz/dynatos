@@ -2,16 +2,16 @@
 
 /// Types which may be copied by [`SignalGet`]
 pub trait SignalGetCopy<T>: Sized {
-	fn copy(self) -> T;
+	fn copy_value(self) -> T;
 }
 
 impl<T: Copy> SignalGetCopy<T> for &'_ T {
-	fn copy(self) -> T {
+	fn copy_value(self) -> T {
 		*self
 	}
 }
 impl<T: Copy> SignalGetCopy<Option<T>> for Option<&'_ T> {
-	fn copy(self) -> Option<T> {
+	fn copy_value(self) -> Option<T> {
 		self.copied()
 	}
 }
@@ -28,22 +28,22 @@ where
 	for<'a> S::Value<'a>: SignalGetCopy<T>,
 {
 	fn get(&self) -> T {
-		self.with(|value| value.copy())
+		self.with(|value| value.copy_value())
 	}
 }
 
 /// Types which may be cloned by [`SignalGetCloned`]
 pub trait SignalGetClone<T>: Sized {
-	fn clone(self) -> T;
+	fn clone_value(self) -> T;
 }
 
 impl<T: Clone> SignalGetClone<T> for &'_ T {
-	fn clone(self) -> T {
+	fn clone_value(self) -> T {
 		self.clone()
 	}
 }
 impl<T: Clone> SignalGetClone<Option<T>> for Option<&'_ T> {
-	fn clone(self) -> Option<T> {
+	fn clone_value(self) -> Option<T> {
 		self.cloned()
 	}
 }
@@ -60,7 +60,7 @@ where
 	for<'a> S::Value<'a>: SignalGetClone<T>,
 {
 	fn get_cloned(&self) -> T {
-		self.with(|value| value.clone())
+		self.with(|value| value.clone_value())
 	}
 }
 
