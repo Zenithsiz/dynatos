@@ -130,7 +130,7 @@ impl<T: fmt::Debug> fmt::Debug for Signal<T> {
 mod test {
 	// Imports
 	extern crate test;
-	use {super::*, crate::SignalGet, std::mem, test::Bencher};
+	use {super::*, test::Bencher};
 
 	#[bench]
 	fn clone_100(bencher: &mut Bencher) {
