@@ -6,7 +6,12 @@
 // Imports
 use {
 	crate::{IntoSubscriber, WeakEffect},
-	std::{cell::RefCell, collections::HashSet, fmt, rc::Rc},
+	std::{
+		cell::RefCell,
+		collections::HashSet,
+		fmt,
+		rc::{Rc, Weak},
+	},
 };
 
 /// Trigger inner
@@ -28,6 +33,13 @@ impl Trigger {
 			subscribers: RefCell::new(HashSet::new()),
 		};
 		Self { inner: Rc::new(inner) }
+	}
+
+	/// Downgrades this trigger
+	pub fn downgrade(&self) -> WeakTrigger {
+		WeakTrigger {
+			inner: Rc::downgrade(&self.inner),
+		}
 	}
 
 	/// Adds a subscriber to this trigger.
@@ -88,6 +100,33 @@ impl fmt::Debug for Trigger {
 	}
 }
 
+/// Weak trigger
+pub struct WeakTrigger {
+	/// Inner
+	inner: Weak<Inner>,
+}
+
+impl WeakTrigger {
+	/// Upgrades this weak trigger
+	pub fn upgrade(&self) -> Option<Trigger> {
+		let inner = self.inner.upgrade()?;
+		Some(Trigger { inner })
+	}
+}
+
+impl Clone for WeakTrigger {
+	fn clone(&self) -> Self {
+		Self {
+			inner: Weak::clone(&self.inner),
+		}
+	}
+}
+
+impl fmt::Debug for WeakTrigger {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		f.debug_struct("WeakTrigger").finish_non_exhaustive()
+	}
+}
 
 #[cfg(test)]
 mod test {

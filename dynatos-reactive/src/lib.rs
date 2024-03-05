@@ -26,7 +26,7 @@ pub use self::{
 		SignalUpdate,
 		SignalWith,
 	},
-	trigger::Trigger,
+	trigger::{Trigger, WeakTrigger},
 	with_default::{SignalWithDefault, WithDefault},
 };
 
