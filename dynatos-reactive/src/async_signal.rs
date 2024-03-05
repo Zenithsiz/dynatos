@@ -5,12 +5,13 @@
 
 // Imports
 use {
-	crate::{effect, SignalWith, Trigger},
+	crate::{effect, SignalUpdate, SignalWith, Trigger},
 	pin_cell::PinCell,
 	std::{
-		cell::OnceCell,
+		cell::RefCell,
 		fmt,
 		future::Future,
+		mem,
 		pin::Pin,
 		rc::Rc,
 		sync::Arc,
@@ -59,7 +60,7 @@ struct Inner<F: Future> {
 	waker: Arc<Waker>,
 
 	/// Value
-	value: OnceCell<F::Output>,
+	value: RefCell<Option<F::Output>>,
 }
 
 /// Async signal.
@@ -81,7 +82,7 @@ impl<F: Future> AsyncSignal<F> {
 				thread:  thread::current().id(),
 				trigger: Trigger::new(),
 			}),
-			value: OnceCell::new(),
+			value: RefCell::new(None),
 		});
 		Self { inner }
 	}
@@ -100,7 +101,7 @@ where
 	F::Output: fmt::Debug,
 {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		let value = self.inner.value.get();
+		let value = self.inner.value.borrow();
 		f.debug_struct("AsyncSignal").field("value", &value).finish()
 	}
 }
@@ -121,7 +122,7 @@ where
 		}
 
 		// Then try to poll the future, if we don't have a value yet
-		if self.inner.value.get().is_none() {
+		if self.inner.value.borrow().is_none() {
 			// Get the inner future through pin-project + pin-cell.
 			let inner = self.inner.as_ref().project_ref();
 			let mut fut = inner.fut.borrow_mut();
@@ -131,14 +132,42 @@ where
 			let waker = task::Waker::from(Arc::clone(&self.inner.waker));
 			let mut cx = task::Context::from_waker(&waker);
 			if let Poll::Ready(value) = fut.poll(&mut cx) {
-				self.inner
-					.value
-					.set(value)
-					.unwrap_or_else(|_| panic!("Value was already initialized"));
+				*self.inner.value.borrow_mut() = Some(value);
 			}
 		}
 
 		// Finally use the value
-		f(self.inner.value.get())
+		let value = self.inner.value.borrow();
+		match &*value {
+			Some(value) => f(Some(value)),
+			None => {
+				// Note: We can't have `value` borrowed if it's `None`, or else
+				//       our branch above to initialize wouldn't be able to write
+				//       the value if we're being used recursively.
+				mem::drop(value);
+				f(None)
+			},
+		}
+	}
+}
+
+/// Updates the value within the async signal.
+///
+/// Does not poll the inner future, and does not allow
+/// early initializing the signal.
+impl<F: Future> SignalUpdate for AsyncSignal<F>
+where
+	F::Output: 'static,
+{
+	type Value<'a> = Option<&'a mut F::Output>;
+
+	fn update<F2, O>(&self, f: F2) -> O
+	where
+		F2: for<'a> FnOnce(Self::Value<'a>) -> O,
+	{
+		// Note: Here we don't need to drop the borrow when calling `f` if
+		//       we don't have a value yet, as we don't poll the future.
+		let mut value = self.inner.value.borrow_mut();
+		f(value.as_mut())
 	}
 }
