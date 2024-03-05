@@ -4,9 +4,8 @@
 use {
 	crate::Location,
 	dynatos_html::{html, ElementWithAttr},
-	dynatos_reactive::SignalSet,
+	dynatos_reactive::{SignalSet, SignalWith},
 	dynatos_util::{ev, EventTargetWithListener},
-	url::Url,
 	web_sys::Element,
 };
 
@@ -22,10 +21,10 @@ where
 		.with_event_listener::<ev::Click>(move |ev| {
 			ev.prevent_default();
 			dynatos_context::with_expect::<Location, _, _>(|location| {
-				let new_location = &new_location.as_ref();
-				match new_location.parse::<Url>() {
+				let new_location = new_location.as_ref();
+				match location.with(|location| location.join(new_location)) {
 					Ok(new_location) => location.set(new_location),
-					Err(err) => tracing::warn!("Unable to parse new location as a valid url {new_location:?}: {err}"),
+					Err(err) => tracing::warn!("Unable to join new location to current {new_location:?}: {err}"),
 				}
 			});
 		})
