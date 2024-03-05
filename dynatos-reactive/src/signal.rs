@@ -3,9 +3,25 @@
 //! A read-write value that automatically updates
 //! any subscribers when changed.
 
+// Modules
+pub mod ops;
+
+// Exports
+pub use ops::{
+	SignalGet,
+	SignalGetClone,
+	SignalGetCloned,
+	SignalGetCopy,
+	SignalReplace,
+	SignalSet,
+	SignalSetWith,
+	SignalUpdate,
+	SignalWith,
+};
+
 // Imports
 use {
-	crate::{effect, SignalReplace, SignalUpdate, SignalWith, Trigger},
+	crate::{effect, Trigger},
 	std::{cell::RefCell, fmt, marker::Unsize, mem, ops::CoerceUnsized, rc::Rc},
 };
 
@@ -121,7 +137,7 @@ mod test {
 		let signals = std::array::from_fn::<_, 100, _>(|_| Signal::new(0_i32));
 		bencher.iter(|| {
 			for signal in &signals {
-				let signal = test::black_box(signal.clone());
+				let signal = test::black_box(Signal::clone(signal));
 				mem::forget(signal);
 			}
 		});
