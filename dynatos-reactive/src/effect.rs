@@ -16,10 +16,9 @@ use std::{
 	rc::{Rc, Weak},
 };
 
-thread_local! {
-	/// Effect stack
-	static EFFECT_STACK: RefCell<Vec<WeakEffect<dyn Fn()>>> = const { RefCell::new(vec![]) };
-}
+/// Effect stack
+#[thread_local]
+static EFFECT_STACK: RefCell<Vec<WeakEffect<dyn Fn()>>> = RefCell::new(vec![]);
 
 /// Effect inner
 struct Inner<F: ?Sized> {
@@ -109,7 +108,7 @@ impl<F: ?Sized> Effect<F> {
 		F: Fn() + Unsize<dyn Fn()> + 'static,
 	{
 		// Push the effect, run the closure and pop it
-		EFFECT_STACK.with_borrow_mut(|effects| effects.push(self.downgrade()));
+		EFFECT_STACK.borrow_mut().push(self.downgrade());
 
 		// Then run it, if it's not suppressed
 		if !self.inner.suppressed.get() {
@@ -117,9 +116,7 @@ impl<F: ?Sized> Effect<F> {
 		}
 
 		// And finally pop the effect from the stack
-		EFFECT_STACK
-			.with_borrow_mut(|effects| effects.pop())
-			.expect("Missing added effect");
+		EFFECT_STACK.borrow_mut().pop().expect("Missing added effect");
 	}
 
 	/// Suppresses this effect from running while calling this function
@@ -240,7 +237,7 @@ impl<T: ?Sized, U: ?Sized> CoerceUnsized<WeakEffect<U>> for WeakEffect<T> where 
 
 /// Returns the current running effect
 pub fn running() -> Option<WeakEffect<dyn Fn()>> {
-	EFFECT_STACK.with_borrow(|effects| effects.last().cloned())
+	EFFECT_STACK.borrow().last().cloned()
 }
 
 #[cfg(test)]
