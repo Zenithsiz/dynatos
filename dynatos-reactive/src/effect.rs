@@ -246,9 +246,11 @@ pub fn running() -> Option<WeakEffect<dyn Fn()>> {
 #[cfg(test)]
 mod test {
 	// Imports
+	extern crate test;
 	use {
 		super::{super::effect, *},
-		std::cell::OnceCell,
+		std::{cell::OnceCell, mem},
+		test::Bencher,
 	};
 
 	/// Ensures the function returned by `Effect::running` is the same as the future being run.
@@ -320,5 +322,43 @@ mod test {
 		// And that the bottom-level running effect was already dropped
 		let running_bottom = running_bottom.get().expect("Running effect missing").upgrade();
 		assert_eq!(running_bottom, None);
+	}
+
+	#[bench]
+	fn get_running_100_none(bencher: &mut Bencher) {
+		bencher.iter(|| {
+			for _ in 0..100 {
+				let effect = effect::running();
+				test::black_box(effect);
+			}
+		});
+	}
+
+	#[bench]
+	fn get_running_100_some(bencher: &mut Bencher) {
+		let bencher = bencher as *mut Bencher;
+
+		Effect::new(move || {
+			// SAFETY: This closure gets dropped before the bencher does,
+			//         so the bencher pointer is valid for all calls.
+			let bencher = unsafe { &mut *bencher };
+			bencher.iter(|| {
+				for _ in 0..100 {
+					let effect = effect::running();
+					test::black_box(effect);
+				}
+			})
+		});
+	}
+
+	#[bench]
+	fn create_10(bencher: &mut Bencher) {
+		bencher.iter(|| {
+			for _ in 0..10 {
+				let effect = Effect::new(move || ());
+				test::black_box(&effect);
+				mem::forget(effect);
+			}
+		})
 	}
 }
