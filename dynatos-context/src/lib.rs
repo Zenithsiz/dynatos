@@ -394,43 +394,68 @@ mod test {
 	}
 
 	// Type and value to test for the accesses
-	// Note: We currently use half a page size, to avoid
-	//       any issues with being near or over the page size.
-	type AccessTy = [u8; 2048];
-	const ACCESS_TY_DEFAULT: AccessTy = [123; 2048];
+	type AccessTy = usize;
+	const ACCESS_TY_DEFAULT: AccessTy = 123;
 
+	// Number of times to run each iteration
+	const REPEAT_COUNT: usize = 100;
+
+	// Reference benchmark.
 	#[bench]
 	fn access_static(bencher: &mut Bencher) {
 		static VALUE: AccessTy = ACCESS_TY_DEFAULT;
 
-		bencher.iter(|| VALUE)
+		bencher.iter(|| {
+			for _ in 0..test::black_box(REPEAT_COUNT) {
+				let value = VALUE;
+				test::black_box(value);
+			}
+		})
 	}
 
 	#[bench]
 	fn access(bencher: &mut Bencher) {
 		let _handle = crate::provide::<AccessTy>(ACCESS_TY_DEFAULT);
 
-		bencher.iter(crate::get::<AccessTy>)
+		bencher.iter(|| {
+			for _ in 0..test::black_box(REPEAT_COUNT) {
+				let value = crate::get::<AccessTy>();
+				test::black_box(value);
+			}
+		})
 	}
 
 	#[bench]
 	fn access_expect(bencher: &mut Bencher) {
 		let _handle = crate::provide::<AccessTy>(ACCESS_TY_DEFAULT);
 
-		bencher.iter(crate::expect::<AccessTy>)
+		bencher.iter(|| {
+			for _ in 0..test::black_box(REPEAT_COUNT) {
+				let value = crate::expect::<AccessTy>();
+				test::black_box(value);
+			}
+		})
 	}
 
 	#[bench]
 	fn access_with(bencher: &mut Bencher) {
 		let _handle = crate::provide::<AccessTy>(ACCESS_TY_DEFAULT);
 
-		bencher.iter(|| crate::with::<AccessTy, _, _>(|value| test::black_box(value.copied())))
+		bencher.iter(|| {
+			for _ in 0..test::black_box(REPEAT_COUNT) {
+				crate::with::<AccessTy, _, _>(|value| test::black_box(value.copied()));
+			}
+		})
 	}
 
 	#[bench]
 	fn access_with_expect(bencher: &mut Bencher) {
 		let _handle = crate::provide::<AccessTy>(ACCESS_TY_DEFAULT);
 
-		bencher.iter(|| crate::with_expect::<AccessTy, _, _>(|value| test::black_box(*value)))
+		bencher.iter(|| {
+			for _ in 0..test::black_box(REPEAT_COUNT) {
+				crate::with_expect::<AccessTy, _, _>(|value| test::black_box(*value));
+			}
+		})
 	}
 }
