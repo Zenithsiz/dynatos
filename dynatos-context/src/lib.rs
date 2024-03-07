@@ -274,7 +274,7 @@ where
 	T: 'static,
 	T: Copy,
 {
-	self::get::<T>().unwrap_or_else(self::on_missing_context::<T, _>)
+	self::with::<T, _, _>(|value| *value.unwrap_or_else(self::on_missing_context::<T, _>))
 }
 
 /// Gets a cloned value of `T` on the current context.
@@ -293,7 +293,7 @@ where
 	T: 'static,
 	T: Clone,
 {
-	self::get_cloned::<T>().unwrap_or_else(self::on_missing_context::<T, _>)
+	self::with::<T, _, _>(|value| value.unwrap_or_else(self::on_missing_context::<T, _>).clone())
 }
 
 /// Uses a value of `T` on the current context.
