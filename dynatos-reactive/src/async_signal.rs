@@ -5,13 +5,13 @@
 
 // Imports
 use {
-	crate::{effect, SignalUpdate, SignalWith, Trigger},
+	crate::{effect, SignalBorrow, SignalUpdate, SignalWith, Trigger},
 	pin_cell::PinCell,
 	std::{
-		cell::RefCell,
+		cell::{self, RefCell},
 		fmt,
 		future::Future,
-		mem,
+		ops::Deref,
 		pin::Pin,
 		rc::Rc,
 		sync::Arc,
@@ -87,29 +87,26 @@ impl<F: Future> AsyncSignal<F> {
 		Self { inner }
 	}
 
+	/// Borrows the inner value, without polling the future.
+	// TODO: Better name that indicates that we don't poll?
+	pub fn borrow_inner(&self) -> Option<BorrowRef<'_, F::Output>> {
+		// If there's an effect running, add it to the subscribers
+		if let Some(effect) = effect::running() {
+			self.inner.waker.trigger.add_subscriber(effect);
+		}
+
+		let borrow = self.inner.value.borrow();
+		borrow.is_some().then(|| BorrowRef(borrow))
+	}
+
 	/// Uses the inner value, without polling the future.
 	// TODO: Better name that indicates that we don't poll?
 	pub fn with_inner<F2, O>(&self, f: F2) -> O
 	where
 		F2: for<'a> FnOnce(Option<&'a F::Output>) -> O,
 	{
-		// If there's an effect running, add it to the subscribers
-		if let Some(effect) = effect::running() {
-			self.inner.waker.trigger.add_subscriber(effect);
-		}
-
-		// Then use the value
-		let value = self.inner.value.borrow();
-		match &*value {
-			Some(value) => f(Some(value)),
-			None => {
-				// Note: We can't have `value` borrowed if it's `None`, or else
-				//       our branch above to initialize wouldn't be able to write
-				//       the value if we're being used recursively.
-				mem::drop(value);
-				f(None)
-			},
-		}
+		let borrow = self.borrow_inner();
+		f(borrow.as_deref())
 	}
 }
 
@@ -131,16 +128,24 @@ where
 	}
 }
 
-impl<F: Future> SignalWith for AsyncSignal<F>
-where
-	F::Output: 'static,
-{
-	type Value<'a> = Option<&'a F::Output>;
+/// Reference type for [`SignalBorrow`] impl
+#[derive(Debug)]
+pub struct BorrowRef<'a, T>(cell::Ref<'a, Option<T>>);
 
-	fn with<F2, O>(&self, f: F2) -> O
+impl<'a, T> Deref for BorrowRef<'a, T> {
+	type Target = T;
+
+	fn deref(&self) -> &Self::Target {
+		self.0.as_ref().expect("Value wasn't initialized")
+	}
+}
+
+impl<F: Future> SignalBorrow for AsyncSignal<F> {
+	type Ref<'a> = Option<BorrowRef<'a, F::Output>>
 	where
-		F2: for<'a> FnOnce(Self::Value<'a>) -> O,
-	{
+		Self: 'a;
+
+	fn borrow(&self) -> Self::Ref<'_> {
 		// Try to poll the future, if we don't have a value yet
 		if self.inner.value.borrow().is_none() {
 			// Get the inner future through pin-project + pin-cell.
@@ -156,8 +161,22 @@ where
 			}
 		}
 
-		// Then use the value
-		self.with_inner(f)
+		self.borrow_inner()
+	}
+}
+
+impl<F: Future> SignalWith for AsyncSignal<F>
+where
+	F::Output: 'static,
+{
+	type Value<'a> = Option<&'a F::Output>;
+
+	fn with<F2, O>(&self, f: F2) -> O
+	where
+		F2: for<'a> FnOnce(Self::Value<'a>) -> O,
+	{
+		let value = self.borrow();
+		f(value.as_deref())
 	}
 }
 

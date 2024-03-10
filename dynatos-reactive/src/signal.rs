@@ -8,6 +8,7 @@ pub mod ops;
 
 // Exports
 pub use ops::{
+	SignalBorrow,
 	SignalGet,
 	SignalGetClone,
 	SignalGetCloned,
@@ -22,7 +23,14 @@ pub use ops::{
 // Imports
 use {
 	crate::{effect, Trigger},
-	std::{cell::RefCell, fmt, marker::Unsize, mem, ops::CoerceUnsized, rc::Rc},
+	std::{
+		cell::{self, RefCell},
+		fmt,
+		marker::Unsize,
+		mem,
+		ops::{CoerceUnsized, Deref},
+		rc::Rc,
+	},
 };
 
 /// Inner
@@ -59,6 +67,37 @@ impl<T> Signal<T> {
 
 impl<T: ?Sized, U: ?Sized> CoerceUnsized<Signal<U>> for Signal<T> where T: Unsize<U> {}
 
+/// Reference type for [`SignalBorrow`] impl
+#[derive(Debug)]
+pub struct BorrowRef<'a, T: ?Sized>(cell::Ref<'a, T>);
+
+impl<'a, T: ?Sized> Deref for BorrowRef<'a, T> {
+	type Target = T;
+
+	fn deref(&self) -> &Self::Target {
+		&self.0
+	}
+}
+
+impl<T: ?Sized + 'static> SignalBorrow for Signal<T> {
+	type Ref<'a> = BorrowRef<'a, T>
+	where
+		Self: 'a;
+
+	fn borrow(&self) -> Self::Ref<'_> {
+		if let Some(effect) = effect::running() {
+			self.inner.trigger.add_subscriber(effect);
+		}
+
+		let borrow = self
+			.inner
+			.value
+			.try_borrow()
+			.expect("Cannot use signal value while updating");
+		BorrowRef(borrow)
+	}
+}
+
 impl<T: ?Sized + 'static> SignalWith for Signal<T> {
 	type Value<'a> = &'a T;
 
@@ -66,16 +105,8 @@ impl<T: ?Sized + 'static> SignalWith for Signal<T> {
 	where
 		F: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
-		if let Some(effect) = effect::running() {
-			self.inner.trigger.add_subscriber(effect);
-		}
-
-		let value = self
-			.inner
-			.value
-			.try_borrow()
-			.expect("Cannot use signal value while updating");
-		f(&value)
+		let value = self.borrow();
+		f(&*value)
 	}
 }
 

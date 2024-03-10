@@ -1,6 +1,7 @@
 //! Signal operators
 
 // Modules
+mod borrow;
 mod get;
 mod get_cloned;
 mod replace;
@@ -10,6 +11,7 @@ mod with;
 
 // Exports
 pub use self::{
+	borrow::SignalBorrow,
 	get::{SignalGet, SignalGetCopy},
 	get_cloned::{SignalGetClone, SignalGetCloned},
 	replace::SignalReplace,

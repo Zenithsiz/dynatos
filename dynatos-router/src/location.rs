@@ -2,13 +2,15 @@
 
 // Imports
 use {
-	dynatos_reactive::{Signal, SignalUpdate, SignalWith},
+	dynatos_reactive::{signal, Signal, SignalBorrow, SignalUpdate, SignalWith},
 	dynatos_util::{ev, EventTargetAddListener},
+	std::ops::Deref,
 	url::Url,
 	wasm_bindgen::JsValue,
 };
 
 /// Inner
+#[derive(Debug)]
 struct Inner {
 	/// Location
 	location: Url,
@@ -43,6 +45,28 @@ impl Location {
 	}
 }
 
+/// Reference type for [`SignalBorrow`] impl
+#[derive(Debug)]
+pub struct BorrowRef<'a>(signal::BorrowRef<'a, Inner>);
+
+impl<'a> Deref for BorrowRef<'a> {
+	type Target = Url;
+
+	fn deref(&self) -> &Self::Target {
+		&self.0.location
+	}
+}
+
+impl SignalBorrow for Location {
+	type Ref<'a> = BorrowRef<'a>
+	where
+		Self: 'a;
+
+	fn borrow(&self) -> Self::Ref<'_> {
+		BorrowRef(self.0.borrow())
+	}
+}
+
 impl SignalWith for Location {
 	type Value<'a> = &'a Url;
 
@@ -50,7 +74,8 @@ impl SignalWith for Location {
 	where
 		F: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
-		self.0.with(|inner| f(&inner.location))
+		let location = self.borrow();
+		f(&location)
 	}
 }
 

@@ -3,8 +3,18 @@
 // Imports
 use {
 	crate::Location,
-	dynatos_reactive::{Effect, Signal, SignalGetCloned, SignalReplace, SignalSet, SignalUpdate, SignalWith},
-	std::{error::Error as StdError, mem, rc::Rc, str::FromStr},
+	dynatos_reactive::{
+		signal,
+		Effect,
+		Signal,
+		SignalBorrow,
+		SignalGetCloned,
+		SignalReplace,
+		SignalSet,
+		SignalUpdate,
+		SignalWith,
+	},
+	std::{error::Error as StdError, mem, ops::Deref, rc::Rc, str::FromStr},
 };
 
 /// Query signal
@@ -63,6 +73,28 @@ impl<T> QueryArraySignal<T> {
 	}
 }
 
+/// Reference type for [`SignalBorrow`] impl
+#[derive(Debug)]
+pub struct BorrowRef<'a, T>(signal::BorrowRef<'a, Vec<T>>);
+
+impl<'a, T> Deref for BorrowRef<'a, T> {
+	type Target = [T];
+
+	fn deref(&self) -> &Self::Target {
+		self.0.as_slice()
+	}
+}
+
+impl<T: 'static> SignalBorrow for QueryArraySignal<T> {
+	type Ref<'a> = BorrowRef<'a, T>
+	where
+		Self: 'a;
+
+	fn borrow(&self) -> Self::Ref<'_> {
+		BorrowRef(self.inner.borrow())
+	}
+}
+
 impl<T: 'static> SignalWith for QueryArraySignal<T> {
 	type Value<'a> = &'a [T];
 
@@ -70,7 +102,8 @@ impl<T: 'static> SignalWith for QueryArraySignal<T> {
 	where
 		F: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
-		self.inner.with(|value| f(value))
+		let value = self.borrow();
+		f(&value)
 	}
 }
 
@@ -108,12 +141,10 @@ where
 						.into_owned()
 						.filter(|(key, _)| *key != *self.key)
 						.collect::<Vec<_>>();
-					self.inner.with(|values| {
-						for value in values {
-							let value = value.to_string();
-							queries.push(((*self.key).to_owned(), value));
-						}
-					});
+					for value in &*self.inner.borrow() {
+						let value = value.to_string();
+						queries.push(((*self.key).to_owned(), value));
+					}
 					location.query_pairs_mut().clear().extend_pairs(queries);
 				});
 			})

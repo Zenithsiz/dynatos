@@ -32,8 +32,12 @@
 
 // Imports
 use {
-	crate::{Effect, Signal, SignalSet, SignalWith},
-	std::{fmt, marker::Unsize, ops::CoerceUnsized},
+	crate::{signal, Effect, Signal, SignalBorrow, SignalSet, SignalWith},
+	std::{
+		fmt,
+		marker::Unsize,
+		ops::{CoerceUnsized, Deref},
+	},
 };
 
 /// Derived signal.
@@ -58,6 +62,30 @@ impl<T, F> Derived<T, F> {
 	}
 }
 
+/// Reference type for [`SignalBorrow`] impl
+#[derive(Debug)]
+pub struct BorrowRef<'a, T>(signal::BorrowRef<'a, Option<T>>);
+
+impl<'a, T> Deref for BorrowRef<'a, T> {
+	type Target = T;
+
+	fn deref(&self) -> &Self::Target {
+		self.0.as_ref().expect("Value wasn't initialized")
+	}
+}
+
+impl<T: 'static, F: ?Sized> SignalBorrow for Derived<T, F> {
+	type Ref<'a> = BorrowRef<'a, T>
+	where
+		Self: 'a;
+
+	fn borrow(&self) -> Self::Ref<'_> {
+		let effect_fn = self.effect.inner_fn();
+		let value = effect_fn.value.borrow();
+		BorrowRef(value)
+	}
+}
+
 impl<T: 'static, F: ?Sized> SignalWith for Derived<T, F> {
 	type Value<'a> = &'a T;
 
@@ -65,11 +93,8 @@ impl<T: 'static, F: ?Sized> SignalWith for Derived<T, F> {
 	where
 		F2: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
-		let effect_fn = self.effect.inner_fn();
-		effect_fn.value.with(|value| {
-			let value = value.as_ref().expect("Value wasn't initialized");
-			f(value)
-		})
+		let value = self.borrow();
+		f(&value)
 	}
 }
 

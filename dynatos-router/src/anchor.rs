@@ -4,7 +4,7 @@
 use {
 	crate::Location,
 	dynatos_html::{html, ElementWithAttr},
-	dynatos_reactive::{SignalSet, SignalWith},
+	dynatos_reactive::{SignalBorrow, SignalSet},
 	dynatos_util::{ev, EventTargetWithListener},
 	web_sys::Element,
 };
@@ -22,7 +22,8 @@ where
 			ev.prevent_default();
 			dynatos_context::with_expect::<Location, _, _>(|location| {
 				let new_location = new_location.as_ref();
-				match location.with(|location| location.join(new_location)) {
+				let res = location.borrow().join(new_location);
+				match res {
 					Ok(new_location) => location.set(new_location),
 					Err(err) => tracing::warn!("Unable to join new location to current {new_location:?}: {err}"),
 				}

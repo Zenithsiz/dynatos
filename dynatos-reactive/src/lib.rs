@@ -26,6 +26,7 @@ pub use self::{
 	effect::{Effect, WeakEffect},
 	signal::{
 		Signal,
+		SignalBorrow,
 		SignalGet,
 		SignalGetClone,
 		SignalGetCloned,

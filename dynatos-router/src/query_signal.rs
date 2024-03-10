@@ -3,8 +3,18 @@
 // Imports
 use {
 	crate::Location,
-	dynatos_reactive::{Effect, Signal, SignalGetCloned, SignalReplace, SignalSet, SignalUpdate, SignalWith},
-	std::{collections::HashMap, error::Error as StdError, mem, rc::Rc, str::FromStr},
+	dynatos_reactive::{
+		signal,
+		Effect,
+		Signal,
+		SignalBorrow,
+		SignalGetCloned,
+		SignalReplace,
+		SignalSet,
+		SignalUpdate,
+		SignalWith,
+	},
+	std::{collections::HashMap, error::Error as StdError, mem, ops::Deref, rc::Rc, str::FromStr},
 };
 
 /// Query signal
@@ -62,6 +72,29 @@ impl<T> QuerySignal<T> {
 	}
 }
 
+/// Reference type for [`SignalBorrow`] impl
+#[derive(Debug)]
+pub struct BorrowRef<'a, T>(signal::BorrowRef<'a, Option<T>>);
+
+impl<'a, T> Deref for BorrowRef<'a, T> {
+	type Target = T;
+
+	fn deref(&self) -> &Self::Target {
+		self.0.as_ref().expect("Inner query value was missing")
+	}
+}
+
+impl<T: 'static> SignalBorrow for QuerySignal<T> {
+	type Ref<'a> = Option<BorrowRef<'a, T>>
+	where
+		Self: 'a;
+
+	fn borrow(&self) -> Self::Ref<'_> {
+		let borrow = self.inner.borrow();
+		borrow.is_some().then(|| BorrowRef(borrow))
+	}
+}
+
 impl<T: 'static> SignalWith for QuerySignal<T> {
 	type Value<'a> = Option<&'a T>;
 
@@ -69,7 +102,8 @@ impl<T: 'static> SignalWith for QuerySignal<T> {
 	where
 		F: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
-		self.inner.with(|value| f(value.as_ref()))
+		let value = self.borrow();
+		f(value.as_deref())
 	}
 }
 
@@ -103,7 +137,7 @@ where
 			dynatos_context::with_expect::<Location, _, _>(|location| {
 				location.update(|location| {
 					let mut queries = location.query_pairs().into_owned().collect::<HashMap<_, _>>();
-					match self.inner.with(|value| value.as_ref().map(T::to_string)) {
+					match self.inner.borrow().as_ref().map(T::to_string) {
 						Some(value) => queries.insert((*self.key).to_owned(), value),
 						None => queries.remove(&*self.key),
 					};

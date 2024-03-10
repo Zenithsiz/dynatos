@@ -1,7 +1,10 @@
 //! `Option<T>` Signal with default value
 
 // Imports
-use crate::{SignalReplace, SignalUpdate, SignalWith};
+use {
+	crate::{SignalBorrow, SignalReplace, SignalUpdate, SignalWith},
+	std::ops::Deref,
+};
 
 /// Wrapper for a `Signal<Option<T>>` with a default value
 #[derive(Clone, Debug)]
@@ -17,6 +20,44 @@ impl<S, T> WithDefault<S, T> {
 	/// Wraps a signal with a default value
 	pub fn new(inner: S, default: T) -> Self {
 		Self { inner, default }
+	}
+}
+
+/// Reference type for [`SignalBorrow`] impl
+#[derive(Debug)]
+pub struct BorrowRef<'a, S: SignalBorrow + 'a, T> {
+	/// value
+	value: S::Ref<'a>,
+
+	/// Default value
+	default: &'a T,
+}
+
+impl<'a, S, T> Deref for BorrowRef<'a, S, T>
+where
+	S: SignalBorrow + 'a,
+	S::Ref<'a>: Deref<Target = Option<T>>,
+{
+	type Target = T;
+
+	fn deref(&self) -> &Self::Target {
+		match &*self.value {
+			Some(value) => value,
+			None => self.default,
+		}
+	}
+}
+
+impl<S: SignalBorrow, T> SignalBorrow for WithDefault<S, T> {
+	type Ref<'a> = BorrowRef<'a, S, T>
+	where
+		Self: 'a;
+
+	fn borrow(&self) -> Self::Ref<'_> {
+		BorrowRef {
+			value:   self.inner.borrow(),
+			default: &self.default,
+		}
 	}
 }
 
