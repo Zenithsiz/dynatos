@@ -9,6 +9,7 @@ pub mod ops;
 // Exports
 pub use ops::{
 	SignalBorrow,
+	SignalBorrowMut,
 	SignalGet,
 	SignalGetClone,
 	SignalGetCloned,
@@ -28,7 +29,7 @@ use {
 		fmt,
 		marker::Unsize,
 		mem,
-		ops::{CoerceUnsized, Deref},
+		ops::{CoerceUnsized, Deref, DerefMut},
 		rc::Rc,
 	},
 };
@@ -112,9 +113,66 @@ impl<T: ?Sized + 'static> SignalWith for Signal<T> {
 
 impl<T: 'static> SignalReplace<T> for Signal<T> {
 	fn replace(&self, new_value: T) -> T {
-		self.update(|value| mem::replace(value, new_value))
+		mem::replace(&mut self.borrow_mut(), new_value)
 	}
 }
+
+/// Triggers on `Drop`
+// Note: We need this wrapper because `BorrowRefMut::value` must
+//       already be dropped when we run the trigger, which we
+//       can't do if we implement `Drop` on `BorrowRefMut`.
+#[derive(Debug)]
+pub(crate) struct TriggerOnDrop<'a>(pub &'a Trigger);
+
+impl<'a> Drop for TriggerOnDrop<'a> {
+	fn drop(&mut self) {
+		self.0.trigger();
+	}
+}
+
+/// Reference type for [`SignalBorrowMut`] impl
+#[derive(Debug)]
+pub struct BorrowRefMut<'a, T: ?Sized> {
+	/// Value
+	value: cell::RefMut<'a, T>,
+
+	/// Trigger on drop
+	// Note: Must be dropped *after* `value`.
+	_trigger_on_drop: TriggerOnDrop<'a>,
+}
+
+impl<'a, T: ?Sized> Deref for BorrowRefMut<'a, T> {
+	type Target = T;
+
+	fn deref(&self) -> &Self::Target {
+		&self.value
+	}
+}
+
+impl<'a, T: ?Sized> DerefMut for BorrowRefMut<'a, T> {
+	fn deref_mut(&mut self) -> &mut Self::Target {
+		&mut self.value
+	}
+}
+
+impl<T: ?Sized + 'static> SignalBorrowMut for Signal<T> {
+	type RefMut<'a> = BorrowRefMut<'a, T>
+		where
+			Self: 'a;
+
+	fn borrow_mut(&self) -> Self::RefMut<'_> {
+		let value = self
+			.inner
+			.value
+			.try_borrow_mut()
+			.expect("Cannot update signal value while using it");
+		BorrowRefMut {
+			value,
+			_trigger_on_drop: TriggerOnDrop(&self.inner.trigger),
+		}
+	}
+}
+
 
 impl<T: ?Sized + 'static> SignalUpdate for Signal<T> {
 	type Value<'a> = &'a mut T;
@@ -123,20 +181,8 @@ impl<T: ?Sized + 'static> SignalUpdate for Signal<T> {
 	where
 		F: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
-		// Update the value and get the output
-		let output = {
-			let mut value = self
-				.inner
-				.value
-				.try_borrow_mut()
-				.expect("Cannot update signal value while using it");
-			f(&mut value)
-		};
-
-		// Then trigger our trigger
-		self.inner.trigger.trigger();
-
-		output
+		let mut value = self.borrow_mut();
+		f(&mut *value)
 	}
 }
 

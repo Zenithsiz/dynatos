@@ -27,6 +27,7 @@ pub use self::{
 	signal::{
 		Signal,
 		SignalBorrow,
+		SignalBorrowMut,
 		SignalGet,
 		SignalGetClone,
 		SignalGetCloned,

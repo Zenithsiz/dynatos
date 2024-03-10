@@ -2,6 +2,7 @@
 
 // Modules
 mod borrow;
+mod borrow_mut;
 mod get;
 mod get_cloned;
 mod replace;
@@ -12,6 +13,7 @@ mod with;
 // Exports
 pub use self::{
 	borrow::SignalBorrow,
+	borrow_mut::SignalBorrowMut,
 	get::{SignalGet, SignalGetCopy},
 	get_cloned::{SignalGetClone, SignalGetCloned},
 	replace::SignalReplace,

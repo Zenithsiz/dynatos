@@ -4,7 +4,7 @@
 use {
 	dynatos::{ElementWithDynAttr, NodeWithDynText},
 	dynatos_html::{html, NodeWithChildren, NodeWithText},
-	dynatos_reactive::{Signal, SignalGet, SignalSet, SignalUpdate},
+	dynatos_reactive::{Signal, SignalBorrowMut, SignalGet, SignalSet},
 	dynatos_util::{ev, EventTargetWithListener, JsResultContext},
 	tracing_subscriber::prelude::*,
 	web_sys::Element,
@@ -55,11 +55,11 @@ fn counter() -> Element {
 			}),
 			html::button().with_text("+").with_event_listener::<ev::Click>({
 				let value = value.clone();
-				move |_ev| value.update(|value| *value += 1)
+				move |_ev| *value.borrow_mut() += 1
 			}),
 			html::button().with_text("-").with_event_listener::<ev::Click>({
 				let value = value.clone();
-				move |_ev| value.update(|value| *value -= 1)
+				move |_ev| *value.borrow_mut() -= 1
 			}),
 			html::span().with_dyn_text({
 				let value = value.clone();

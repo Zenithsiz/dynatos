@@ -5,13 +5,13 @@
 
 // Imports
 use {
-	crate::{effect, SignalBorrow, SignalUpdate, SignalWith, Trigger},
+	crate::{effect, signal, SignalBorrow, SignalBorrowMut, SignalUpdate, SignalWith, Trigger},
 	pin_cell::PinCell,
 	std::{
 		cell::{self, RefCell},
 		fmt,
 		future::Future,
-		ops::Deref,
+		ops::{Deref, DerefMut},
 		pin::Pin,
 		rc::Rc,
 		sync::Arc,
@@ -180,6 +180,45 @@ where
 	}
 }
 
+/// Reference type for [`SignalBorrowMut`] impl
+#[derive(Debug)]
+pub struct BorrowRefMut<'a, T> {
+	/// Value
+	value: cell::RefMut<'a, Option<T>>,
+
+	/// Trigger on drop
+	// Note: Must be dropped *after* `value`.
+	_trigger_on_drop: signal::TriggerOnDrop<'a>,
+}
+
+impl<'a, T> Deref for BorrowRefMut<'a, T> {
+	type Target = Option<T>;
+
+	fn deref(&self) -> &Self::Target {
+		&self.value
+	}
+}
+
+impl<'a, T> DerefMut for BorrowRefMut<'a, T> {
+	fn deref_mut(&mut self) -> &mut Self::Target {
+		&mut self.value
+	}
+}
+
+impl<F: Future> SignalBorrowMut for AsyncSignal<F> {
+	type RefMut<'a> = BorrowRefMut<'a, F::Output>
+	where
+		Self: 'a;
+
+	fn borrow_mut(&self) -> Self::RefMut<'_> {
+		let value = self.inner.value.borrow_mut();
+		BorrowRefMut {
+			value,
+			_trigger_on_drop: signal::TriggerOnDrop(&self.inner.waker.trigger),
+		}
+	}
+}
+
 /// Updates the value within the async signal.
 ///
 /// Does not poll the inner future, and does not allow
@@ -194,9 +233,7 @@ where
 	where
 		F2: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
-		// Note: Here we don't need to drop the borrow when calling `f` if
-		//       we don't have a value yet, as we don't poll the future.
-		let mut value = self.inner.value.borrow_mut();
+		let mut value = self.borrow_mut();
 		f(value.as_mut())
 	}
 }

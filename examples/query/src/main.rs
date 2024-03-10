@@ -7,7 +7,7 @@
 use {
 	dynatos::{NodeWithDynText, ObjectWithContext},
 	dynatos_html::{html, NodeWithChildren, NodeWithText},
-	dynatos_reactive::{SignalGet, SignalSet, SignalUpdate, SignalWithDefault},
+	dynatos_reactive::{SignalBorrowMut, SignalGet, SignalSet, SignalWithDefault},
 	dynatos_router::{Location, QuerySignal},
 	dynatos_util::{ev, EventTargetWithListener},
 	tracing_subscriber::prelude::*,
@@ -63,7 +63,7 @@ fn page() -> Element {
 			.with_event_listener::<ev::Click>({
 				let query = query.clone();
 				move |_ev| {
-					query.update(|value| *value += 1);
+					*query.borrow_mut() += 1;
 				}
 			})
 			.with_text("Add"),

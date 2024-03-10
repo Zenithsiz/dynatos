@@ -2,8 +2,8 @@
 
 // Imports
 use {
-	crate::{SignalBorrow, SignalReplace, SignalUpdate, SignalWith},
-	std::ops::Deref,
+	crate::{SignalBorrow, SignalBorrowMut, SignalReplace, SignalUpdate, SignalWith},
+	std::ops::{Deref, DerefMut},
 };
 
 /// Wrapper for a `Signal<Option<T>>` with a default value
@@ -95,6 +95,52 @@ where
 {
 	fn replace(&self, new_value: Option<T>) -> Option<T> {
 		self.inner.replace(new_value)
+	}
+}
+
+/// Reference type for [`SignalBorrowMut`] impl
+#[derive(Debug)]
+pub struct BorrowRefMut<'a, S: SignalBorrowMut + 'a> {
+	/// value
+	value: S::RefMut<'a>,
+}
+
+impl<'a, S, T> Deref for BorrowRefMut<'a, S>
+where
+	S: SignalBorrowMut + 'a,
+	S::RefMut<'a>: Deref<Target = Option<T>>,
+{
+	type Target = T;
+
+	fn deref(&self) -> &Self::Target {
+		self.value.as_ref().expect("Default value was missing")
+	}
+}
+
+impl<'a, S, T> DerefMut for BorrowRefMut<'a, S>
+where
+	S: SignalBorrowMut + 'a,
+	S::RefMut<'a>: DerefMut<Target = Option<T>>,
+{
+	fn deref_mut(&mut self) -> &mut Self::Target {
+		self.value.as_mut().expect("Default value was missing")
+	}
+}
+
+impl<S: SignalBorrowMut, T> SignalBorrowMut for WithDefault<S, T>
+where
+	for<'a> S::RefMut<'a>: DerefMut<Target = Option<T>>,
+	T: Copy,
+{
+	type RefMut<'a> = BorrowRefMut<'a, S>
+	where
+		Self: 'a;
+
+	fn borrow_mut(&self) -> Self::RefMut<'_> {
+		let mut value = self.inner.borrow_mut();
+		value.get_or_insert(self.default);
+
+		BorrowRefMut { value }
 	}
 }
 

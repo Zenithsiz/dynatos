@@ -8,13 +8,20 @@ use {
 		Effect,
 		Signal,
 		SignalBorrow,
+		SignalBorrowMut,
 		SignalGetCloned,
 		SignalReplace,
 		SignalSet,
 		SignalUpdate,
 		SignalWith,
 	},
-	std::{error::Error as StdError, mem, ops::Deref, rc::Rc, str::FromStr},
+	std::{
+		error::Error as StdError,
+		mem,
+		ops::{Deref, DerefMut},
+		rc::Rc,
+		str::FromStr,
+	},
 };
 
 /// Query signal
@@ -112,7 +119,81 @@ where
 	T: ToString + 'static,
 {
 	fn replace(&self, new_value: Vec<T>) -> Vec<T> {
-		self.update(|value| mem::replace(value, new_value))
+		mem::replace(&mut self.borrow_mut(), new_value)
+	}
+}
+
+/// Reference type for [`SignalBorrowMut`] impl
+#[derive(Debug)]
+pub struct BorrowRefMut<'a, T>
+where
+	T: ToString,
+{
+	/// Value
+	value: signal::BorrowRefMut<'a, Vec<T>>,
+
+	/// Signal
+	signal: &'a QueryArraySignal<T>,
+}
+
+impl<'a, T> Deref for BorrowRefMut<'a, T>
+where
+	T: ToString,
+{
+	type Target = Vec<T>;
+
+	fn deref(&self) -> &Self::Target {
+		&self.value
+	}
+}
+
+impl<'a, T> DerefMut for BorrowRefMut<'a, T>
+where
+	T: ToString,
+{
+	fn deref_mut(&mut self) -> &mut Self::Target {
+		&mut self.value
+	}
+}
+
+impl<'a, T> Drop for BorrowRefMut<'a, T>
+where
+	T: ToString,
+{
+	fn drop(&mut self) {
+		// Update the location
+		// Note: We suppress the update, given that it won't change anything,
+		//       as we already have the latest value.
+		// TODO: Force an update anyway just to ensure some consistency with `FromStr` + `ToString`?
+		self.signal.update_effect.suppressed(|| {
+			dynatos_context::with_expect::<Location, _, _>(|location| {
+				let mut location = location.borrow_mut();
+				let mut queries = location
+					.query_pairs()
+					.into_owned()
+					.filter(|(key, _)| *key != *self.signal.key)
+					.collect::<Vec<_>>();
+				for value in &*self.value {
+					let value = value.to_string();
+					queries.push(((*self.signal.key).to_owned(), value));
+				}
+				location.query_pairs_mut().clear().extend_pairs(queries);
+			})
+		})
+	}
+}
+
+impl<T: 'static> SignalBorrowMut for QueryArraySignal<T>
+where
+	T: ToString,
+{
+	type RefMut<'a> = BorrowRefMut<'a, T>
+	where
+		Self: 'a;
+
+	fn borrow_mut(&self) -> Self::RefMut<'_> {
+		let value = self.inner.borrow_mut();
+		BorrowRefMut { value, signal: self }
 	}
 }
 
@@ -126,30 +207,7 @@ where
 	where
 		F: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
-		// Update the value
-		let output = self.inner.update(f);
-
-		// Then update the location
-		// Note: We suppress the update, given that it won't change anything,
-		//       as we already have the latest value.
-		// TODO: Force an update anyway just to ensure some consistency with `FromStr` + `ToString`?
-		self.update_effect.suppressed(|| {
-			dynatos_context::with_expect::<Location, _, _>(|location| {
-				location.update(|location| {
-					let mut queries = location
-						.query_pairs()
-						.into_owned()
-						.filter(|(key, _)| *key != *self.key)
-						.collect::<Vec<_>>();
-					for value in &*self.inner.borrow() {
-						let value = value.to_string();
-						queries.push(((*self.key).to_owned(), value));
-					}
-					location.query_pairs_mut().clear().extend_pairs(queries);
-				});
-			})
-		});
-
-		output
+		let mut value = self.borrow_mut();
+		f(&mut *value)
 	}
 }
