@@ -22,17 +22,6 @@ pub enum Loadable<T, E> {
 }
 
 impl<T, E> Loadable<T, E> {
-	/// Creates a loadable from a result
-	pub fn from_res<E2>(res: Result<T, E2>) -> Self
-	where
-		E: From<E2>,
-	{
-		match res {
-			Ok(value) => Self::Loaded(value),
-			Err(err) => Self::Err(err.into()),
-		}
-	}
-
 	/// Returns if the loadable is empty.
 	#[must_use]
 	pub fn is_empty(&self) -> bool {
@@ -139,6 +128,21 @@ impl<T, E> Loadable<&T, E> {
 impl<T, E> From<T> for Loadable<T, E> {
 	fn from(value: T) -> Self {
 		Self::Loaded(value)
+	}
+}
+
+impl<T, E> From<Result<T, E>> for Loadable<T, E> {
+	fn from(value: Result<T, E>) -> Self {
+		match value {
+			Ok(value) => Self::Loaded(value),
+			Err(err) => Self::Err(err),
+		}
+	}
+}
+
+impl<T, E> From<Option<Result<T, E>>> for Loadable<T, E> {
+	fn from(value: Option<Result<T, E>>) -> Self {
+		value.map(Self::from).unwrap_or(Self::Empty)
 	}
 }
 
