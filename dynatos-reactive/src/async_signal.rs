@@ -89,6 +89,7 @@ impl<F: Future> AsyncSignal<F> {
 
 	/// Borrows the inner value, without polling the future.
 	// TODO: Better name that indicates that we don't poll?
+	#[must_use]
 	pub fn borrow_inner(&self) -> Option<BorrowRef<'_, F::Output>> {
 		// If there's an effect running, add it to the subscribers
 		if let Some(effect) = effect::running() {

@@ -50,3 +50,4 @@ web-sys = "0.3.68"
 
 clippy.map_unwrap_or = "warn"
 clippy.flat_map_option = "warn"
+clippy.must_use_candidate = "warn"

@@ -8,7 +8,8 @@
 	fn_traits,
 	test,
 	associated_type_bounds,
-	thread_local
+	thread_local,
+	lint_reasons
 )]
 
 // Modules

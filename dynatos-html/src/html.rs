@@ -34,6 +34,7 @@ macro decl_elements(
 	$( $fn_name:ident $( : $ElTy:ty )? $( = $el_name:literal )? ),* $(,)?
 ) {
 	$(
+		#[must_use]
 		pub fn $fn_name() -> el_ty![$( $ElTy )?] {
 			// TODO: Cache the document in a thread local?
 			let window = web_sys::window().expect("Unable to get window");

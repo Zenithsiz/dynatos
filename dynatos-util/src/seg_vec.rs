@@ -17,6 +17,7 @@ pub struct SegVec<T, const N: usize = 8> {
 
 impl<T, const N: usize> SegVec<T, N> {
 	/// Creates a new, empty, segmented vector
+	#[must_use]
 	pub fn new() -> Self {
 		Self {
 			segments: UnsafeCell::new(vec![]),

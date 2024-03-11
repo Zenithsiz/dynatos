@@ -87,6 +87,7 @@ where
 /// A handle to a context value.
 ///
 /// When dropped, the context value is also dropped.
+#[must_use = "The handle object keeps a value in context. If dropped, the context is also dropped"]
 pub struct Handle<T: 'static> {
 	/// Index
 	value_idx: usize,
@@ -111,6 +112,7 @@ impl<T: 'static> Handle<T> {
 	}
 
 	/// Gets the value from this handle
+	#[must_use]
 	pub fn get(&self) -> T
 	where
 		T: Copy,
@@ -137,6 +139,7 @@ impl<T: 'static> Handle<T> {
 	}
 
 	/// Takes the value this handle is providing a context for.
+	#[must_use = "If you only wish to drop the context, consider dropping the handle"]
 	pub fn take(self) -> T {
 		// Get the value and forget ourselves
 		// Note: This is to ensure we don't try to take the value in the [`Drop`] impl
@@ -180,6 +183,7 @@ impl<T: 'static> Drop for Handle<T> {
 /// An opaque handle to a context value.
 ///
 /// When dropped, the context value is also dropped.
+#[must_use = "The handle object keeps a value in context. If dropped, the context is also dropped"]
 pub struct OpaqueHandle {
 	/// Index
 	value_idx: usize,
@@ -206,6 +210,7 @@ impl OpaqueHandle {
 	}
 
 	/// Takes the value this handle is providing a context for.
+	#[must_use = "If you only wish to drop the context, consider dropping the handle"]
 	pub fn take(self) -> Box<dyn Any> {
 		// Get the value and forget ourselves
 		// Note: This is to ensure we don't try to take the value in the [`Drop`] impl
@@ -259,6 +264,7 @@ where
 }
 
 /// Gets a value of `T` on the current context.
+#[must_use]
 pub fn get<T>() -> Option<T>
 where
 	T: 'static,
@@ -268,6 +274,7 @@ where
 }
 
 /// Expects a value of `T` on the current context.
+#[must_use]
 #[track_caller]
 pub fn expect<T>() -> T
 where
@@ -278,6 +285,7 @@ where
 }
 
 /// Gets a cloned value of `T` on the current context.
+#[must_use]
 pub fn get_cloned<T>() -> Option<T>
 where
 	T: 'static,
@@ -287,6 +295,7 @@ where
 }
 
 /// Expects a cloned value of `T` on the current context.
+#[must_use]
 #[track_caller]
 pub fn expect_cloned<T>() -> T
 where

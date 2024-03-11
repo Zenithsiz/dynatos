@@ -26,6 +26,7 @@ impl Location {
 		clippy::new_without_default,
 		reason = "We want locations to only be created explicitly"
 	)]
+	#[must_use]
 	pub fn new() -> Self {
 		let location = self::parse_location_url();
 		let inner = Inner { location };

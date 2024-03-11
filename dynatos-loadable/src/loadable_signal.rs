@@ -27,6 +27,7 @@ impl<F: Future<Output = Result<T, E>>, T, E> LoadableSignal<F> {
 	}
 
 	/// Borrows the inner value, without polling the future.
+	#[must_use]
 	pub fn borrow_inner(&self) -> Loadable<BorrowRef<'_, T, E>, E>
 	where
 		E: Clone,

@@ -75,11 +75,13 @@ impl<F> Effect<F> {
 
 impl<F: ?Sized> Effect<F> {
 	/// Accesses the inner function
+	#[must_use]
 	pub fn inner_fn(&self) -> &F {
 		&self.inner.run
 	}
 
 	/// Downgrades this effect
+	#[must_use]
 	pub fn downgrade(&self) -> WeakEffect<F> {
 		WeakEffect {
 			inner: Rc::downgrade(&self.inner),
@@ -91,6 +93,7 @@ impl<F: ?Sized> Effect<F> {
 	/// An inert effect is one that will never be updated.
 	/// In detail, an effect is inert, if no other [`Effect`]s
 	/// or [`WeakEffect`]s exist that point to it.
+	#[must_use]
 	pub fn is_inert(&self) -> bool {
 		Rc::strong_count(&self.inner) == 1 && Rc::weak_count(&self.inner) == 0
 	}
@@ -98,6 +101,7 @@ impl<F: ?Sized> Effect<F> {
 	/// Returns the pointer of this effect
 	///
 	/// This can be used for creating maps based on equality
+	#[must_use]
 	pub fn inner_ptr(&self) -> *const () {
 		Rc::as_ptr(&self.inner).cast()
 	}
@@ -176,6 +180,7 @@ pub struct WeakEffect<F: ?Sized> {
 
 impl<F: ?Sized> WeakEffect<F> {
 	/// Upgrades this effect
+	#[must_use]
 	pub fn upgrade(&self) -> Option<Effect<F>> {
 		self.inner.upgrade().map(|inner| Effect { inner })
 	}
@@ -183,6 +188,7 @@ impl<F: ?Sized> WeakEffect<F> {
 	/// Returns the pointer of this effect
 	///
 	/// This can be used for creating maps based on equality
+	#[must_use]
 	pub fn inner_ptr(&self) -> *const () {
 		Weak::as_ptr(&self.inner).cast()
 	}
@@ -190,6 +196,10 @@ impl<F: ?Sized> WeakEffect<F> {
 	/// Runs this effect, if it exists.
 	///
 	/// Returns if the effect still existed
+	#[expect(
+		clippy::must_use_candidate,
+		reason = "The user may just want to run the effect, without checking if it exists"
+	)]
 	pub fn try_run(&self) -> bool
 	where
 		F: Fn() + Unsize<dyn Fn()> + 'static,

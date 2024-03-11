@@ -27,6 +27,7 @@ impl<T> WeakRef<T> {
 	}
 
 	/// Returns the inner value
+	#[must_use]
 	pub fn get(&self) -> Option<T>
 	where
 		T: JsCast,

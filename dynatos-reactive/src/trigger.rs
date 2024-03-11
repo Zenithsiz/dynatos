@@ -28,6 +28,7 @@ pub struct Trigger {
 
 impl Trigger {
 	/// Creates a new trigger
+	#[must_use]
 	pub fn new() -> Self {
 		let inner = Inner {
 			subscribers: RefCell::new(HashSet::new()),
@@ -36,6 +37,7 @@ impl Trigger {
 	}
 
 	/// Downgrades this trigger
+	#[must_use]
 	pub fn downgrade(&self) -> WeakTrigger {
 		WeakTrigger {
 			inner: Rc::downgrade(&self.inner),
@@ -108,6 +110,7 @@ pub struct WeakTrigger {
 
 impl WeakTrigger {
 	/// Upgrades this weak trigger
+	#[must_use]
 	pub fn upgrade(&self) -> Option<Trigger> {
 		let inner = self.inner.upgrade()?;
 		Some(Trigger { inner })
