@@ -176,7 +176,7 @@ impl<T> !Sync for Handle<T> {}
 impl<T: 'static> Drop for Handle<T> {
 	#[track_caller]
 	fn drop(&mut self) {
-		let _ = self.take_inner();
+		let _: T = self.take_inner();
 	}
 }
 
@@ -242,7 +242,7 @@ impl OpaqueHandle {
 impl Drop for OpaqueHandle {
 	#[track_caller]
 	fn drop(&mut self) {
-		let _ = self.take_inner();
+		let _: Box<dyn Any> = self.take_inner();
 	}
 }
 
