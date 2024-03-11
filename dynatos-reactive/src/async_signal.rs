@@ -192,30 +192,30 @@ pub struct BorrowRefMut<'a, T> {
 }
 
 impl<'a, T> Deref for BorrowRefMut<'a, T> {
-	type Target = Option<T>;
+	type Target = T;
 
 	fn deref(&self) -> &Self::Target {
-		&self.value
+		self.value.as_ref().expect("Value wasn't initialized")
 	}
 }
 
 impl<'a, T> DerefMut for BorrowRefMut<'a, T> {
 	fn deref_mut(&mut self) -> &mut Self::Target {
-		&mut self.value
+		self.value.as_mut().expect("Value wasn't initialized")
 	}
 }
 
 impl<F: Future> SignalBorrowMut for AsyncSignal<F> {
-	type RefMut<'a> = BorrowRefMut<'a, F::Output>
+	type RefMut<'a> = Option<BorrowRefMut<'a, F::Output>>
 	where
 		Self: 'a;
 
 	fn borrow_mut(&self) -> Self::RefMut<'_> {
 		let value = self.inner.value.borrow_mut();
-		BorrowRefMut {
+		value.is_some().then(|| BorrowRefMut {
 			value,
 			_trigger_on_drop: signal::TriggerOnDrop(&self.inner.waker.trigger),
-		}
+		})
 	}
 }
 
@@ -234,6 +234,6 @@ where
 		F2: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
 		let mut value = self.borrow_mut();
-		f(value.as_mut())
+		f(value.as_deref_mut())
 	}
 }
