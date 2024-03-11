@@ -25,7 +25,7 @@ pub enum Loadable<T, E> {
 impl<T, E> Loadable<T, E> {
 	/// Returns if the loadable is empty.
 	#[must_use]
-	pub fn is_empty(&self) -> bool {
+	pub const fn is_empty(&self) -> bool {
 		matches!(self, Self::Empty)
 	}
 
@@ -33,7 +33,7 @@ impl<T, E> Loadable<T, E> {
 	///
 	/// This means it's either an error or a value
 	#[must_use]
-	pub fn is_loaded(&self) -> bool {
+	pub const fn is_loaded(&self) -> bool {
 		!self.is_empty()
 	}
 

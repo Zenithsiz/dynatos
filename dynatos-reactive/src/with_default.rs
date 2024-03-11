@@ -18,7 +18,7 @@ pub struct WithDefault<S, T> {
 
 impl<S, T> WithDefault<S, T> {
 	/// Wraps a signal with a default value
-	pub fn new(inner: S, default: T) -> Self {
+	pub const fn new(inner: S, default: T) -> Self {
 		Self { inner, default }
 	}
 }
