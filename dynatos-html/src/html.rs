@@ -42,7 +42,7 @@ macro decl_elements(
 
 			let el_name = el_name!($fn_name $(, $el_name)?);
 			document.create_element_ns(Some(HTML_NAMESPACE), el_name)
-				.unwrap_or_else(|err| self::on_create_fail(err, el_name))
+				.unwrap_or_else(|err| self::on_create_fail(&err, el_name))
 				.dyn_into()
 				.expect("Element was of the incorrect type")
 		}
@@ -50,7 +50,7 @@ macro decl_elements(
 }
 
 /// Function called when creating an element fails
-fn on_create_fail(err: JsValue, el_name: &str) -> ! {
+fn on_create_fail(err: &JsValue, el_name: &str) -> ! {
 	panic!("Unable to create element {el_name:?} on namespace {HTML_NAMESPACE:?}: {err:?}");
 }
 
