@@ -280,19 +280,18 @@ mod test {
 	/// Ensures the function returned by `Effect::running` is the same as the future being run.
 	#[test]
 	fn running() {
-		// Create an effect, and save the running effect within it to `running`.
-		let running = Rc::new(OnceCell::new());
-		let effect = Effect::new({
-			let running = Rc::clone(&running);
-			move || {
-				running
-					.set(effect::running().expect("Future wasn't running"))
-					.expect("Unable to set running effect");
-			}
+		#[thread_local]
+		static RUNNING: OnceCell<WeakEffect<dyn Fn()>> = OnceCell::new();
+
+		// Create an effect, and save the running effect within it to `RUNNING`.
+		let effect = Effect::new(move || {
+			RUNNING
+				.set(effect::running().expect("Future wasn't running"))
+				.expect("Unable to set running effect");
 		});
 
 		// Then ensure the running effect is the same as the one created.
-		let running = running
+		let running = RUNNING
 			.get()
 			.expect("Running effect missing")
 			.upgrade()
@@ -304,39 +303,36 @@ mod test {
 	/// while running stacked futures
 	#[test]
 	fn running_stacked() {
+		#[thread_local]
+		static RUNNING_TOP: OnceCell<WeakEffect<dyn Fn()>> = OnceCell::new();
+
+		#[thread_local]
+		static RUNNING_BOTTOM: OnceCell<WeakEffect<dyn Fn()>> = OnceCell::new();
+
 		// Create 2 stacked effects, saving the running within each to `running1` and `running2`.
 		// `running1` contains the top-level effect, while `running2` contains the inner one.
-		let running_top = Rc::new(OnceCell::new());
-		let running_bottom = Rc::new(OnceCell::new());
-		let effect = Effect::new({
-			let running_top = Rc::clone(&running_top);
-			let running_bottom = Rc::clone(&running_bottom);
-			move || {
-				running_top
+		let effect = Effect::new(move || {
+			RUNNING_TOP
+				.set(effect::running().expect("Future wasn't running"))
+				.expect("Unable to set running effect");
+
+			let effect = Effect::new(move || {
+				RUNNING_BOTTOM
 					.set(effect::running().expect("Future wasn't running"))
 					.expect("Unable to set running effect");
+			});
 
-				let effect = Effect::new({
-					let running_bottom = Rc::clone(&running_bottom);
-					move || {
-						running_bottom
-							.set(effect::running().expect("Future wasn't running"))
-							.expect("Unable to set running effect");
-					}
-				});
-
-				// Then ensure the bottom-level running effect is the same as the one created.
-				let running_bottom = running_bottom
-					.get()
-					.expect("Running effect missing")
-					.upgrade()
-					.expect("Running effect was dropped");
-				assert_eq!(effect, running_bottom);
-			}
+			// Then ensure the bottom-level running effect is the same as the one created.
+			let running_bottom = RUNNING_BOTTOM
+				.get()
+				.expect("Running effect missing")
+				.upgrade()
+				.expect("Running effect was dropped");
+			assert_eq!(effect, running_bottom);
 		});
 
 		// Then ensure the top-level running effect is the same as the one created.
-		let running_top = running_top
+		let running_top = RUNNING_TOP
 			.get()
 			.expect("Running effect missing")
 			.upgrade()
@@ -344,7 +340,7 @@ mod test {
 		assert_eq!(effect, running_top);
 
 		// And that the bottom-level running effect was already dropped
-		let running_bottom = running_bottom.get().expect("Running effect missing").upgrade();
+		let running_bottom = RUNNING_BOTTOM.get().expect("Running effect missing").upgrade();
 		assert_eq!(running_bottom, None);
 	}
 
