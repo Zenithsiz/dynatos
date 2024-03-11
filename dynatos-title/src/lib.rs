@@ -30,15 +30,14 @@ impl Title {
 	{
 		let title = title.into();
 
-		// Set and add the title to the stack
-		self::set_title(&title);
 		let title_idx = TITLE_STACK.with_borrow_mut(|stack| {
 			// If no title exists, add the current one
 			if stack.is_empty() {
 				stack.push(Some(self::cur_title()));
 			}
 
-			// Then add ours
+			// Then set and add ours
+			self::set_title(&title);
 			let title_idx = stack.len();
 			stack.push(Some(title));
 
