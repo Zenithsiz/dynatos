@@ -48,6 +48,7 @@ impl task::Wake for Waker {
 
 // SAFETY: We ensure that the inner trigger is only accessed
 //         in the same thread as it was created on.
+#[expect(clippy::non_send_fields_in_send_ty, reason = "See SAFETY")]
 unsafe impl Send for Waker {}
 unsafe impl Sync for Waker {}
 
