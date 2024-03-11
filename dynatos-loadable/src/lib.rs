@@ -5,6 +5,10 @@
 
 // Modules
 pub mod loadable;
+pub mod loadable_signal;
 
 // Exports
-pub use self::loadable::{IntoLoaded, IteratorLoadableExt, Loadable};
+pub use self::{
+	loadable::{IntoLoaded, IteratorLoadableExt, Loadable},
+	loadable_signal::LoadableSignal,
+};
