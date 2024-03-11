@@ -79,7 +79,7 @@ impl Drop for Title {
 pub impl js_sys::Object {
 	/// Attaches a title to this object
 	fn attach_title(&self, title: &str) {
-		let prop_name: &str = "__dynatos_title";
+		let prop_name = "__dynatos_title";
 		let title = Title::new(title);
 		self.set_prop(prop_name, WasmTitle(title));
 	}

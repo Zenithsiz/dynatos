@@ -15,7 +15,7 @@ pub impl js_sys::Object {
 	fn attach_context<T: 'static>(&self, value: T) {
 		// Get the context handles array, or create it, if it doesn't exist
 		// TODO: Use an static anonymous symbol?
-		let prop_name: &str = "__dynatos_ctx_handles";
+		let prop_name = "__dynatos_ctx_handles";
 		let ctx_handles = match self.get::<js_sys::Array>(prop_name) {
 			Ok(ctx_handles) => ctx_handles,
 			Err(dynatos_util::GetError::WrongType(err)) => panic!("Contexts array was the wrong type: {err:?}"),

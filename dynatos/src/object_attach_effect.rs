@@ -19,7 +19,7 @@ pub impl js_sys::Object {
 	{
 		// Get the effects map, or create it, if it doesn't exist
 		// TODO: Use an static anonymous symbol?
-		let prop_name: &str = "__dynatos_effects";
+		let prop_name = "__dynatos_effects";
 		let effects = match self.get::<js_sys::Map>(prop_name) {
 			Ok(effects) => effects,
 			Err(dynatos_util::GetError::WrongType(err)) => panic!("Effects map was the wrong type: {err:?}"),
