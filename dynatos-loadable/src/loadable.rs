@@ -169,7 +169,7 @@ impl<T, E> From<Result<T, E>> for Loadable<T, E> {
 
 impl<T, E> From<Option<Result<T, E>>> for Loadable<T, E> {
 	fn from(value: Option<Result<T, E>>) -> Self {
-		value.map(Self::from).unwrap_or(Self::Empty)
+		value.map_or(Self::Empty, Self::from)
 	}
 }
 
