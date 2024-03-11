@@ -49,3 +49,4 @@ web-sys = "0.3.68"
 [workspace.lints]
 
 clippy.map_unwrap_or = "warn"
+clippy.flat_map_option = "warn"

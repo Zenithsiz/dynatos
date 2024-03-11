@@ -67,7 +67,7 @@ pub fn builder(_attr: TokenStream, input: TokenStream) -> TokenStream {
 	// Component prop default functions
 	let cmpt_prop_default_fns = props
 		.iter()
-		.flat_map(|prop| {
+		.filter_map(|prop| {
 			let default_ty = prop.default_ty.as_ref()?;
 
 			let fn_name = quote::format_ident!("default_{}", prop.ident);

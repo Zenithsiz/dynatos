@@ -59,7 +59,7 @@ impl<T> QueryArraySignal<T> {
 				let value = location
 					.query_pairs()
 					.filter_map(|(query, value)| (query == *key).then_some(value))
-					.flat_map(|value| match value.parse::<T>() {
+					.filter_map(|value| match value.parse::<T>() {
 						Ok(value) => Some(value),
 						Err(err) => {
 							tracing::warn!(?key, ?value, ?err, "Unable to parse query");
