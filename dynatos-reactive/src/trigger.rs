@@ -143,10 +143,9 @@ mod test {
 
 	#[test]
 	fn basic() {
-		thread_local! {
-			/// Counts the number of times the effect was run
-			static TRIGGERS: Cell<usize> = const { Cell::new(0) };
-		}
+		/// Counts the number of times the effect was run
+		#[thread_local]
+		static TRIGGERS: Cell<usize> = Cell::new(0);
 
 		// Create the effect and reset the flag
 		let effect = Effect::new(move || TRIGGERS.set(TRIGGERS.get() + 1));

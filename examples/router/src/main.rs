@@ -1,7 +1,7 @@
 //! Router example
 
 // Features
-#![feature(try_blocks, lazy_cell, lint_reasons)]
+#![feature(try_blocks, lazy_cell, lint_reasons, thread_local)]
 
 // Imports
 use {
@@ -56,9 +56,9 @@ fn run() -> Result<(), anyhow::Error> {
 	Ok(())
 }
 
-thread_local! {
-	static ROUTE_CACHED: LazyCell<Element> = LazyCell::new(|| self::page("Cached"));
-}
+#[thread_local]
+static ROUTE_CACHED: LazyCell<Element> = LazyCell::new(|| self::page("Cached"));
+
 
 fn render_route() -> Option<Element> {
 	let location = dynatos_context::with_expect::<Location, _, _>(|location| location.get_cloned());
@@ -68,7 +68,7 @@ fn render_route() -> Option<Element> {
 		// Always re-create page a
 		"/test" => Some(self::page("Test")),
 		// Cache the 2nd route to show that `dyn_child` can handle the same element fine.
-		"/cached" => Some(ROUTE_CACHED.with(|route| LazyCell::force(route).clone())),
+		"/cached" => Some(LazyCell::force(&ROUTE_CACHED).clone()),
 		// Have a page without any content
 		"/empty" => None,
 		// And finally a catch-all page
