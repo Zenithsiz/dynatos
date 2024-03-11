@@ -235,7 +235,7 @@ where
 {
 	fn from_iter<I: IntoIterator<Item = Loadable<T, E>>>(iter: I) -> Self {
 		let mut collection = C::default();
-		for item in iter.into_iter() {
+		for item in iter {
 			// If we find any empty, or errors, return them immediately
 			let item = match item {
 				Loadable::Empty => return Self::Empty,
