@@ -2,11 +2,11 @@
 
 // Imports
 use {
-	dynatos_reactive::{SignalGetClone, SignalGetCopy},
-	std::{
+	core::{
 		convert::Infallible,
 		ops::{ControlFlow, Deref, DerefMut, FromResidual, Try},
 	},
+	dynatos_reactive::{SignalGetClone, SignalGetCopy},
 };
 
 /// Loadable value.

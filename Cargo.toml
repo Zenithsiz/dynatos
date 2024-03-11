@@ -48,8 +48,6 @@ web-sys = "0.3.68"
 
 [workspace.lints]
 
-# TODO: std_instead_of_core + std_instead_of_alloc
-
 clippy.allow_attributes = "warn"
 clippy.allow_attributes_without_reason = "warn"
 clippy.cast_lossless = "warn"
@@ -173,6 +171,8 @@ clippy.should_panic_without_expect = "warn"
 clippy.significant_drop_in_scrutinee = "warn"
 clippy.significant_drop_tightening = "warn"
 clippy.stable_sort_primitive = "warn"
+# TODO: `clippy.std_instead_of_alloc`, once we migrate to `no_std` where we can.
+clippy.std_instead_of_core = "warn"
 clippy.str_split_at_newline = "warn"
 clippy.str_to_string = "warn"
 clippy.string_lit_as_bytes = "warn"

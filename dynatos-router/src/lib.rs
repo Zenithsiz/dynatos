@@ -1,7 +1,7 @@
 //! Routing for `dynatos`
 
 // Features
-#![feature(lint_reasons)]
+#![feature(lint_reasons, error_in_core)]
 
 // Modules
 mod anchor;

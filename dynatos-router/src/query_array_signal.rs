@@ -3,6 +3,12 @@
 // Imports
 use {
 	crate::Location,
+	core::{
+		error::Error as StdError,
+		mem,
+		ops::{Deref, DerefMut},
+		str::FromStr,
+	},
 	dynatos_reactive::{
 		signal,
 		Effect,
@@ -15,13 +21,7 @@ use {
 		SignalUpdate,
 		SignalWith,
 	},
-	std::{
-		error::Error as StdError,
-		mem,
-		ops::{Deref, DerefMut},
-		rc::Rc,
-		str::FromStr,
-	},
+	std::rc::Rc,
 };
 
 /// Query signal

@@ -12,13 +12,15 @@
 )]
 
 // Imports
-use std::{
-	any::{self, Any, TypeId},
-	cell::RefCell,
-	collections::HashMap,
-	hash::{BuildHasher, DefaultHasher},
-	marker::PhantomData,
-	mem,
+use {
+	core::{
+		any::{self, Any, TypeId},
+		cell::RefCell,
+		hash::BuildHasher,
+		marker::PhantomData,
+		mem,
+	},
+	std::{collections::HashMap, hash::DefaultHasher},
 };
 
 type CtxsStack = RefCell<HashMap<TypeId, CtxStack, RandomState>>;

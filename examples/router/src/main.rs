@@ -5,11 +5,11 @@
 
 // Imports
 use {
+	core::cell::LazyCell,
 	dynatos::{NodeWithDynChild, ObjectWithContext},
 	dynatos_html::{html, NodeWithChildren, NodeWithText},
 	dynatos_reactive::SignalGetCloned,
 	dynatos_router::Location,
-	std::cell::LazyCell,
 	tracing_subscriber::prelude::*,
 	web_sys::Element,
 };

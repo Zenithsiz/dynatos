@@ -387,7 +387,7 @@ impl Prop {
 
 /// Returns `<#T as ::default::Default>::default`
 fn ty_default(ty: &syn::Type) -> syn::Expr {
-	syn::parse_quote! { <#ty as ::std::default::Default>::default() }
+	syn::parse_quote! { <#ty as ::core::default::Default>::default() }
 }
 
 /// Converts an identifier to a type

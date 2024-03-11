@@ -6,7 +6,7 @@
 #![feature(lint_reasons)]
 
 // Imports
-use {dynatos_util::ObjectSetProp, std::cell::RefCell, wasm_bindgen::prelude::wasm_bindgen};
+use {core::cell::RefCell, dynatos_util::ObjectSetProp, wasm_bindgen::prelude::wasm_bindgen};
 
 thread_local! {
 	/// Title stack.

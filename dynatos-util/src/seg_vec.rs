@@ -1,7 +1,7 @@
 //! Segmented Vector
 
 // Imports
-use std::{
+use core::{
 	cell::{Cell, UnsafeCell},
 	mem::MaybeUninit,
 };
@@ -104,8 +104,8 @@ impl<T, const N: usize> Default for SegVec<T, N> {
 	}
 }
 
-impl<T: std::fmt::Debug, const N: usize> std::fmt::Debug for SegVec<T, N> {
-	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+impl<T: core::fmt::Debug, const N: usize> core::fmt::Debug for SegVec<T, N> {
+	fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
 		let entries = (0..self.len.get()).map(|idx| self.get(idx).expect("Index was invalid"));
 		f.debug_list().entries(entries).finish()
 	}
@@ -132,7 +132,7 @@ impl<T, const N: usize> Drop for SegVec<T, N> {
 
 #[cfg(test)]
 mod test {
-	use {super::*, std::ptr};
+	use {super::*, core::ptr};
 
 	#[test]
 	fn push_no_invalidate() {

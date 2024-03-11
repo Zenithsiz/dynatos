@@ -6,16 +6,19 @@
 // Imports
 use {
 	crate::{effect, signal, SignalBorrow, SignalBorrowMut, SignalUpdate, SignalWith, Trigger},
-	pin_cell::PinCell,
-	std::{
+	core::{
 		cell::{self, RefCell},
 		fmt,
 		future::Future,
 		ops::{Deref, DerefMut},
 		pin::Pin,
+		task::{self, Poll},
+	},
+	pin_cell::PinCell,
+	std::{
 		rc::Rc,
 		sync::Arc,
-		task::{self, Poll},
+		task::Wake,
 		thread::{self, ThreadId},
 	},
 };
@@ -29,7 +32,7 @@ struct Waker {
 	trigger: Trigger,
 }
 
-impl task::Wake for Waker {
+impl Wake for Waker {
 	fn wake(self: Arc<Self>) {
 		self.wake_by_ref();
 	}

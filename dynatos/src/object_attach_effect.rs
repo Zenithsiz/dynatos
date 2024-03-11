@@ -2,9 +2,9 @@
 
 // Imports
 use {
+	core::marker::Unsize,
 	dynatos_reactive::Effect,
 	dynatos_util::{ObjectGet, ObjectSetProp},
-	std::marker::Unsize,
 	wasm_bindgen::prelude::wasm_bindgen,
 };
 

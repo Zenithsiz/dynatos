@@ -1,7 +1,7 @@
 //! `Try` helpers for returning.
 
 // Imports
-use std::ops::{ControlFlow, FromResidual, Try};
+use core::ops::{ControlFlow, FromResidual, Try};
 
 /// `Try` type to return `()` when `T::branch` is `Break`.
 pub struct TryOrReturn<T>(T);

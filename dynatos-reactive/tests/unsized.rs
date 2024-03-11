@@ -2,8 +2,8 @@
 
 // Imports
 use {
+	core::any::Any,
 	dynatos_reactive::{Signal, SignalWith},
-	std::any::Any,
 };
 
 #[test]

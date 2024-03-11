@@ -2,9 +2,9 @@
 
 // Imports
 use {
+	core::ops::{Deref, DerefMut},
 	dynatos_reactive::{signal, Signal, SignalBorrow, SignalBorrowMut, SignalUpdate, SignalWith},
 	dynatos_util::{ev, EventTargetAddListener},
-	std::ops::{Deref, DerefMut},
 	url::Url,
 	wasm_bindgen::JsValue,
 };

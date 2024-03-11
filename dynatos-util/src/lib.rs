@@ -26,11 +26,12 @@ pub use self::{
 
 // Imports
 use {
-	js_sys::Reflect,
-	std::{
+	core::{
 		fmt,
 		hash::{self, Hasher},
 	},
+	js_sys::Reflect,
+	std::hash::DefaultHasher,
 	wasm_bindgen::{JsCast, JsValue},
 };
 
@@ -123,7 +124,7 @@ pub impl js_sys::Object {
 
 /// Calculates the hash of a value using the default hasher
 pub fn hash_of<T: hash::Hash>(t: &T) -> u64 {
-	let mut s = hash::DefaultHasher::new();
+	let mut s = DefaultHasher::new();
 	t.hash(&mut s);
 	s.finish()
 }

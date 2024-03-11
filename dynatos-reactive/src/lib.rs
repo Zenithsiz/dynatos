@@ -44,7 +44,7 @@ pub use self::{
 };
 
 // Imports
-use std::marker::Unsize;
+use core::marker::Unsize;
 
 /// Types that may be converted into a subscriber
 pub trait IntoSubscriber {

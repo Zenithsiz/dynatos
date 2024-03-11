@@ -6,10 +6,9 @@
 // Imports
 use {
 	crate::{IntoSubscriber, WeakEffect},
+	core::{cell::RefCell, fmt},
 	std::{
-		cell::RefCell,
 		collections::HashSet,
-		fmt,
 		rc::{Rc, Weak},
 	},
 };
@@ -138,7 +137,7 @@ mod test {
 	use {
 		super::*,
 		crate::Effect,
-		std::{cell::Cell, mem},
+		core::{cell::Cell, mem},
 		test::Bencher,
 	};
 
@@ -175,7 +174,7 @@ mod test {
 
 	#[bench]
 	fn clone_100(bencher: &mut Bencher) {
-		let triggers = std::array::from_fn::<_, 100, _>(|_| Trigger::new());
+		let triggers = core::array::from_fn::<_, 100, _>(|_| Trigger::new());
 		bencher.iter(|| {
 			for trigger in &triggers {
 				let trigger = test::black_box(trigger.clone());
@@ -187,7 +186,7 @@ mod test {
 	/// Benches triggering a trigger with `N` no-op effects.
 	fn trigger_noop_n<const N: usize>(bencher: &mut Bencher) {
 		let trigger = Trigger::new();
-		let effects = std::array::from_fn::<_, N, _>(|_| Effect::new(|| ()));
+		let effects = core::array::from_fn::<_, N, _>(|_| Effect::new(|| ()));
 		for effect in &effects {
 			trigger.add_subscriber(effect);
 		}

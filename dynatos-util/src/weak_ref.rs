@@ -1,7 +1,7 @@
 //! Javascript weak references
 
 // Imports
-use {std::marker::PhantomData, wasm_bindgen::JsCast};
+use {core::marker::PhantomData, wasm_bindgen::JsCast};
 
 /// Javascript weak reference
 pub struct WeakRef<T> {

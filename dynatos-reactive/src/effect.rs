@@ -7,13 +7,15 @@
 //       which doesn't allow casting to `Rc<dyn Any>`, required by `Rc::downcast`.
 
 // Imports
-use std::{
-	cell::{Cell, RefCell},
-	fmt,
-	hash::Hash,
-	marker::Unsize,
-	ops::CoerceUnsized,
-	rc::{Rc, Weak},
+use {
+	core::{
+		cell::{Cell, RefCell},
+		fmt,
+		hash::Hash,
+		marker::Unsize,
+		ops::CoerceUnsized,
+	},
+	std::rc::{Rc, Weak},
 };
 
 /// Effect stack
@@ -161,7 +163,7 @@ impl<F: ?Sized> Clone for Effect<F> {
 }
 
 impl<F: ?Sized> Hash for Effect<F> {
-	fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+	fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
 		Rc::as_ptr(&self.inner).hash(state);
 	}
 }
@@ -242,7 +244,7 @@ impl<F: ?Sized> Clone for WeakEffect<F> {
 
 
 impl<F: ?Sized> Hash for WeakEffect<F> {
-	fn hash<H: std::hash::Hasher>(&self, state: &mut H) {
+	fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
 		self.inner.as_ptr().hash(state);
 	}
 }
@@ -271,7 +273,7 @@ mod test {
 	extern crate test;
 	use {
 		super::{super::effect, *},
-		std::{cell::OnceCell, mem},
+		core::{cell::OnceCell, mem},
 		test::Bencher,
 	};
 

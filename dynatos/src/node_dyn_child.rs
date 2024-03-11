@@ -3,10 +3,10 @@
 // Imports
 use {
 	crate::ObjectAttachEffect,
+	core::cell::RefCell,
 	dynatos_html::html,
 	dynatos_reactive::Effect,
 	dynatos_util::{TryOrReturnExt, WeakRef},
-	std::cell::RefCell,
 	wasm_bindgen::JsCast,
 };
 

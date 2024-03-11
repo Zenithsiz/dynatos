@@ -33,7 +33,7 @@
 // Imports
 use {
 	crate::{signal, Effect, Signal, SignalBorrow, SignalSet, SignalWith},
-	std::{
+	core::{
 		fmt,
 		marker::Unsize,
 		ops::{CoerceUnsized, Deref},

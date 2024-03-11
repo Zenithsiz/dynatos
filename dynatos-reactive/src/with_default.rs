@@ -3,7 +3,7 @@
 // Imports
 use {
 	crate::{SignalBorrow, SignalBorrowMut, SignalReplace, SignalUpdate, SignalWith},
-	std::ops::{Deref, DerefMut},
+	core::ops::{Deref, DerefMut},
 };
 
 /// Wrapper for a `Signal<Option<T>>` with a default value

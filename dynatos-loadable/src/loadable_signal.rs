@@ -3,12 +3,12 @@
 // Imports
 use {
 	crate::Loadable,
-	dynatos_reactive::{async_signal, AsyncSignal, SignalBorrow, SignalBorrowMut, SignalUpdate, SignalWith},
-	std::{
+	core::{
 		fmt,
 		future::Future,
 		ops::{Deref, DerefMut},
 	},
+	dynatos_reactive::{async_signal, AsyncSignal, SignalBorrow, SignalBorrowMut, SignalUpdate, SignalWith},
 };
 
 /// Loadable signal.
