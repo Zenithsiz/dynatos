@@ -1,12 +1,13 @@
 //! Loadable value
 
 // Imports
-use std::{
-	convert::Infallible,
-	ops::{ControlFlow, FromResidual, Try},
+use {
+	dynatos_reactive::{SignalGetClone, SignalGetCopy},
+	std::{
+		convert::Infallible,
+		ops::{ControlFlow, Deref, DerefMut, FromResidual, Try},
+	},
 };
-
-use dynatos_reactive::{SignalGetClone, SignalGetCopy};
 
 /// Loadable value.
 #[derive(Clone, Copy, Debug)]
@@ -48,9 +49,35 @@ impl<T, E> Loadable<T, E> {
 		}
 	}
 
+	/// Returns this loadable's value by dereference.
+	pub fn as_deref(&self) -> Loadable<&T::Target, E>
+	where
+		T: Deref,
+		E: Clone,
+	{
+		match self {
+			Self::Empty => Loadable::Empty,
+			Self::Err(err) => Loadable::Err(err.clone()),
+			Self::Loaded(value) => Loadable::Loaded(value),
+		}
+	}
+
 	/// Returns this loadable's value by mutable reference
 	pub fn as_mut(&mut self) -> Loadable<&mut T, E>
 	where
+		E: Clone,
+	{
+		match self {
+			Self::Empty => Loadable::Empty,
+			Self::Err(err) => Loadable::Err(err.clone()),
+			Self::Loaded(value) => Loadable::Loaded(value),
+		}
+	}
+
+	/// Returns this loadable's value by mutable dereference
+	pub fn as_deref_mut(&mut self) -> Loadable<&mut T::Target, E>
+	where
+		T: DerefMut,
 		E: Clone,
 	{
 		match self {
