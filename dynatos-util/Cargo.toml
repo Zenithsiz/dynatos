@@ -19,3 +19,6 @@ web-sys = { workspace = true, features = [
 	"PopStateEvent",
 	"Window",
 ] }
+
+[lints]
+workspace = true

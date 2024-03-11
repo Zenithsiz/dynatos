@@ -45,3 +45,5 @@ url = "2.5.0"
 wasm-bindgen = "0.2.91"
 wasm-bindgen-futures = "0.4.41"
 web-sys = "0.3.68"
+
+[workspace.lints]
