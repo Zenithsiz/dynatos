@@ -51,7 +51,7 @@ pub fn builder(_attr: TokenStream, input: TokenStream) -> TokenStream {
 	// Builder default type arguments
 	let builder_default_ty_args = props
 		.iter()
-		.map(|prop| syn::GenericArgument::Type(prop.default_ty.clone().unwrap_or(self::missing_prop_ty())))
+		.map(|prop| syn::GenericArgument::Type(prop.default_ty.clone().unwrap_or_else(self::missing_prop_ty)))
 		.collect::<Punctuated<_, Token![,]>>();
 
 	// Builder props declaration
