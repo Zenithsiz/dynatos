@@ -176,7 +176,7 @@ where
 				};
 
 				location.query_pairs_mut().clear().extend_pairs(queries);
-			})
+			});
 		});
 	}
 }

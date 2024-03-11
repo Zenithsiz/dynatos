@@ -133,7 +133,7 @@ where
 	type Output = ();
 
 	extern "rust-call" fn call_once(mut self, args: ()) -> Self::Output {
-		self.call_mut(args)
+		self.call_mut(args);
 	}
 }
 impl<T, F> FnMut<()> for EffectFn<T, F>
@@ -142,7 +142,7 @@ where
 	F: Fn() -> T,
 {
 	extern "rust-call" fn call_mut(&mut self, args: ()) -> Self::Output {
-		self.call(args)
+		self.call(args);
 	}
 }
 impl<T, F> Fn<()> for EffectFn<T, F>

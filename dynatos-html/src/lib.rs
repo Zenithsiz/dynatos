@@ -219,7 +219,7 @@ where
 			.chain(classes.iter().map(C::as_ref))
 			.join(" ");
 
-		self.as_ref().set_class_name(&class_name)
+		self.as_ref().set_class_name(&class_name);
 	}
 }
 

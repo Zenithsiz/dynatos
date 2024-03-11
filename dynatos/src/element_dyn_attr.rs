@@ -35,7 +35,7 @@ pub impl web_sys::Element {
 				None => element
 					.remove_attribute(key)
 					.unwrap_or_else(|err| panic!("Unable to remove attribute {key:?}: {err:?}")),
-			})
+			});
 		})
 		.or_return()?;
 

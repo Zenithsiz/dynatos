@@ -427,7 +427,7 @@ mod test {
 				let value = VALUE;
 				test::black_box(value);
 			}
-		})
+		});
 	}
 
 	#[bench]
@@ -439,7 +439,7 @@ mod test {
 				let value = crate::get::<AccessTy>();
 				test::black_box(value);
 			}
-		})
+		});
 	}
 
 	#[bench]
@@ -451,7 +451,7 @@ mod test {
 				let value = crate::expect::<AccessTy>();
 				test::black_box(value);
 			}
-		})
+		});
 	}
 
 	#[bench]
@@ -462,7 +462,7 @@ mod test {
 			for _ in 0..test::black_box(REPEAT_COUNT) {
 				crate::with::<AccessTy, _, _>(|value| test::black_box(value.copied()));
 			}
-		})
+		});
 	}
 
 	#[bench]
@@ -473,7 +473,7 @@ mod test {
 			for _ in 0..test::black_box(REPEAT_COUNT) {
 				crate::with_expect::<AccessTy, _, _>(|value| test::black_box(*value));
 			}
-		})
+		});
 	}
 
 	/// Creates several types and attempts to access them all.
@@ -498,6 +498,6 @@ mod test {
 
 		bencher.iter(|| {
 			use_ty! { T0, T1, T2, T3, T4, T5, T6, T7, T8, T9, T10, T11, T12, T13, T14, T15, T16, T17, T18, T19, T20, T21, T22, T23, T24, T25, T26, T27, T28, T29, T30, T31, T32, T33, T34, T35, T36, T37, T38, T39, T40, T41, T42, T43, T44, T45, T46, T47, T48, T49 }
-		})
+		});
 	}
 }

@@ -354,7 +354,7 @@ mod test {
 					let effect = effect::running();
 					test::black_box(effect);
 				}
-			})
+			});
 		});
 	}
 
@@ -366,6 +366,6 @@ mod test {
 				test::black_box(&effect);
 				mem::forget(effect);
 			}
-		})
+		});
 	}
 }

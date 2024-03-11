@@ -13,6 +13,6 @@ fn create_unsized() {
 
 	sig.with(|dyn_value| {
 		assert_eq!(dyn_value.type_id(), value.type_id());
-		assert_eq!(dyn_value.downcast_ref::<i32>(), Some(&value))
+		assert_eq!(dyn_value.downcast_ref::<i32>(), Some(&value));
 	});
 }
