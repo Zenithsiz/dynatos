@@ -82,6 +82,8 @@ where
 	}
 }
 
+#[allow(clippy::allow_attributes, reason = "This only applies in some branches")]
+#[allow(clippy::use_self, reason = "We always want to use `&str`, not `&Ty`")]
 #[duplicate::duplicate_item(
 	Ty;
 	[str];

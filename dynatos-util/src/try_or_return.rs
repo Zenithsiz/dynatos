@@ -24,7 +24,7 @@ impl<T: Try> Try for TryOrReturn<T> {
 
 impl<T: Try> FromResidual<Residual<T::Residual>> for TryOrReturn<T> {
 	fn from_residual(residual: Residual<T::Residual>) -> Self {
-		TryOrReturn(T::from_residual(residual.0))
+		Self(T::from_residual(residual.0))
 	}
 }
 

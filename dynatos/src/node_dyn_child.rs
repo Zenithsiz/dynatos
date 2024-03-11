@@ -132,6 +132,8 @@ where
 
 // TODO: Impl for `impl AsRef<web_sys::Node>` if we can get rid of
 //       the conflict with the function impl
+#[allow(clippy::allow_attributes, reason = "This only applies in some branches")]
+#[allow(clippy::use_self, reason = "We always want to use `web_sys::Node`, not `Ty`")]
 #[duplicate::duplicate_item(
 	Ty;
 	[web_sys::Node];
