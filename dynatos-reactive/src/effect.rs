@@ -29,7 +29,12 @@ struct Inner<F: ?Sized> {
 	run: F,
 }
 
-impl<F1: ?Sized, F2: ?Sized> CoerceUnsized<Inner<F2>> for Inner<F1> where F1: CoerceUnsized<F2> {}
+impl<F1, F2> CoerceUnsized<Inner<F2>> for Inner<F1>
+where
+	F1: ?Sized + CoerceUnsized<F2>,
+	F2: ?Sized,
+{
+}
 
 /// Effect
 pub struct Effect<F: ?Sized> {
@@ -167,7 +172,12 @@ impl<F: ?Sized> fmt::Debug for Effect<F> {
 	}
 }
 
-impl<T: ?Sized, U: ?Sized> CoerceUnsized<Effect<U>> for Effect<T> where T: Unsize<U> {}
+impl<T, U> CoerceUnsized<Effect<U>> for Effect<T>
+where
+	T: ?Sized + Unsize<U>,
+	U: ?Sized,
+{
+}
 
 
 /// Weak effect
@@ -243,7 +253,12 @@ impl<F: ?Sized> fmt::Debug for WeakEffect<F> {
 	}
 }
 
-impl<T: ?Sized, U: ?Sized> CoerceUnsized<WeakEffect<U>> for WeakEffect<T> where T: Unsize<U> {}
+impl<T, U> CoerceUnsized<WeakEffect<U>> for WeakEffect<T>
+where
+	T: ?Sized + Unsize<U>,
+	U: ?Sized,
+{
+}
 
 /// Returns the current running effect
 pub fn running() -> Option<WeakEffect<dyn Fn()>> {

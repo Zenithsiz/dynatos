@@ -183,9 +183,9 @@ where
 	}
 }
 
-impl<T: 'static> SignalBorrowMut for QueryArraySignal<T>
+impl<T> SignalBorrowMut for QueryArraySignal<T>
 where
-	T: ToString,
+	T: ToString + 'static,
 {
 	type RefMut<'a> = BorrowRefMut<'a, T>
 	where

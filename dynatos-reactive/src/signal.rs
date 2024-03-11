@@ -66,7 +66,12 @@ impl<T> Signal<T> {
 // TODO: Add `Signal::<dyn Any>::downcast` once we add `{T, U}: ?Sized` to the `CoerceUnsized` impl of `Inner`.
 //       Use `Rc::downcast::<Inner<T>>(self.inner as Rc<dyn Any>)`
 
-impl<T: ?Sized, U: ?Sized> CoerceUnsized<Signal<U>> for Signal<T> where T: Unsize<U> {}
+impl<T, U> CoerceUnsized<Signal<U>> for Signal<T>
+where
+	T: ?Sized + Unsize<U>,
+	U: ?Sized,
+{
+}
 
 /// Reference type for [`SignalBorrow`] impl
 #[derive(Debug)]

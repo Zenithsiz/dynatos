@@ -267,8 +267,7 @@ where
 #[must_use]
 pub fn get<T>() -> Option<T>
 where
-	T: 'static,
-	T: Copy,
+	T: Copy + 'static,
 {
 	self::with::<T, _, _>(|value| value.copied())
 }
@@ -278,8 +277,7 @@ where
 #[track_caller]
 pub fn expect<T>() -> T
 where
-	T: 'static,
-	T: Copy,
+	T: Copy + 'static,
 {
 	self::with::<T, _, _>(|value| *value.unwrap_or_else(self::on_missing_context::<T, _>))
 }
@@ -288,8 +286,7 @@ where
 #[must_use]
 pub fn get_cloned<T>() -> Option<T>
 where
-	T: 'static,
-	T: Clone,
+	T: Clone + 'static,
 {
 	self::with::<T, _, _>(|value| value.cloned())
 }
@@ -299,8 +296,7 @@ where
 #[track_caller]
 pub fn expect_cloned<T>() -> T
 where
-	T: 'static,
-	T: Clone,
+	T: Clone + 'static,
 {
 	self::with::<T, _, _>(|value| value.unwrap_or_else(self::on_missing_context::<T, _>).clone())
 }

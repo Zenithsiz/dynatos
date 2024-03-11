@@ -113,7 +113,12 @@ impl<T: fmt::Debug, F: ?Sized> fmt::Debug for Derived<T, F> {
 	}
 }
 
-impl<T, F1: ?Sized, F2: ?Sized> CoerceUnsized<Derived<T, F2>> for Derived<T, F1> where F1: Unsize<F2> {}
+impl<T, F1, F2> CoerceUnsized<Derived<T, F2>> for Derived<T, F1>
+where
+	F1: ?Sized + Unsize<F2>,
+	F2: ?Sized,
+{
+}
 
 /// Effect function
 struct EffectFn<T, F: ?Sized> {
