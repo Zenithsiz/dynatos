@@ -3,15 +3,14 @@
 // TODO: It seems that titles aren't getting dropped for some reason.
 
 // Features
-#![feature(lint_reasons)]
+#![feature(lint_reasons, thread_local)]
 
 // Imports
 use {core::cell::RefCell, dynatos_util::ObjectSetProp, wasm_bindgen::prelude::wasm_bindgen};
 
-thread_local! {
-	/// Title stack.
-	static TITLE_STACK: RefCell<Vec<Option<String>>> = const { RefCell::new(vec![]) };
-}
+/// Title stack.
+#[thread_local]
+static TITLE_STACK: RefCell<Vec<Option<String>>> = RefCell::new(vec![]);
 
 /// Title.
 ///
@@ -30,19 +29,16 @@ impl Title {
 	{
 		let title = title.into();
 
-		let title_idx = TITLE_STACK.with_borrow_mut(|stack| {
-			// If no title exists, add the current one
-			if stack.is_empty() {
-				stack.push(Some(self::cur_title()));
-			}
+		// If no title exists, add the current one
+		let mut stack = TITLE_STACK.borrow_mut();
+		if stack.is_empty() {
+			stack.push(Some(self::cur_title()));
+		}
 
-			// Then set and add ours
-			self::set_title(&title);
-			let title_idx = stack.len();
-			stack.push(Some(title));
-
-			title_idx
-		});
+		// Then set the title and add ours to the stack
+		self::set_title(&title);
+		let title_idx = stack.len();
+		stack.push(Some(title));
 
 		Self { title_idx }
 	}
@@ -50,26 +46,24 @@ impl Title {
 
 impl Drop for Title {
 	fn drop(&mut self) {
-		// Get the value
-		TITLE_STACK.with_borrow_mut(|stack| {
-			// Remove our title
-			let _prev_title = stack
-				.get_mut(self.title_idx)
-				.and_then(Option::take)
-				.expect("Title was already taken");
+		// Remove our title
+		let mut stack = TITLE_STACK.borrow_mut();
+		let _prev_title = stack
+			.get_mut(self.title_idx)
+			.and_then(Option::take)
+			.expect("Title was already taken");
 
-			// Then find the next title to set back to.
-			let next_title = loop {
-				let last = stack.last().expect("Should contain at least 1 title");
-				match last {
-					Some(title) => break title,
-					None => {
-						stack.pop().expect("Just checked the value existed");
-					},
-				}
-			};
-			self::set_title(next_title);
-		});
+		// Then find the next title to set back to.
+		let next_title = loop {
+			let last = stack.last().expect("Should contain at least 1 title");
+			match last {
+				Some(title) => break title,
+				None => {
+					stack.pop().expect("Just checked the value existed");
+				},
+			}
+		};
+		self::set_title(next_title);
 	}
 }
 
