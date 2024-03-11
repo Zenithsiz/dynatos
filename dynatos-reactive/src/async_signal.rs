@@ -35,10 +35,12 @@ impl task::Wake for Waker {
 	}
 
 	fn wake_by_ref(self: &Arc<Self>) {
-		// If we're not in the same thread, panic
-		if thread::current().id() != self.thread {
-			panic!("`AsyncSignal` may only be used with futures that wake in the same thread.");
-		}
+		// Ensure we're on the same thread as we were created
+		assert_eq!(
+			thread::current().id(),
+			self.thread,
+			"`AsyncSignal` may only be used with futures that wake in the same thread."
+		);
 
 		self.trigger.trigger();
 	}
