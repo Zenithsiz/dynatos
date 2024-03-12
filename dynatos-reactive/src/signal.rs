@@ -90,6 +90,7 @@ impl<T: ?Sized + 'static> SignalBorrow for Signal<T> {
 	where
 		Self: 'a;
 
+	#[track_caller]
 	fn borrow(&self) -> Self::Ref<'_> {
 		if let Some(effect) = effect::running() {
 			self.inner.trigger.add_subscriber(effect);
@@ -107,6 +108,7 @@ impl<T: ?Sized + 'static> SignalBorrow for Signal<T> {
 impl<T: ?Sized + 'static> SignalWith for Signal<T> {
 	type Value<'a> = &'a T;
 
+	#[track_caller]
 	fn with<F, O>(&self, f: F) -> O
 	where
 		F: for<'a> FnOnce(Self::Value<'a>) -> O,
@@ -165,6 +167,7 @@ impl<T: ?Sized + 'static> SignalBorrowMut for Signal<T> {
 		where
 			Self: 'a;
 
+	#[track_caller]
 	fn borrow_mut(&self) -> Self::RefMut<'_> {
 		let value = self
 			.inner
@@ -182,6 +185,7 @@ impl<T: ?Sized + 'static> SignalBorrowMut for Signal<T> {
 impl<T: ?Sized + 'static> SignalUpdate for Signal<T> {
 	type Value<'a> = &'a mut T;
 
+	#[track_caller]
 	fn update<F, O>(&self, f: F) -> O
 	where
 		F: for<'a> FnOnce(Self::Value<'a>) -> O,

@@ -53,6 +53,7 @@ impl<S: SignalBorrow, T> SignalBorrow for WithDefault<S, T> {
 	where
 		Self: 'a;
 
+	#[track_caller]
 	fn borrow(&self) -> Self::Ref<'_> {
 		BorrowRef {
 			value:   self.inner.borrow(),
@@ -68,6 +69,7 @@ where
 {
 	type Value<'a> = &'a T;
 
+	#[track_caller]
 	fn with<F, O>(&self, f: F) -> O
 	where
 		F: for<'a> FnOnce(Self::Value<'a>) -> O,
@@ -84,6 +86,7 @@ where
 	S: SignalReplace<Option<T>>,
 	T: Copy,
 {
+	#[track_caller]
 	fn replace(&self, new_value: T) -> T {
 		self.inner.replace(Some(new_value)).unwrap_or(self.default)
 	}
@@ -93,6 +96,7 @@ impl<S, T> SignalReplace<Option<T>> for WithDefault<S, T>
 where
 	S: SignalReplace<Option<T>>,
 {
+	#[track_caller]
 	fn replace(&self, new_value: Option<T>) -> Option<T> {
 		self.inner.replace(new_value)
 	}
@@ -136,6 +140,7 @@ where
 	where
 		Self: 'a;
 
+	#[track_caller]
 	fn borrow_mut(&self) -> Self::RefMut<'_> {
 		let mut value = self.inner.borrow_mut();
 		value.get_or_insert(self.default);
@@ -151,6 +156,7 @@ where
 {
 	type Value<'a> = &'a mut T;
 
+	#[track_caller]
 	fn update<F, O>(&self, f: F) -> O
 	where
 		F: for<'a> FnOnce(Self::Value<'a>) -> O,

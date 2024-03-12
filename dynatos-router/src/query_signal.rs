@@ -96,6 +96,7 @@ impl<T: 'static> SignalBorrow for QuerySignal<T> {
 	where
 		Self: 'a;
 
+	#[track_caller]
 	fn borrow(&self) -> Self::Ref<'_> {
 		let borrow = self.inner.borrow();
 		borrow.is_some().then(|| BorrowRef(borrow))
@@ -105,6 +106,7 @@ impl<T: 'static> SignalBorrow for QuerySignal<T> {
 impl<T: 'static> SignalWith for QuerySignal<T> {
 	type Value<'a> = Option<&'a T>;
 
+	#[track_caller]
 	fn with<F, O>(&self, f: F) -> O
 	where
 		F: for<'a> FnOnce(Self::Value<'a>) -> O,
@@ -118,6 +120,7 @@ impl<T> SignalReplace<Option<T>> for QuerySignal<T>
 where
 	T: ToString + 'static,
 {
+	#[track_caller]
 	fn replace(&self, new_value: Option<T>) -> Option<T> {
 		mem::replace(&mut self.borrow_mut(), new_value)
 	}
@@ -188,6 +191,7 @@ where
 	where
 		Self: 'a;
 
+	#[track_caller]
 	fn borrow_mut(&self) -> Self::RefMut<'_> {
 		let value = self.inner.borrow_mut();
 		BorrowRefMut { value, signal: self }
@@ -200,6 +204,7 @@ where
 {
 	type Value<'a> = &'a mut Option<T>;
 
+	#[track_caller]
 	fn update<F, O>(&self, f: F) -> O
 	where
 		F: for<'a> FnOnce(Self::Value<'a>) -> O,

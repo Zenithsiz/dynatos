@@ -91,6 +91,7 @@ impl<F: Future<Output = Result<T, E>> + 'static, T: 'static, E: Clone + 'static>
 	where
 		Self: 'a;
 
+	#[track_caller]
 	fn borrow(&self) -> Self::Ref<'_> {
 		let borrow = self.inner.borrow();
 		match borrow {
@@ -106,6 +107,7 @@ impl<F: Future<Output = Result<T, E>> + 'static, T: 'static, E: Clone + 'static>
 impl<F: Future<Output = Result<T, E>> + 'static, T: 'static, E: Clone + 'static> SignalWith for LoadableSignal<F> {
 	type Value<'a> = Loadable<&'a T, E>;
 
+	#[track_caller]
 	fn with<F2, O>(&self, f: F2) -> O
 	where
 		F2: for<'a> FnOnce(Self::Value<'a>) -> O,
@@ -142,6 +144,7 @@ impl<F: Future<Output = Result<T, E>>, T: 'static, E: Clone + 'static> SignalBor
 	where
 		Self: 'a;
 
+	#[track_caller]
 	fn borrow_mut(&self) -> Self::RefMut<'_> {
 		let borrow = self.inner.borrow_mut();
 		match borrow {
@@ -161,6 +164,7 @@ where
 {
 	type Value<'a> = Loadable<&'a mut T, E>;
 
+	#[track_caller]
 	fn update<F2, O>(&self, f: F2) -> O
 	where
 		F2: for<'a> FnOnce(Self::Value<'a>) -> O,

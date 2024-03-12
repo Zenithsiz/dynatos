@@ -30,6 +30,7 @@ where
 	S: SignalWith,
 	for<'a> S::Value<'a>: SignalGetCopy<T>,
 {
+	#[track_caller]
 	fn get(&self) -> T {
 		self.with(|value| value.copy_value())
 	}

@@ -30,6 +30,7 @@ where
 	S: SignalUpdate,
 	for<'a> S::Value<'a>: SignalSetWith<T>,
 {
+	#[track_caller]
 	fn set(&self, new_value: T) {
 		self.update(|value| SignalSetWith::set_value(value, new_value));
 	}

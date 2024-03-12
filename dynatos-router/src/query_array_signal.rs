@@ -97,6 +97,7 @@ impl<T: 'static> SignalBorrow for QueryArraySignal<T> {
 	where
 		Self: 'a;
 
+	#[track_caller]
 	fn borrow(&self) -> Self::Ref<'_> {
 		BorrowRef(self.inner.borrow())
 	}
@@ -105,6 +106,7 @@ impl<T: 'static> SignalBorrow for QueryArraySignal<T> {
 impl<T: 'static> SignalWith for QueryArraySignal<T> {
 	type Value<'a> = &'a [T];
 
+	#[track_caller]
 	fn with<F, O>(&self, f: F) -> O
 	where
 		F: for<'a> FnOnce(Self::Value<'a>) -> O,
@@ -191,6 +193,7 @@ where
 	where
 		Self: 'a;
 
+	#[track_caller]
 	fn borrow_mut(&self) -> Self::RefMut<'_> {
 		let value = self.inner.borrow_mut();
 		BorrowRefMut { value, signal: self }
@@ -203,6 +206,7 @@ where
 {
 	type Value<'a> = &'a mut Vec<T>;
 
+	#[track_caller]
 	fn update<F, O>(&self, f: F) -> O
 	where
 		F: for<'a> FnOnce(Self::Value<'a>) -> O,

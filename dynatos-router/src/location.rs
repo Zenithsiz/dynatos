@@ -63,6 +63,7 @@ impl SignalBorrow for Location {
 	where
 		Self: 'a;
 
+	#[track_caller]
 	fn borrow(&self) -> Self::Ref<'_> {
 		BorrowRef(self.0.borrow())
 	}
@@ -71,6 +72,7 @@ impl SignalBorrow for Location {
 impl SignalWith for Location {
 	type Value<'a> = &'a Url;
 
+	#[track_caller]
 	fn with<F, O>(&self, f: F) -> O
 	where
 		F: for<'a> FnOnce(Self::Value<'a>) -> O,
@@ -115,6 +117,7 @@ impl SignalBorrowMut for Location {
 	where
 		Self: 'a;
 
+	#[track_caller]
 	fn borrow_mut(&self) -> Self::RefMut<'_> {
 		let value = self.0.borrow_mut();
 		BorrowRefMut(value)
@@ -124,6 +127,7 @@ impl SignalBorrowMut for Location {
 impl SignalUpdate for Location {
 	type Value<'a> = &'a mut Url;
 
+	#[track_caller]
 	fn update<F, O>(&self, f: F) -> O
 	where
 		F: for<'a> FnOnce(Self::Value<'a>) -> O,

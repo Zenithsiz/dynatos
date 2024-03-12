@@ -152,6 +152,7 @@ impl<F: Future> SignalBorrow for AsyncSignal<F> {
 	where
 		Self: 'a;
 
+	#[track_caller]
 	fn borrow(&self) -> Self::Ref<'_> {
 		// Try to poll the future, if we don't have a value yet
 		if self.inner.value.borrow().is_none() {
@@ -178,6 +179,7 @@ where
 {
 	type Value<'a> = Option<&'a F::Output>;
 
+	#[track_caller]
 	fn with<F2, O>(&self, f: F2) -> O
 	where
 		F2: for<'a> FnOnce(Self::Value<'a>) -> O,
@@ -217,6 +219,7 @@ impl<F: Future> SignalBorrowMut for AsyncSignal<F> {
 	where
 		Self: 'a;
 
+	#[track_caller]
 	fn borrow_mut(&self) -> Self::RefMut<'_> {
 		let value = self.inner.value.borrow_mut();
 		value.is_some().then(|| BorrowRefMut {
@@ -236,6 +239,7 @@ where
 {
 	type Value<'a> = Option<&'a mut F::Output>;
 
+	#[track_caller]
 	fn update<F2, O>(&self, f: F2) -> O
 	where
 		F2: for<'a> FnOnce(Self::Value<'a>) -> O,

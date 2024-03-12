@@ -79,6 +79,7 @@ impl<T: 'static, F: ?Sized> SignalBorrow for Derived<T, F> {
 	where
 		Self: 'a;
 
+	#[track_caller]
 	fn borrow(&self) -> Self::Ref<'_> {
 		let effect_fn = self.effect.inner_fn();
 		let value = effect_fn.value.borrow();
@@ -89,6 +90,7 @@ impl<T: 'static, F: ?Sized> SignalBorrow for Derived<T, F> {
 impl<T: 'static, F: ?Sized> SignalWith for Derived<T, F> {
 	type Value<'a> = &'a T;
 
+	#[track_caller]
 	fn with<F2, O>(&self, f: F2) -> O
 	where
 		F2: for<'a> FnOnce(Self::Value<'a>) -> O,
