@@ -125,17 +125,52 @@ where
 	}
 }
 
+/// Updates the location on `Drop`
+// Note: We need this wrapper because `BorrowRefMut::value` must
+//       already be dropped when we update the location, which we
+//       can't do if we implement `Drop` on `BorrowRefMut`.
+#[derive(Debug)]
+struct UpdateLocationOnDrop<'a, T: ToString + 'static>(pub &'a QueryArraySignal<T>);
+
+impl<'a, T> Drop for UpdateLocationOnDrop<'a, T>
+where
+	T: ToString + 'static,
+{
+	fn drop(&mut self) {
+		// Update the location
+		// Note: We suppress the update, given that it won't change anything,
+		//       as we already have the latest value.
+		// TODO: Force an update anyway just to ensure some consistency with `FromStr` + `ToString`?
+		self.0.update_effect.suppressed(|| {
+			dynatos_context::with_expect::<Location, _, _>(|location| {
+				let mut location = location.borrow_mut();
+				let mut queries = location
+					.query_pairs()
+					.into_owned()
+					.filter(|(key, _)| *key != *self.0.key)
+					.collect::<Vec<_>>();
+				for value in &*self.0.borrow() {
+					let value = value.to_string();
+					queries.push(((*self.0.key).to_owned(), value));
+				}
+				location.query_pairs_mut().clear().extend_pairs(queries);
+			});
+		});
+	}
+}
+
 /// Reference type for [`SignalBorrowMut`] impl
 #[derive(Debug)]
 pub struct BorrowRefMut<'a, T>
 where
-	T: ToString,
+	T: ToString + 'static,
 {
 	/// Value
 	value: signal::BorrowRefMut<'a, Vec<T>>,
 
-	/// Signal
-	signal: &'a QueryArraySignal<T>,
+	/// Update location on drop
+	// Note: Must be dropped *after* `value`.
+	_update_location_on_drop: UpdateLocationOnDrop<'a, T>,
 }
 
 impl<'a, T> Deref for BorrowRefMut<'a, T>
@@ -158,32 +193,6 @@ where
 	}
 }
 
-impl<'a, T> Drop for BorrowRefMut<'a, T>
-where
-	T: ToString,
-{
-	fn drop(&mut self) {
-		// Update the location
-		// Note: We suppress the update, given that it won't change anything,
-		//       as we already have the latest value.
-		// TODO: Force an update anyway just to ensure some consistency with `FromStr` + `ToString`?
-		self.signal.update_effect.suppressed(|| {
-			dynatos_context::with_expect::<Location, _, _>(|location| {
-				let mut location = location.borrow_mut();
-				let mut queries = location
-					.query_pairs()
-					.into_owned()
-					.filter(|(key, _)| *key != *self.signal.key)
-					.collect::<Vec<_>>();
-				for value in &*self.value {
-					let value = value.to_string();
-					queries.push(((*self.signal.key).to_owned(), value));
-				}
-				location.query_pairs_mut().clear().extend_pairs(queries);
-			});
-		});
-	}
-}
 
 impl<T> SignalBorrowMut for QueryArraySignal<T>
 where
@@ -196,7 +205,10 @@ where
 	#[track_caller]
 	fn borrow_mut(&self) -> Self::RefMut<'_> {
 		let value = self.inner.borrow_mut();
-		BorrowRefMut { value, signal: self }
+		BorrowRefMut {
+			value,
+			_update_location_on_drop: UpdateLocationOnDrop(self),
+		}
 	}
 }
 
