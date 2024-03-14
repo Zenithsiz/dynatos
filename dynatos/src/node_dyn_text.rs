@@ -3,7 +3,7 @@
 // Imports
 use {
 	crate::ObjectAttachEffect,
-	dynatos_reactive::{Derived, Effect, Signal, SignalWith, WithDefault},
+	dynatos_reactive::{Derived, Effect, Memo, Signal, SignalWith, WithDefault},
 	dynatos_router::QuerySignal,
 	dynatos_util::{TryOrReturnExt, WeakRef},
 };
@@ -119,6 +119,7 @@ where
 	Generics Ty;
 	[T] [Signal<T> where T: WithDynText + 'static];
 	[T, F] [Derived<T, F> where T: WithDynText + 'static, F: ?Sized];
+	[T, F] [Memo<T, F> where T: WithDynText + 'static, F: ?Sized];
 	[S, T] [WithDefault<S, T> where S: for<'a> SignalWith<Value<'a> = Option<&'a T>>, T: WithDynText + 'static];
 )]
 impl<Generics> WithDynText for Ty {

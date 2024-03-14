@@ -3,7 +3,7 @@
 // Imports
 use {
 	crate::ObjectAttachEffect,
-	dynatos_reactive::{Derived, Effect, Signal, SignalWith, WithDefault},
+	dynatos_reactive::{Derived, Effect, Memo, Signal, SignalWith, WithDefault},
 	dynatos_router::QuerySignal,
 	dynatos_util::{ObjectRemoveProp, ObjectSetProp, TryOrReturnExt, WeakRef},
 	wasm_bindgen::JsValue,
@@ -146,6 +146,7 @@ impl ToDynProp for Ty {
 	Generics Ty;
 	[T] [Signal<T> where T: ToDynProp + 'static];
 	[T, F] [Derived<T, F> where T: ToDynProp + 'static, F: ?Sized];
+	[T, F] [Memo<T, F> where T: ToDynProp + 'static, F: ?Sized];
 	[S, T] [WithDefault<S, T> where S: for<'a> SignalWith<Value<'a> = Option<&'a T>>, T: ToDynProp + 'static];
 )]
 impl<Generics> ToDynProp for Ty {

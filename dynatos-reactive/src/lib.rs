@@ -16,6 +16,7 @@
 pub mod async_signal;
 pub mod derived;
 pub mod effect;
+pub mod memo;
 pub mod signal;
 pub mod trigger;
 pub mod with_default;
@@ -25,6 +26,7 @@ pub use self::{
 	async_signal::AsyncSignal,
 	derived::Derived,
 	effect::{Effect, WeakEffect},
+	memo::Memo,
 	signal::{
 		Signal,
 		SignalBorrow,
