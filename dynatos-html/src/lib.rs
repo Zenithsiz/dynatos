@@ -46,6 +46,35 @@ impl AsTextContent for Ty {
 }
 
 /// Extension trait to add children to an node
+#[extend::ext_sized(name = NodeAddChildren)]
+pub impl<T> T
+where
+	T: AsRef<web_sys::Node>,
+{
+	fn add_child<C>(&self, child: C)
+	where
+		C: AsRef<web_sys::Node>,
+	{
+		self.add_children([child]);
+	}
+
+	fn add_children<C>(&self, children: C)
+	where
+		C: Children,
+	{
+		self.try_with_children(children)
+			.unwrap_or_else(|err| panic!("Unable to add node children: {err:?}"));
+	}
+
+	fn try_add_children<C>(&self, children: C) -> Result<(), JsValue>
+	where
+		C: Children,
+	{
+		children.append_all(self.as_ref())
+	}
+}
+
+/// Extension trait to add children to an node
 #[extend::ext_sized(name = NodeWithChildren)]
 pub impl<T> T
 where
