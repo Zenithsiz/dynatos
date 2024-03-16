@@ -32,8 +32,9 @@
 
 // Imports
 use {
-	crate::{signal, Effect, Signal, SignalBorrow, SignalSet, SignalWith},
+	crate::{effect, Effect, SignalBorrow, SignalWith, Trigger},
 	core::{
+		cell::{self, RefCell},
 		fmt,
 		marker::Unsize,
 		ops::{CoerceUnsized, Deref},
@@ -55,8 +56,12 @@ impl<T, F> Derived<T, F> {
 		T: 'static,
 		F: Fn() -> T + 'static,
 	{
-		let value = Signal::new(None);
-		let effect = Effect::new(EffectFn { value, f });
+		let value = RefCell::new(None);
+		let effect = Effect::new(EffectFn {
+			trigger: Trigger::new(),
+			value,
+			f,
+		});
 
 		Self { effect }
 	}
@@ -64,7 +69,7 @@ impl<T, F> Derived<T, F> {
 
 /// Reference type for [`SignalBorrow`] impl
 #[derive(Debug)]
-pub struct BorrowRef<'a, T>(signal::BorrowRef<'a, Option<T>>);
+pub struct BorrowRef<'a, T>(cell::Ref<'a, Option<T>>);
 
 impl<'a, T> Deref for BorrowRef<'a, T> {
 	type Target = T;
@@ -81,6 +86,10 @@ impl<T: 'static, F: ?Sized> SignalBorrow for Derived<T, F> {
 
 	#[track_caller]
 	fn borrow(&self) -> Self::Ref<'_> {
+		if let Some(effect) = effect::running() {
+			self.effect.inner_fn().trigger.add_subscriber(effect);
+		}
+
 		let effect_fn = self.effect.inner_fn();
 		let value = effect_fn.value.borrow();
 		BorrowRef(value)
@@ -124,9 +133,11 @@ where
 
 /// Effect function
 struct EffectFn<T, F: ?Sized> {
+	/// Trigger
+	trigger: Trigger,
+
 	/// Value
-	// TODO: Remove the indirection of the inner signal here.
-	value: Signal<Option<T>>,
+	value: RefCell<Option<T>>,
 
 	/// Function
 	f: F,
@@ -158,6 +169,7 @@ where
 	F: Fn() -> T,
 {
 	extern "rust-call" fn call(&self, _args: ()) -> Self::Output {
-		self.value.set(Some((self.f)()));
+		*self.value.borrow_mut() = Some((self.f)());
+		self.trigger.trigger();
 	}
 }

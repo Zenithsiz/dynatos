@@ -1,16 +1,19 @@
-//! Memo'd signal
+//! # Memo'd signals
 
 // Imports
 use {
-	crate::{signal, Effect, Signal, SignalBorrow, SignalSet, SignalWith},
+	crate::{effect, Effect, SignalBorrow, SignalWith, Trigger},
 	core::{
+		cell::{self, RefCell},
 		fmt,
 		marker::Unsize,
 		ops::{CoerceUnsized, Deref},
 	},
 };
 
-/// Memo'd signal
+/// Memo signal.
+///
+/// See the module documentation for more information.
 pub struct Memo<T, F: ?Sized> {
 	/// Effect
 	effect: Effect<EffectFn<T, F>>,
@@ -23,8 +26,12 @@ impl<T, F> Memo<T, F> {
 		T: PartialEq + 'static,
 		F: Fn() -> T + 'static,
 	{
-		let value = Signal::new(None);
-		let effect = Effect::new(EffectFn { value, f });
+		let value = RefCell::new(None);
+		let effect = Effect::new(EffectFn {
+			trigger: Trigger::new(),
+			value,
+			f,
+		});
 
 		Self { effect }
 	}
@@ -32,7 +39,7 @@ impl<T, F> Memo<T, F> {
 
 /// Reference type for [`SignalBorrow`] impl
 #[derive(Debug)]
-pub struct BorrowRef<'a, T>(signal::BorrowRef<'a, Option<T>>);
+pub struct BorrowRef<'a, T>(cell::Ref<'a, Option<T>>);
 
 impl<'a, T> Deref for BorrowRef<'a, T> {
 	type Target = T;
@@ -49,6 +56,10 @@ impl<T: 'static, F: ?Sized> SignalBorrow for Memo<T, F> {
 
 	#[track_caller]
 	fn borrow(&self) -> Self::Ref<'_> {
+		if let Some(effect) = effect::running() {
+			self.effect.inner_fn().trigger.add_subscriber(effect);
+		}
+
 		let effect_fn = self.effect.inner_fn();
 		let value = effect_fn.value.borrow();
 		BorrowRef(value)
@@ -79,7 +90,7 @@ impl<T, F: ?Sized> Clone for Memo<T, F> {
 impl<T: fmt::Debug, F: ?Sized> fmt::Debug for Memo<T, F> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		let effect_fn = self.effect.inner_fn();
-		f.debug_struct("Memo").field("value", &effect_fn.value).finish()
+		f.debug_struct("Derived").field("value", &effect_fn.value).finish()
 	}
 }
 
@@ -92,9 +103,11 @@ where
 
 /// Effect function
 struct EffectFn<T, F: ?Sized> {
+	/// Trigger
+	trigger: Trigger,
+
 	/// Value
-	// TODO: Remove the indirection of the inner signal here.
-	value: Signal<Option<T>>,
+	value: RefCell<Option<T>>,
 
 	/// Function
 	f: F,
@@ -139,7 +152,8 @@ where
 
 		// Then write it, if we should
 		if overwrite {
-			self.value.set(Some(new_value));
+			*self.value.borrow_mut() = Some((self.f)());
+			self.trigger.trigger();
 		}
 	}
 }
