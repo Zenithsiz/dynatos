@@ -141,17 +141,11 @@ where
 	extern "rust-call" fn call(&self, _args: ()) -> Self::Output {
 		let new_value = (self.f)();
 
-		// Check if we should overwrite
-		let overwrite = match &*self.value.borrow() {
-			// If we got a value, overwrite it if it's different
-			Some(old_value) => *old_value != new_value,
-
-			// If there is no value yet, always override
-			None => true,
-		};
-
-		// Then write it, if we should
-		if overwrite {
+		// Write the new value, if it's different from the previous
+		// Note: Since we're comparing against `Some(_)`, any `None` values
+		//       will always be written to.
+		let is_same = self.value.borrow().as_ref() == Some(&new_value);
+		if !is_same {
 			*self.value.borrow_mut() = Some((self.f)());
 			self.trigger.trigger();
 		}
