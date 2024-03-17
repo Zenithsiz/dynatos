@@ -12,10 +12,10 @@ use {
 	dynatos_reactive::{
 		signal,
 		Effect,
+		Memo,
 		Signal,
 		SignalBorrow,
 		SignalBorrowMut,
-		SignalGetCloned,
 		SignalReplace,
 		SignalSet,
 		SignalUpdate,
@@ -47,26 +47,37 @@ impl<T> QuerySignal<T> {
 		T::Err: StdError + Send + Sync + 'static,
 		K: Into<Rc<str>>,
 	{
+		// Get the query value
 		let key = key.into();
+		let query_value = Memo::new({
+			let key = Rc::clone(&key);
+			move || {
+				dynatos_context::with_expect::<Location, _, _>(|location| {
+					location
+						.borrow()
+						.query_pairs()
+						.find_map(|(query, value)| (query == *key).then_some(value.into_owned()))
+				})
+			}
+		});
 
 		let inner = Signal::new(None);
 		let update = Effect::new({
 			let inner = inner.clone();
 			let key = Rc::clone(&key);
 			move || {
-				// Get the location and find our query key, if any
-				let location = dynatos_context::with_expect::<Location, _, _>(|location| location.get_cloned());
-				let value = location
-					.query_pairs()
-					.find_map(|(query, value)| (query == *key).then_some(value))
-					.and_then(|value| match value.parse::<T>() {
+				let value = query_value
+					.borrow()
+					.as_ref()
+					.and_then(|query_value| match query_value.parse::<T>() {
 						Ok(value) => Some(value),
 						Err(err) => {
-							tracing::warn!(?key, ?value, ?err, "Unable to parse query");
+							tracing::warn!(?key, value=?query_value, ?err, "Unable to parse query");
 							None
 						},
 					});
 
+				// Then set it
 				inner.set(value);
 			}
 		});

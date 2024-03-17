@@ -12,10 +12,10 @@ use {
 	dynatos_reactive::{
 		signal,
 		Effect,
+		Memo,
 		Signal,
 		SignalBorrow,
 		SignalBorrowMut,
-		SignalGetCloned,
 		SignalReplace,
 		SignalSet,
 		SignalUpdate,
@@ -47,28 +47,41 @@ impl<T> QueryArraySignal<T> {
 		T::Err: StdError + Send + Sync + 'static,
 		K: Into<Rc<str>>,
 	{
+		// Get the query values
 		let key = key.into();
+		let query_values = Memo::new({
+			let key = Rc::clone(&key);
+			move || {
+				dynatos_context::with_expect::<Location, _, _>(|location| {
+					location
+						.borrow()
+						.query_pairs()
+						.filter_map(|(query, value)| (query == *key).then_some(value.into_owned()))
+						.collect::<Vec<_>>()
+				})
+			}
+		});
 
 		let inner = Signal::new(vec![]);
 		let update = Effect::new({
 			let inner = inner.clone();
 			let key = Rc::clone(&key);
 			move || {
-				// Get the location and find our query key, if any
-				let location = dynatos_context::with_expect::<Location, _, _>(|location| location.get_cloned());
-				let value = location
-					.query_pairs()
-					.filter_map(|(query, value)| (query == *key).then_some(value))
-					.filter_map(|value| match value.parse::<T>() {
+				let values = query_values
+					.borrow()
+					.iter()
+					.filter_map(|query_value| match query_value.parse::<T>() {
 						Ok(value) => Some(value),
 						Err(err) => {
-							tracing::warn!(?key, ?value, ?err, "Unable to parse query");
+							tracing::warn!(?key, value=?query_value, ?err, "Unable to parse query");
 							None
 						},
 					})
-					.collect::<Vec<_>>();
+					.collect();
 
-				inner.set(value);
+				// Then set it and the, now old, query value
+				tracing::info!(?key, "Updating inner");
+				inner.set(values);
 			}
 		});
 
