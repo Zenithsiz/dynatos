@@ -146,7 +146,7 @@ where
 		//       will always be written to.
 		let is_same = self.value.borrow().as_ref() == Some(&new_value);
 		if !is_same {
-			*self.value.borrow_mut() = Some((self.f)());
+			*self.value.borrow_mut() = Some(new_value);
 			self.trigger.trigger();
 		}
 	}
