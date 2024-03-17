@@ -5,18 +5,25 @@
 
 // Imports
 use {
-	crate::{IntoSubscriber, WeakEffect},
-	core::{cell::RefCell, fmt},
+	crate::{Effect, WeakEffect},
+	core::{cell::RefCell, fmt, marker::Unsize},
 	std::{
 		collections::HashSet,
 		rc::{Rc, Weak},
 	},
 };
 
+/// Subscribers
+#[derive(PartialEq, Eq, Clone, Hash, Debug)]
+pub struct Subscriber {
+	/// Effect
+	effect: WeakEffect<dyn Fn()>,
+}
+
 /// Trigger inner
 struct Inner {
 	/// Subscribers
-	subscribers: RefCell<HashSet<WeakEffect<dyn Fn()>>>,
+	subscribers: RefCell<HashSet<Subscriber>>,
 }
 
 /// Trigger
@@ -74,7 +81,7 @@ impl Trigger {
 		//       it to the main field?
 		let subscribers = self.inner.subscribers.borrow().iter().cloned().collect::<Vec<_>>();
 		for subscriber in subscribers {
-			if !subscriber.try_run() {
+			if !subscriber.effect.try_run() {
 				self.remove_subscriber(subscriber);
 			}
 		}
@@ -130,13 +137,39 @@ impl fmt::Debug for WeakTrigger {
 	}
 }
 
+/// Types that may be converted into a subscriber
+pub trait IntoSubscriber {
+	/// Converts this type into a weak effect.
+	fn into_subscriber(self) -> Subscriber;
+}
+
+impl IntoSubscriber for Subscriber {
+	fn into_subscriber(self) -> Subscriber {
+		self
+	}
+}
+
+#[duplicate::duplicate_item(
+	T effect_value;
+	[ Effect ] [ self.downgrade() ];
+	[ &'_ Effect ] [ self.downgrade() ];
+	[ WeakEffect ] [ self ];
+)]
+impl<F> IntoSubscriber for T<F>
+where
+	F: ?Sized + Fn() + Unsize<dyn Fn()> + 'static,
+{
+	fn into_subscriber(self) -> Subscriber {
+		Subscriber { effect: effect_value }
+	}
+}
+
 #[cfg(test)]
 mod test {
 	// Imports
 	extern crate test;
 	use {
 		super::*,
-		crate::Effect,
 		core::{cell::Cell, mem},
 		test::Bencher,
 	};
