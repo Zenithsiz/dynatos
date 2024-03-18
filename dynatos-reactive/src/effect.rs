@@ -14,6 +14,7 @@ use {
 		hash::Hash,
 		marker::Unsize,
 		ops::CoerceUnsized,
+		panic::Location,
 	},
 	std::rc::{Rc, Weak},
 };
@@ -26,6 +27,10 @@ static EFFECT_STACK: RefCell<Vec<WeakEffect<dyn Fn()>>> = RefCell::new(vec![]);
 struct Inner<F: ?Sized> {
 	/// Whether this effect is currently suppressed
 	suppressed: Cell<bool>,
+
+	#[cfg(debug_assertions)]
+	/// Where this effect was defined
+	defined_loc: &'static Location<'static>,
 
 	/// Effect runner
 	run: F,
@@ -48,6 +53,7 @@ impl<F> Effect<F> {
 	/// Creates a new computed effect.
 	///
 	/// Runs the effect once to gather dependencies.
+	#[track_caller]
 	pub fn new(run: F) -> Self
 	where
 		F: Fn() + 'static,
@@ -55,6 +61,8 @@ impl<F> Effect<F> {
 		// Create the effect
 		let inner = Inner {
 			suppressed: Cell::new(false),
+			#[cfg(debug_assertions)]
+			defined_loc: Location::caller(),
 			run,
 		};
 		let effect = Self { inner: Rc::new(inner) };
@@ -68,6 +76,7 @@ impl<F> Effect<F> {
 	/// Tries to create a new effect.
 	///
 	/// If the effects ends up being inert, returns `None`
+	#[track_caller]
 	pub fn try_new(run: F) -> Option<Self>
 	where
 		F: Fn() + 'static,
@@ -85,6 +94,12 @@ impl<F: ?Sized> Effect<F> {
 	#[must_use]
 	pub fn inner_fn(&self) -> &F {
 		&self.inner.run
+	}
+
+	/// Returns where this effect was defined
+	#[cfg(debug_assertions)]
+	pub(crate) fn defined_loc(&self) -> &'static Location<'static> {
+		self.inner.defined_loc
 	}
 
 	/// Downgrades this effect

@@ -21,6 +21,7 @@ pub struct Memo<T, F: ?Sized> {
 
 impl<T, F> Memo<T, F> {
 	/// Creates a new memo'd signal
+	#[track_caller]
 	pub fn new(f: F) -> Self
 	where
 		T: PartialEq + 'static,

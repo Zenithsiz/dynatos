@@ -21,6 +21,7 @@ pub struct LoadableSignal<F: Future> {
 
 impl<F: Future<Output = Result<T, E>>, T, E> LoadableSignal<F> {
 	/// Creates a new loadable signal from a future
+	#[track_caller]
 	pub fn new(fut: F) -> Self {
 		let inner = AsyncSignal::new(fut);
 		Self { inner }

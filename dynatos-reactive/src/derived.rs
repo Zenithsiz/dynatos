@@ -51,6 +51,7 @@ pub struct Derived<T, F: ?Sized> {
 
 impl<T, F> Derived<T, F> {
 	/// Creates a new derived signal
+	#[track_caller]
 	pub fn new(f: F) -> Self
 	where
 		T: 'static,

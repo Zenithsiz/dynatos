@@ -12,6 +12,7 @@ duplicate = { workspace = true }
 extend = { workspace = true }
 pin-cell = { workspace = true }
 pin-project = { workspace = true }
+tracing = { workspace = true }
 
 [lints]
 workspace = true

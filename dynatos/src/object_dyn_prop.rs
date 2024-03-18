@@ -13,6 +13,7 @@ use {
 #[extend::ext(name = ObjectDynProp)]
 pub impl js_sys::Object {
 	/// Adds a dynamic property to this object, where only the value is dynamic.
+	#[track_caller]
 	fn add_dyn_prop_value<K, V>(&self, key: K, value: V)
 	where
 		K: AsRef<str> + 'static,
@@ -59,6 +60,7 @@ where
 	/// Adds a dynamic property to this object, where only the value is dynamic.
 	///
 	/// Returns the object, for chaining
+	#[track_caller]
 	fn with_dyn_prop_value<K, V>(self, key: K, value: V) -> Self
 	where
 		K: AsRef<str> + 'static,

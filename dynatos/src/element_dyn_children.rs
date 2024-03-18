@@ -11,6 +11,7 @@ use {
 #[extend::ext(name = ElementDynChildren)]
 pub impl web_sys::Element {
 	/// Sets the children of this element
+	#[track_caller]
 	fn set_dyn_children<C>(&self, children: C)
 	where
 		C: WithDynNodes + 'static,
@@ -49,6 +50,7 @@ where
 	/// Sets the children of this element.
 	///
 	/// Returns the element, for chaining
+	#[track_caller]
 	fn with_dyn_children<C>(self, children: C) -> Self
 	where
 		C: WithDynNodes + 'static,

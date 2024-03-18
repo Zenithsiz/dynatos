@@ -41,6 +41,7 @@ impl<T> QueryArraySignal<T> {
 	/// Creates a new query signal for `key`.
 	///
 	/// Expects a context of type [`Location`](crate::Location).
+	#[track_caller]
 	pub fn new<K>(key: K) -> Self
 	where
 		T: FromStr + 'static,

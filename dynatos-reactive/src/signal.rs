@@ -54,6 +54,7 @@ pub struct Signal<T: ?Sized> {
 
 impl<T> Signal<T> {
 	/// Creates a new signal
+	#[track_caller]
 	pub fn new(value: T) -> Self {
 		let inner = Inner {
 			value:   RefCell::new(value),

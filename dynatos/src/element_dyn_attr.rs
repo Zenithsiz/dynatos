@@ -12,6 +12,7 @@ use {
 #[extend::ext(name = ElementDynAttr)]
 pub impl web_sys::Element {
 	/// Adds a dynamic attribute to this element
+	#[track_caller]
 	fn set_dyn_attr<K, V>(&self, key: K, value: V)
 	where
 		K: AsRef<str> + 'static,
@@ -44,6 +45,7 @@ pub impl web_sys::Element {
 	}
 
 	/// Adds a dynamic attribute to this element, with an empty value, given a predicate
+	#[track_caller]
 	fn set_dyn_attr_if<K, P>(&self, key: K, pred: P)
 	where
 		K: AsRef<str> + 'static,
@@ -62,6 +64,7 @@ where
 	/// Adds a dynamic attribute to this element, where only the value is dynamic.
 	///
 	/// Returns the element, for chaining
+	#[track_caller]
 	fn with_dyn_attr<K, V>(self, key: K, value: V) -> Self
 	where
 		K: AsRef<str> + 'static,
@@ -74,6 +77,7 @@ where
 	/// Adds a dynamic attribute to this element, without a value, given a predicate
 	///
 	/// Returns the element, for chaining
+	#[track_caller]
 	fn with_dyn_attr_if<K, P>(self, key: K, pred: P) -> Self
 	where
 		K: AsRef<str> + 'static,

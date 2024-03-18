@@ -6,7 +6,7 @@
 // Imports
 use {
 	crate::{Effect, WeakEffect},
-	core::{cell::RefCell, fmt, marker::Unsize},
+	core::{cell::RefCell, fmt, marker::Unsize, panic::Location},
 	std::{
 		collections::HashSet,
 		rc::{Rc, Weak},
@@ -18,12 +18,20 @@ use {
 pub struct Subscriber {
 	/// Effect
 	effect: WeakEffect<dyn Fn()>,
+
+	#[cfg(debug_assertions)]
+	/// Where this subscriber was defined
+	defined_loc: &'static Location<'static>,
 }
 
 /// Trigger inner
 struct Inner {
 	/// Subscribers
 	subscribers: RefCell<HashSet<Subscriber>>,
+
+	#[cfg(debug_assertions)]
+	/// Where this trigger was defined
+	defined_loc: &'static Location<'static>,
 }
 
 /// Trigger
@@ -35,9 +43,12 @@ pub struct Trigger {
 impl Trigger {
 	/// Creates a new trigger
 	#[must_use]
+	#[track_caller]
 	pub fn new() -> Self {
 		let inner = Inner {
 			subscribers: RefCell::new(HashSet::new()),
+			#[cfg(debug_assertions)]
+			defined_loc: Location::caller(),
 		};
 		Self { inner: Rc::new(inner) }
 	}
@@ -53,6 +64,7 @@ impl Trigger {
 	/// Adds a subscriber to this trigger.
 	///
 	/// Returns if the subscriber already existed.
+	#[track_caller]
 	pub fn add_subscriber<S: IntoSubscriber>(&self, subscriber: S) -> bool {
 		let mut subscribers = self.inner.subscribers.borrow_mut();
 		let new_effect = subscribers.insert(subscriber.into_subscriber());
@@ -62,6 +74,7 @@ impl Trigger {
 	/// Removes a subscriber from this trigger.
 	///
 	/// Returns if the subscriber existed
+	#[track_caller]
 	pub fn remove_subscriber<S: IntoSubscriber>(&self, subscriber: S) -> bool {
 		let mut subscribers = self.inner.subscribers.borrow_mut();
 		subscribers.remove(&subscriber.into_subscriber())
@@ -81,9 +94,19 @@ impl Trigger {
 		//       it to the main field?
 		let subscribers = self.inner.subscribers.borrow().iter().cloned().collect::<Vec<_>>();
 		for subscriber in subscribers {
-			if !subscriber.effect.try_run() {
+			let Some(effect) = subscriber.effect.upgrade() else {
 				self.remove_subscriber(subscriber);
-			}
+				continue;
+			};
+
+			#[cfg(debug_assertions)]
+			tracing::trace!(
+				effect_loc=%effect.defined_loc(),
+				subscriber_loc=%subscriber.defined_loc,
+				trigger_loc=%self.inner.defined_loc,
+				"Running effect due to trigger"
+			);
+			effect.run();
 		}
 	}
 }
@@ -159,8 +182,13 @@ impl<F> IntoSubscriber for T<F>
 where
 	F: ?Sized + Fn() + Unsize<dyn Fn()> + 'static,
 {
+	#[track_caller]
 	fn into_subscriber(self) -> Subscriber {
-		Subscriber { effect: effect_value }
+		Subscriber {
+			effect: effect_value,
+			#[cfg(debug_assertions)]
+			defined_loc: Location::caller(),
+		}
 	}
 }
 

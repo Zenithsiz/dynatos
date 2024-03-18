@@ -12,6 +12,7 @@ use {
 #[extend::ext(name = NodeDynText)]
 pub impl web_sys::Node {
 	/// Adds dynamic text to this node
+	#[track_caller]
 	fn set_dyn_text<T>(&self, text: T)
 	where
 		T: WithDynText + 'static,
@@ -44,6 +45,7 @@ where
 	/// Adds dynamic text to this node.
 	///
 	/// Returns the node, for chaining
+	#[track_caller]
 	fn with_dyn_text<T>(self, text: T) -> Self
 	where
 		T: WithDynText + 'static,

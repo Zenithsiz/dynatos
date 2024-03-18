@@ -115,6 +115,7 @@ dependencies = [
  "extend",
  "pin-cell",
  "pin-project",
+ "tracing",
 ]
 
 [[package]]

@@ -14,6 +14,7 @@ use {
 #[extend::ext(name = NodeDynChild)]
 pub impl web_sys::Node {
 	/// Adds a dynamic child to this node
+	#[track_caller]
 	fn add_dyn_child<C>(&self, child: C)
 	where
 		C: ToDynNode + 'static,
@@ -98,6 +99,7 @@ where
 	/// Adds a dynamic child to this node.
 	///
 	/// Returns the node, for chaining
+	#[track_caller]
 	fn with_dyn_child<C>(self, child: C) -> Self
 	where
 		C: ToDynNode + 'static,

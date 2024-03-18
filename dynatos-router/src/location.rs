@@ -27,6 +27,7 @@ impl Location {
 		reason = "We want locations to only be created explicitly"
 	)]
 	#[must_use]
+	#[track_caller]
 	pub fn new() -> Self {
 		let location = self::parse_location_url();
 		let inner = Inner { location };
