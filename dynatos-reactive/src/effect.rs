@@ -7,6 +7,8 @@
 //       which doesn't allow casting to `Rc<dyn Any>`, required by `Rc::downcast`.
 
 // Imports
+#[cfg(debug_assertions)]
+use core::panic::Location;
 use {
 	core::{
 		cell::{Cell, RefCell},
@@ -14,7 +16,6 @@ use {
 		hash::Hash,
 		marker::Unsize,
 		ops::CoerceUnsized,
-		panic::Location,
 	},
 	std::rc::{Rc, Weak},
 };

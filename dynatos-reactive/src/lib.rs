@@ -9,7 +9,8 @@
 	test,
 	associated_type_bounds,
 	thread_local,
-	lint_reasons
+	lint_reasons,
+	cfg_match
 )]
 
 // Modules

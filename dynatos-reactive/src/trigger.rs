@@ -6,11 +6,16 @@
 // Imports
 use {
 	crate::{Effect, WeakEffect},
-	core::{cell::RefCell, fmt, marker::Unsize, panic::Location},
+	core::{cell::RefCell, fmt, marker::Unsize},
 	std::{
-		collections::HashSet,
+		collections::{hash_map, HashMap},
 		rc::{Rc, Weak},
 	},
+};
+#[cfg(debug_assertions)]
+use {
+	core::{iter, panic::Location},
+	std::collections::HashSet,
 };
 
 /// Subscribers
@@ -18,16 +23,55 @@ use {
 pub struct Subscriber {
 	/// Effect
 	effect: WeakEffect<dyn Fn()>,
+}
 
+/// Subscriber info
+#[derive(Clone, Debug)]
+struct SubscriberInfo {
 	#[cfg(debug_assertions)]
 	/// Where this subscriber was defined
-	defined_loc: &'static Location<'static>,
+	defined_locs: HashSet<&'static Location<'static>>,
+}
+
+impl SubscriberInfo {
+	/// Creates new subscriber info.
+	#[track_caller]
+	#[cfg_attr(
+		not(debug_assertions),
+		expect(
+			clippy::missing_const_for_fn,
+			reason = "It can't be a `const fn` with `debug_assertions`"
+		)
+	)]
+	pub fn new() -> Self {
+		Self {
+			#[cfg(debug_assertions)]
+			defined_locs:                          iter::once(Location::caller()).collect(),
+		}
+	}
+
+	/// Updates this subscriber info
+	#[cfg_attr(
+		not(debug_assertions),
+		expect(clippy::unused_self, reason = "We use it with `debug_assertions`")
+	)]
+	pub fn update(&mut self) {
+		#[cfg(debug_assertions)]
+		self.defined_locs.insert(Location::caller());
+	}
 }
 
 /// Trigger inner
 struct Inner {
 	/// Subscribers
-	subscribers: RefCell<HashSet<Subscriber>>,
+	#[cfg_attr(
+		not(debug_assertions),
+		expect(
+			clippy::zero_sized_map_values,
+			reason = "It isn't zero-sized with `debug_assertions`"
+		)
+	)]
+	subscribers: RefCell<HashMap<Subscriber, SubscriberInfo>>,
 
 	#[cfg(debug_assertions)]
 	/// Where this trigger was defined
@@ -46,7 +90,14 @@ impl Trigger {
 	#[track_caller]
 	pub fn new() -> Self {
 		let inner = Inner {
-			subscribers: RefCell::new(HashSet::new()),
+			#[cfg_attr(
+				not(debug_assertions),
+				expect(
+					clippy::zero_sized_map_values,
+					reason = "It isn't zero-sized with `debug_assertions`"
+				)
+			)]
+			subscribers: RefCell::new(HashMap::new()),
 			#[cfg(debug_assertions)]
 			defined_loc: Location::caller(),
 		};
@@ -67,8 +118,16 @@ impl Trigger {
 	#[track_caller]
 	pub fn add_subscriber<S: IntoSubscriber>(&self, subscriber: S) -> bool {
 		let mut subscribers = self.inner.subscribers.borrow_mut();
-		let new_effect = subscribers.insert(subscriber.into_subscriber());
-		!new_effect
+		match subscribers.entry(subscriber.into_subscriber()) {
+			hash_map::Entry::Occupied(mut entry) => {
+				entry.get_mut().update();
+				true
+			},
+			hash_map::Entry::Vacant(entry) => {
+				entry.insert(SubscriberInfo::new());
+				false
+			},
+		}
 	}
 
 	/// Removes a subscriber from this trigger.
@@ -77,7 +136,7 @@ impl Trigger {
 	#[track_caller]
 	pub fn remove_subscriber<S: IntoSubscriber>(&self, subscriber: S) -> bool {
 		let mut subscribers = self.inner.subscribers.borrow_mut();
-		subscribers.remove(&subscriber.into_subscriber())
+		subscribers.remove(&subscriber.into_subscriber()).is_some()
 	}
 
 	/// Triggers this trigger.
@@ -92,20 +151,32 @@ impl Trigger {
 		// TODO: Have a 2nd field `to_add_subscribers` where subscribers are added if
 		//       the main field is locked, and after this loop move any subscribers from
 		//       it to the main field?
-		let subscribers = self.inner.subscribers.borrow().iter().cloned().collect::<Vec<_>>();
-		for subscriber in subscribers {
+		let subscribers = self
+			.inner
+			.subscribers
+			.borrow()
+			.iter()
+			.map(|(subscriber, info)| (subscriber.clone(), info.clone()))
+			.collect::<Vec<_>>();
+		for (subscriber, info) in subscribers {
 			let Some(effect) = subscriber.effect.upgrade() else {
 				self.remove_subscriber(subscriber);
 				continue;
 			};
 
 			#[cfg(debug_assertions)]
-			tracing::trace!(
-				effect_loc=%effect.defined_loc(),
-				subscriber_loc=%subscriber.defined_loc,
-				trigger_loc=%self.inner.defined_loc,
-				"Running effect due to trigger"
-			);
+			{
+				use itertools::Itertools;
+				tracing::trace!(
+					effect_loc=%effect.defined_loc(),
+					subscriber_locs=%info.defined_locs.iter().copied().map(Location::to_string).join(";"),
+					trigger_loc=%self.inner.defined_loc,
+					"Running effect due to trigger"
+				);
+			};
+			#[cfg(not(debug_assertions))]
+			let _: SubscriberInfo = info;
+
 			effect.run();
 		}
 	}
@@ -184,11 +255,7 @@ where
 {
 	#[track_caller]
 	fn into_subscriber(self) -> Subscriber {
-		Subscriber {
-			effect: effect_value,
-			#[cfg(debug_assertions)]
-			defined_loc: Location::caller(),
-		}
+		Subscriber { effect: effect_value }
 	}
 }
 

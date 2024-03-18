@@ -10,6 +10,7 @@ dynatos-util = { workspace = true }
 
 duplicate = { workspace = true }
 extend = { workspace = true }
+itertools = { workspace = true }
 pin-cell = { workspace = true }
 pin-project = { workspace = true }
 tracing = { workspace = true }

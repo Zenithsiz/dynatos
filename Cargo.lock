@@ -113,6 +113,7 @@ dependencies = [
  "dynatos-context",
  "dynatos-util",
  "extend",
+ "itertools",
  "pin-cell",
  "pin-project",
  "tracing",
