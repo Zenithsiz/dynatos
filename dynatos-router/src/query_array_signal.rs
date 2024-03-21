@@ -21,6 +21,7 @@ use {
 		SignalUpdate,
 		SignalWith,
 	},
+	dynatos_util::cloned,
 	std::rc::Rc,
 };
 
@@ -64,26 +65,23 @@ impl<T> QueryArraySignal<T> {
 		});
 
 		let inner = Signal::new(vec![]);
-		let update = Effect::new({
-			let inner = inner.clone();
-			let key = Rc::clone(&key);
-			move || {
-				let values = query_values
-					.borrow()
-					.iter()
-					.filter_map(|query_value| match query_value.parse::<T>() {
-						Ok(value) => Some(value),
-						Err(err) => {
-							tracing::warn!(?key, value=?query_value, ?err, "Unable to parse query");
-							None
-						},
-					})
-					.collect();
+		#[cloned(inner, key)]
+		let update = Effect::new(move || {
+			let values = query_values
+				.borrow()
+				.iter()
+				.filter_map(|query_value| match query_value.parse::<T>() {
+					Ok(value) => Some(value),
+					Err(err) => {
+						tracing::warn!(?key, value=?query_value, ?err, "Unable to parse query");
+						None
+					},
+				})
+				.collect();
 
-				// Then set it and the, now old, query value
-				tracing::info!(?key, "Updating inner");
-				inner.set(values);
-			}
+			// Then set it and the, now old, query value
+			tracing::info!(?key, "Updating inner");
+			inner.set(values);
 		});
 
 		Self {

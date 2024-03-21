@@ -21,6 +21,7 @@ use {
 		SignalUpdate,
 		SignalWith,
 	},
+	dynatos_util::cloned,
 	std::{collections::HashMap, rc::Rc},
 };
 
@@ -63,24 +64,21 @@ impl<T> QuerySignal<T> {
 		});
 
 		let inner = Signal::new(None);
-		let update = Effect::new({
-			let inner = inner.clone();
-			let key = Rc::clone(&key);
-			move || {
-				let value = query_value
-					.borrow()
-					.as_ref()
-					.and_then(|query_value| match query_value.parse::<T>() {
-						Ok(value) => Some(value),
-						Err(err) => {
-							tracing::warn!(?key, value=?query_value, ?err, "Unable to parse query");
-							None
-						},
-					});
+		#[cloned(inner, key)]
+		let update = Effect::new(move || {
+			let value = query_value
+				.borrow()
+				.as_ref()
+				.and_then(|query_value| match query_value.parse::<T>() {
+					Ok(value) => Some(value),
+					Err(err) => {
+						tracing::warn!(?key, value=?query_value, ?err, "Unable to parse query");
+						None
+					},
+				});
 
-				// Then set it
-				inner.set(value);
-			}
+			// Then set it
+			inner.set(value);
 		});
 
 		Self {

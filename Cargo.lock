@@ -158,10 +158,19 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "duplicate",
+ "dynatos-util-macros",
  "extend",
  "js-sys",
  "wasm-bindgen",
  "web-sys",
+]
+
+[[package]]
+name = "dynatos-util-macros"
+version = "0.1.0"
+dependencies = [
+ "quote",
+ "syn 2.0.50",
 ]
 
 [[package]]

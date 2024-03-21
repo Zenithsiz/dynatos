@@ -4,7 +4,7 @@
 use {
 	core::ops::{Deref, DerefMut},
 	dynatos_reactive::{signal, Signal, SignalBorrow, SignalBorrowMut, SignalUpdate, SignalWith},
-	dynatos_util::{ev, EventTargetAddListener},
+	dynatos_util::{cloned, ev, EventTargetAddListener},
 	url::Url,
 	wasm_bindgen::JsValue,
 };
@@ -35,12 +35,10 @@ impl Location {
 
 		// Add an event listener on the document for when the user navigates manually
 		let window = web_sys::window().expect("Unable to get window");
-		window.add_event_listener::<ev::PopState>({
-			let inner = inner.clone();
-			move |_ev| {
-				let new_location = self::parse_location_url();
-				inner.borrow_mut().location = new_location;
-			}
+		#[cloned(inner)]
+		window.add_event_listener::<ev::PopState>(move |_ev| {
+			let new_location = self::parse_location_url();
+			inner.borrow_mut().location = new_location;
 		});
 
 		Self(inner)

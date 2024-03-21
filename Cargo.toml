@@ -11,6 +11,7 @@ members = [
 	"dynatos-router",
 	"dynatos-title",
 	"dynatos-util",
+	"dynatos-util-macros",
 ]
 resolver = "2"
 
@@ -27,6 +28,7 @@ dynatos-reactive = { path = "dynatos-reactive" }
 dynatos-router = { path = "dynatos-router" }
 dynatos-title = { path = "dynatos-title" }
 dynatos-util = { path = "dynatos-util" }
+dynatos-util-macros = { path = "dynatos-util-macros" }
 
 anyhow = "1.0.79"
 convert_case = "0.6.0"
