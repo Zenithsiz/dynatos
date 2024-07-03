@@ -410,7 +410,7 @@ fn ty_param_to_ty(ty_param: syn::TypeParam) -> syn::Type {
 }
 
 /// Converts an identifier to a generic parameter
-fn ident_to_ty_param(ident: syn::Ident) -> syn::TypeParam {
+const fn ident_to_ty_param(ident: syn::Ident) -> syn::TypeParam {
 	syn::TypeParam {
 		attrs: vec![],
 		ident,

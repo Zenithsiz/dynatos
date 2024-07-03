@@ -7,8 +7,7 @@
 	test,
 	const_collections_with_hasher,
 	negative_impls,
-	decl_macro,
-	lint_reasons
+	decl_macro
 )]
 
 // Imports

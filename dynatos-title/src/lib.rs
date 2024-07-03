@@ -3,7 +3,7 @@
 // TODO: It seems that titles aren't getting dropped for some reason.
 
 // Features
-#![feature(lint_reasons, thread_local)]
+#![feature(thread_local)]
 
 // Imports
 use {core::cell::RefCell, dynatos_util::ObjectSetProp, wasm_bindgen::prelude::wasm_bindgen};

@@ -1,17 +1,7 @@
 //! Reactivity for `dynatos`
 
 // Features
-#![feature(
-	unsize,
-	coerce_unsized,
-	unboxed_closures,
-	fn_traits,
-	test,
-	associated_type_bounds,
-	thread_local,
-	lint_reasons,
-	cfg_match
-)]
+#![feature(unsize, coerce_unsized, unboxed_closures, fn_traits, test, thread_local, cfg_match)]
 
 // Modules
 pub mod async_signal;

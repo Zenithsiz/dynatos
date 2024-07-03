@@ -78,6 +78,7 @@ where
 /// - `impl Fn() -> Option<N>`
 /// - `N`
 /// - `Option<N>`
+///
 /// Where `N` is a dyn prop.
 pub trait ToDynProp {
 	/// Gets the current prop

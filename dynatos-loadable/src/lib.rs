@@ -1,7 +1,7 @@
 //! Loadable values for `dynatos`
 
 // Features
-#![feature(try_trait_v2, lint_reasons, never_type, extend_one)]
+#![feature(try_trait_v2, never_type, extend_one)]
 
 // Modules
 pub mod loadable;

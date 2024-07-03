@@ -116,6 +116,7 @@ where
 /// - `impl Fn() -> Option<N>`
 /// - `N`
 /// - `Option<N>`
+///
 /// Where `N` is a node type.
 pub trait ToDynNode {
 	/// Retrieves / Computes the inner node

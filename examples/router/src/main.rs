@@ -1,7 +1,7 @@
 //! Router example
 
 // Features
-#![feature(try_blocks, lazy_cell, lint_reasons, thread_local)]
+#![feature(try_blocks, thread_local)]
 
 // Imports
 use {

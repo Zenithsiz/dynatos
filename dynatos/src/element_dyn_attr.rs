@@ -94,6 +94,7 @@ where
 /// - `N`
 /// - `Signal<N>`
 /// - `impl Fn() -> N`
+///
 /// Where `N` is a text type.
 pub trait WithDynAttr {
 	/// Calls `f` with the inner attribute
@@ -185,6 +186,7 @@ where
 /// - `B`
 /// - `Signal<B>`
 /// - `impl Fn() -> B`
+///
 /// Where `B` is a boolean or type that implements `ToBoolDynAttr`
 pub trait DynAttrPred {
 	/// Evaluates this predicate
