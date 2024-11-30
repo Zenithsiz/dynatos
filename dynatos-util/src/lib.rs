@@ -1,7 +1,7 @@
 //! Utilities for `dynatos`
 
 // Features
-#![feature(decl_macro, never_type, try_trait_v2, control_flow_enum, new_uninit, cell_update)]
+#![feature(decl_macro, never_type, try_trait_v2, control_flow_enum, cell_update)]
 
 // Modules
 mod event_listener;
