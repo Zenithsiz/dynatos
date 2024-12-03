@@ -6,6 +6,7 @@ members = [
 	"dynatos-builder-macros",
 	"dynatos-context",
 	"dynatos-html",
+	"dynatos-html-macros",
 	"dynatos-loadable",
 	"dynatos-reactive",
 	"dynatos-router",
@@ -23,6 +24,7 @@ dynatos-builder = { path = "dynatos-builder" }
 dynatos-builder-macros = { path = "dynatos-builder-macros" }
 dynatos-context = { path = "dynatos-context" }
 dynatos-html = { path = "dynatos-html" }
+dynatos-html-macros = { path = "dynatos-html-macros" }
 dynatos-loadable = { path = "dynatos-loadable" }
 dynatos-reactive = { path = "dynatos-reactive" }
 dynatos-router = { path = "dynatos-router" }
@@ -38,8 +40,10 @@ itertools = "0.12.1"
 js-sys = "0.3.68"
 pin-cell = "0.2.0"
 pin-project = "1.1.4"
+proc-macro2 = "1.0.92"
 quote = "1.0.35"
 syn = "2.0.50"
+tl = "0.7.8"
 tracing = "0.1.40"
 tracing-subscriber = "0.3.18"
 tracing-web = "0.1.3"

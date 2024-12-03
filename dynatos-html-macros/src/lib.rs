@@ -1,0 +1,208 @@
+//! Macros for `dynatos-html`
+
+// Imports
+use {
+	proc_macro::TokenStream,
+	std::{
+		fs,
+		path::{Path, PathBuf},
+	},
+	syn::punctuated::Punctuated,
+};
+
+#[proc_macro]
+pub fn html(input: TokenStream) -> TokenStream {
+	let input_lit = syn::parse_macro_input!(input as syn::LitStr);
+	let input = input_lit.value();
+
+	self::parse_html(&input, input_lit.span(), None)
+}
+
+#[proc_macro]
+pub fn html_file(input: TokenStream) -> TokenStream {
+	let input_file_lit = syn::parse_macro_input!(input as syn::LitStr);
+	let input_file = PathBuf::from(input_file_lit.value());
+	let input_file = input_file.canonicalize().expect("Unable to canonicalize input file");
+	let input = fs::read_to_string(&input_file).expect("Unable to read file");
+
+	self::parse_html(&input, input_file_lit.span(), Some(&input_file))
+}
+
+/// Parses html from `input`
+fn parse_html(input: &str, span: proc_macro2::Span, dep_file: Option<&Path>) -> TokenStream {
+	// Parse the html and parse all the root nodes
+	let html = tl::parse(input, tl::ParserOptions::default()).expect("Unable to parse html");
+	let root = html
+		.children()
+		.iter()
+		.filter_map(|node| {
+			let node = node.get(html.parser()).expect("Expected node");
+			Node::from_html(&html, node, span)
+		})
+		.collect::<Vec<_>>();
+
+	// Check if all nodes have the same type.
+	// Note: This is so we can avoid the cast to `Node` if we can avoid it, and
+	//       instead keep all the root nodes as their own types.
+	let root_ty_all_eq = root
+		.iter()
+		.try_fold(None, |cur_ty, node| match cur_ty {
+			Some(cur_ty) => match cur_ty == node.ty {
+				true => Some(Some(node.ty)),
+				false => None,
+			},
+			None => Some(Some(node.ty)),
+		})
+		.flatten()
+		.is_some();
+
+	// Then quote all the root nodes
+	let root = root
+		.into_iter()
+		.map(|node| match root_ty_all_eq {
+			true => quote::quote! { #node },
+			false => quote::quote! { web_sys::Node::from(#node) },
+		})
+		.collect::<Punctuated<_, syn::Token![,]>>();
+
+	// Quote the dependency file, if we have one
+	let dep = match dep_file {
+		Some(dep_file) => {
+			let dep_file = dep_file.display().to_string();
+			quote::quote! { const _: &[u8] = include_bytes!(#dep_file); }
+		},
+		None => quote::quote! {},
+	};
+
+	TokenStream::from(quote::quote! {{
+		#dep
+		[#root]
+	}})
+}
+
+#[derive(PartialEq, Eq, Clone, Copy, Debug)]
+enum NodeTy {
+	/// An html element
+	Element,
+
+	/// A text element
+	Text,
+
+	/// A comment
+	Comment,
+
+	/// A generic expression
+	Expr,
+}
+
+#[derive(Clone, Debug)]
+struct Node {
+	ty:   NodeTy,
+	expr: syn::Expr,
+}
+
+impl Node {
+	/// Parses a node `node` from an html node.
+	///
+	/// Returns `None` is `node` is an empty text element.
+	fn from_html(html: &tl::VDom<'_>, node: &tl::Node, span: proc_macro2::Span) -> Option<Self> {
+		let node = match node {
+			// If it's a tag with an empty name, this is an expression
+			tl::Node::Tag(tag) if tag.name().as_bytes().is_empty() => {
+				let expr = tag.inner_text(html.parser());
+				let expr = syn::parse_str(&expr).expect("Unable to parse placeholder");
+				Self { ty: NodeTy::Expr, expr }
+			},
+
+			// Otherwise, it's a normal tag
+			tl::Node::Tag(tag) => {
+				let name = tag.name().as_utf8_str();
+				let name = syn::Ident::new(&name, span);
+
+				// The element name for building it.
+				// Note: The name won't ever conflict with anything else due to it's `mixed_site` span.
+				let el = syn::Ident::new("el", proc_macro2::Span::mixed_site());
+
+				// Adds all attributes to the element
+				let add_attrs = tag
+					.attributes()
+					.iter()
+					.map(|(tag, value)| {
+						let value = value.unwrap_or_default();
+						quote::quote! {
+							dynatos_html::ElementWithAttr::with_attr(&#el, #tag, #value);
+						}
+					})
+					.collect::<Vec<_>>();
+
+				// Adds all children to the element
+				//
+				// Note: Unlike at the top-level, here we don't care to cast
+				//       all children to the type, as we'll be adding them separately.
+				// TODO: If we only contain text nodes, should we collect them all and
+				//       use `set_text_content` instead?
+				let add_children = tag
+					.children()
+					.top()
+					.iter()
+					.filter_map(|child| {
+						let child = child.get(html.parser()).expect("Expected node");
+						let child = Self::from_html(html, child, span)?;
+						Some(quote::quote! {
+							dynatos_html::NodeAddChildren::add_child(&#el, #child);
+						})
+					})
+					.collect::<Vec<_>>();
+
+				Self {
+					ty:   NodeTy::Element,
+					expr: syn::parse_quote! {{
+						let #el = dynatos_html::html::#name();
+						#(#add_attrs)*
+						#(#add_children)*
+						#el
+					}},
+				}
+			},
+			tl::Node::Raw(bytes) => {
+				let text = bytes.as_utf8_str();
+
+				// If we're an empty text node, return `None`.
+				if text.trim().is_empty() {
+					return None;
+				}
+
+				Self {
+					ty:   NodeTy::Text,
+					expr: syn::parse_quote!(
+						dynatos_html::text(#text)
+					),
+				}
+			},
+			tl::Node::Comment(bytes) => {
+				// TODO: Not have to strip `<!--[...]-->`?
+				let comment = bytes.as_utf8_str();
+				let comment = comment
+					.strip_prefix("<!--")
+					.expect("Expected comment to start with `<!--`")
+					.strip_suffix("-->")
+					.expect("Expected comment to end with `-->`");
+
+				Self {
+					ty:   NodeTy::Comment {},
+					expr: syn::parse_quote!(
+						dynatos_html::comment(#comment)
+					),
+				}
+			},
+		};
+
+		Some(node)
+	}
+}
+
+impl quote::ToTokens for Node {
+	fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+		self.expr.to_tokens(tokens);
+	}
+}

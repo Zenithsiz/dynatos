@@ -9,6 +9,25 @@ pub mod html;
 // Imports
 use {itertools::Itertools, wasm_bindgen::JsValue};
 
+/// Parses an html string into an array.
+///
+/// # Expression
+/// This macro supports expressions using an empty tag: `<>this_is_a_variable</>`
+///
+/// # Output type
+/// The type will be `[Node; _]` if there are both `Element`s and `Text` nodes in the html.
+///
+/// Otherwise, it will be `[Element; _]` / `[Text; _]` / `[Comment; _]` / `[<expr-ty>; _]` if there are
+/// only elements, text nodes, comments, or expressions, respectively.
+#[doc(inline)]
+pub use dynatos_html_macros::html;
+
+/// Parses an html file into an array.
+///
+/// See [`html!`] for more details
+#[doc(inline)]
+pub use dynatos_html_macros::html_file;
+
 /// Creates a text node
 #[must_use]
 pub fn text(data: &str) -> web_sys::Text {
