@@ -105,9 +105,10 @@ impl<'a> Drop for BorrowRefMut<'a> {
 		let history = window.history().expect("Unable to get history");
 
 		// Push the new location into history
-		history
-			.push_state_with_url(&JsValue::UNDEFINED, "", Some(self.0.location.as_str()))
-			.expect("Unable to push history");
+		match history.push_state_with_url(&JsValue::UNDEFINED, "", Some(self.0.location.as_str())) {
+			Ok(()) => tracing::info!("Pushed history: {:?}", self.0.location.as_str()),
+			Err(err) => tracing::error!("Unable to push history {:?}: {err:?}", self.0.location.as_str()),
+		}
 	}
 }
 
