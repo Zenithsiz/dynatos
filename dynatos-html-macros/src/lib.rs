@@ -128,9 +128,22 @@ impl Node {
 					.attributes()
 					.iter()
 					.map(|(tag, value)| {
-						let value = value.unwrap_or_default();
-						quote::quote! {
-							dynatos_html::ElementWithAttr::with_attr(&#el, #tag, #value);
+						// If the tag name starts with a `:`, the value should be an expression
+						match tag.strip_prefix(":") {
+							Some(tag) => {
+								// Use the tag as the value if none is provided
+								let value = value.as_deref().unwrap_or(tag);
+								let value = syn::Ident::new(value, span);
+								quote::quote! {
+									dynatos_html::ElementWithAttr::with_attr(&#el, #tag, #value);
+								}
+							},
+							None => {
+								let value = value.unwrap_or_default();
+								quote::quote! {
+									dynatos_html::ElementWithAttr::with_attr(&#el, #tag, #value);
+								}
+							},
 						}
 					})
 					.collect::<Vec<_>>();
