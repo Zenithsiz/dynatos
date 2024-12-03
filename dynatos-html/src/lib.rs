@@ -24,6 +24,22 @@ where
 	}
 }
 
+/// Extension trait to set the inner html in a builder-style.
+#[extend::ext_sized(name = ElementWithInnerHtml)]
+pub impl<T> T
+where
+	T: AsRef<web_sys::Element>,
+{
+	fn with_inner_html<C>(self, html: C) -> Self
+	where
+		C: AsTextContent,
+	{
+		// TODO: Is a default of `""` fine here?
+		self.as_ref().set_inner_html(html.as_text().unwrap_or(""));
+		self
+	}
+}
+
 /// Types that may be used for [`NodeWithText`]
 pub trait AsTextContent {
 	/// Returns the text
