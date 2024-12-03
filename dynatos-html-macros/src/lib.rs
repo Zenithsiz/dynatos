@@ -63,7 +63,16 @@ fn parse_html(input: &str, span: proc_macro2::Span, dep_file: Option<&Path>) -> 
 			true => quote::quote! { #node },
 			false => quote::quote! { web_sys::Node::from(#node) },
 		})
-		.collect::<Punctuated<_, syn::Token![,]>>();
+		.collect::<Vec<_>>();
+
+	// And finally pack them all into an array, or return the single node
+	let root = match &*root {
+		[root] => quote::quote! { #root },
+		_ => {
+			let root = root.into_iter().collect::<Punctuated<_, syn::Token![,]>>();
+			quote::quote! { [#root] }
+		},
+	};
 
 	// Quote the dependency file, if we have one
 	let dep = match dep_file {
@@ -76,7 +85,7 @@ fn parse_html(input: &str, span: proc_macro2::Span, dep_file: Option<&Path>) -> 
 
 	TokenStream::from(quote::quote! {{
 		#dep
-		[#root]
+		#root
 	}})
 }
 
