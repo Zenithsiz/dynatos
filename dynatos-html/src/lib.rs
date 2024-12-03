@@ -9,6 +9,26 @@ pub mod html;
 // Imports
 use {itertools::Itertools, wasm_bindgen::JsValue};
 
+/// Creates a text node
+#[must_use]
+pub fn text(data: &str) -> web_sys::Text {
+	// TODO: Cache the document in a thread local?
+	let window = web_sys::window().expect("Unable to get window");
+	let document = window.document().expect("Unable to get document");
+
+	document.create_text_node(data)
+}
+
+/// Creates a comment node
+#[must_use]
+pub fn comment(data: &str) -> web_sys::Comment {
+	// TODO: Cache the document in a thread local?
+	let window = web_sys::window().expect("Unable to get window");
+	let document = window.document().expect("Unable to get document");
+
+	document.create_comment(data)
+}
+
 /// Extension trait to set the text content in a builder-style.
 #[extend::ext_sized(name = NodeWithText)]
 pub impl<T> T
