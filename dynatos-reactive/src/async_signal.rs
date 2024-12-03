@@ -150,7 +150,8 @@ impl<'a, T> Deref for BorrowRef<'a, T> {
 }
 
 impl<F: Future> SignalBorrow for AsyncSignal<F> {
-	type Ref<'a> = Option<BorrowRef<'a, F::Output>>
+	type Ref<'a>
+		= Option<BorrowRef<'a, F::Output>>
 	where
 		Self: 'a;
 
@@ -217,7 +218,8 @@ impl<'a, T> DerefMut for BorrowRefMut<'a, T> {
 }
 
 impl<F: Future> SignalBorrowMut for AsyncSignal<F> {
-	type RefMut<'a> = Option<BorrowRefMut<'a, F::Output>>
+	type RefMut<'a>
+		= Option<BorrowRefMut<'a, F::Output>>
 	where
 		Self: 'a;
 

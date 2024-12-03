@@ -49,7 +49,8 @@ where
 }
 
 impl<S: SignalBorrow, T> SignalBorrow for WithDefault<S, T> {
-	type Ref<'a> = BorrowRef<'a, S, T>
+	type Ref<'a>
+		= BorrowRef<'a, S, T>
 	where
 		Self: 'a;
 
@@ -136,7 +137,8 @@ where
 	for<'a> S::RefMut<'a>: DerefMut<Target = Option<T>>,
 	T: Copy,
 {
-	type RefMut<'a> = BorrowRefMut<'a, S>
+	type RefMut<'a>
+		= BorrowRefMut<'a, S>
 	where
 		Self: 'a;
 

@@ -51,7 +51,8 @@ impl<'a, T> Deref for BorrowRef<'a, T> {
 }
 
 impl<T: 'static, F: ?Sized> SignalBorrow for Memo<T, F> {
-	type Ref<'a> = BorrowRef<'a, T>
+	type Ref<'a>
+		= BorrowRef<'a, T>
 	where
 		Self: 'a;
 

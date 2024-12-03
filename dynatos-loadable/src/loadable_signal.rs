@@ -88,7 +88,8 @@ impl<'a, T, E> Deref for BorrowRef<'a, T, E> {
 }
 
 impl<F: Future<Output = Result<T, E>> + 'static, T: 'static, E: Clone + 'static> SignalBorrow for LoadableSignal<F> {
-	type Ref<'a> = Loadable<BorrowRef<'a, T, E>, E>
+	type Ref<'a>
+		= Loadable<BorrowRef<'a, T, E>, E>
 	where
 		Self: 'a;
 
@@ -141,7 +142,8 @@ impl<'a, T, E> DerefMut for BorrowRefMut<'a, T, E> {
 }
 
 impl<F: Future<Output = Result<T, E>>, T: 'static, E: Clone + 'static> SignalBorrowMut for LoadableSignal<F> {
-	type RefMut<'a> = Loadable<BorrowRefMut<'a, T, E>, E>
+	type RefMut<'a>
+		= Loadable<BorrowRefMut<'a, T, E>, E>
 	where
 		Self: 'a;
 

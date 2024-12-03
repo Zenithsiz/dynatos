@@ -58,7 +58,8 @@ impl<'a> Deref for BorrowRef<'a> {
 }
 
 impl SignalBorrow for Location {
-	type Ref<'a> = BorrowRef<'a>
+	type Ref<'a>
+		= BorrowRef<'a>
 	where
 		Self: 'a;
 
@@ -113,7 +114,8 @@ impl<'a> Drop for BorrowRefMut<'a> {
 }
 
 impl SignalBorrowMut for Location {
-	type RefMut<'a> = BorrowRefMut<'a>
+	type RefMut<'a>
+		= BorrowRefMut<'a>
 	where
 		Self: 'a;
 

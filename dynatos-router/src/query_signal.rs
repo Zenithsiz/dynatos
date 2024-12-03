@@ -102,7 +102,8 @@ impl<'a, T> Deref for BorrowRef<'a, T> {
 }
 
 impl<T: 'static> SignalBorrow for QuerySignal<T> {
-	type Ref<'a> = Option<BorrowRef<'a, T>>
+	type Ref<'a>
+		= Option<BorrowRef<'a, T>>
 	where
 		Self: 'a;
 
@@ -205,7 +206,8 @@ impl<T> SignalBorrowMut for QuerySignal<T>
 where
 	T: ToString + 'static,
 {
-	type RefMut<'a> = BorrowRefMut<'a, T>
+	type RefMut<'a>
+		= BorrowRefMut<'a, T>
 	where
 		Self: 'a;
 

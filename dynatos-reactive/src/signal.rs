@@ -87,7 +87,8 @@ impl<'a, T: ?Sized> Deref for BorrowRef<'a, T> {
 }
 
 impl<T: ?Sized + 'static> SignalBorrow for Signal<T> {
-	type Ref<'a> = BorrowRef<'a, T>
+	type Ref<'a>
+		= BorrowRef<'a, T>
 	where
 		Self: 'a;
 
@@ -164,9 +165,10 @@ impl<'a, T: ?Sized> DerefMut for BorrowRefMut<'a, T> {
 }
 
 impl<T: ?Sized + 'static> SignalBorrowMut for Signal<T> {
-	type RefMut<'a> = BorrowRefMut<'a, T>
-		where
-			Self: 'a;
+	type RefMut<'a>
+		= BorrowRefMut<'a, T>
+	where
+		Self: 'a;
 
 	#[track_caller]
 	fn borrow_mut(&self) -> Self::RefMut<'_> {
