@@ -1,5 +1,8 @@
 //! Macros for `dynatos-html`
 
+// Features
+#![feature(if_let_guard)]
+
 // Imports
 use {
 	dynatos_html_parser::{XHtml, XHtmlNode},
@@ -145,9 +148,9 @@ impl Node {
 					.attrs
 					.iter()
 					.map(|(tag, value)| {
-						// If the tag name starts with a `:`, the value should be an expression
-						match tag.strip_prefix(":") {
-							Some(tag) => {
+						match tag {
+							// If the tag name starts with a `:`, the value should be an expression
+							tag if let Some(tag) = tag.strip_prefix(":") => {
 								// Use the tag as the value if none is provided
 								let value = value.as_deref().unwrap_or(tag);
 								let value = syn::Ident::new(value, span);
@@ -155,7 +158,23 @@ impl Node {
 									dynatos_html::ElementWithAttr::with_attr(&#el, #tag, #value);
 								}
 							},
-							None => {
+
+							// If the tag name starts with a `@`, the value should be an event listener
+							tag if let Some(tag) = tag.strip_prefix("@") => {
+								// Use the tag as the event type
+								let tag = syn::Ident::new(tag, span);
+
+								// Use the value as the function handler
+								let value = value.as_deref().expect("Event listener needs a value");
+								let value =
+									syn::parse_str::<syn::Expr>(value).expect("Unable to parse event listener value");
+
+								quote::quote! {
+									dynatos_util::EventTargetAddListener::add_event_listener::<dynatos_util::ev::#tag>(&#el, #value);
+								}
+							},
+
+							_ => {
 								let value = value.unwrap_or_default();
 								quote::quote! {
 									dynatos_html::ElementWithAttr::with_attr(&#el, #tag, #value);

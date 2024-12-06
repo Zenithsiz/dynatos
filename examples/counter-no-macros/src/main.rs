@@ -1,13 +1,11 @@
-//! Counter example
-
-// Features
-#![feature(stmt_expr_attributes, proc_macro_hygiene)]
+//! Counter example (without any macros)
 
 // Imports
 use {
-	dynatos_html::html,
+	dynatos::NodeWithDynText,
+	dynatos_html::{html, NodeWithChildren, NodeWithText},
 	dynatos_reactive::{Signal, SignalBorrowMut, SignalGet, SignalSet},
-	dynatos_util::{cloned, JsResultContext},
+	dynatos_util::{ev, EventTargetWithListener, JsResultContext},
 	tracing_subscriber::prelude::*,
 	web_sys::Element,
 };
@@ -43,20 +41,25 @@ fn run() -> Result<(), anyhow::Error> {
 
 fn counter() -> Element {
 	let value = Signal::new(0);
-
-	#[cloned(value)]
-	let clear = move |_ev| value.set(0);
-	#[cloned(value)]
-	let add = move |_ev| *value.borrow_mut() += 1;
-	#[cloned(value)]
-	let sub = move |_ev| *value.borrow_mut() -= 1;
-
-	html!(
-		"<div>
-			<button @Click=clear>Clear</button>
-			<button @Click=add>+</button>
-			<button @Click=sub>-</button>
-			<span>Value: %{value.get()}%.</span>
-		</div>"
-	)
+	html::div().with_children([
+		{
+			let value = value.clone();
+			html::button()
+				.with_text("Clear")
+				.with_event_listener::<ev::Click>(move |_ev| value.set(0))
+		},
+		{
+			let value = value.clone();
+			html::button()
+				.with_text("+")
+				.with_event_listener::<ev::Click>(move |_ev| *value.borrow_mut() += 1)
+		},
+		{
+			let value = value.clone();
+			html::button()
+				.with_text("-")
+				.with_event_listener::<ev::Click>(move |_ev| *value.borrow_mut() -= 1)
+		},
+		html::span().with_dyn_text(move || format!("Value: {}.", value.get())),
+	])
 }
