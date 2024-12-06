@@ -5,7 +5,6 @@
 
 // Imports
 use {
-	dynatos::NodeWithDynText,
 	dynatos_html::{html, NodeWithChildren, NodeWithText},
 	dynatos_reactive::{Signal, SignalBorrowMut, SignalGet, SignalSet},
 	dynatos_util::{cloned, ev, EventTargetWithListener, JsResultContext},
@@ -57,7 +56,6 @@ fn counter() -> Element {
 		html::button()
 			.with_text("-")
 			.with_event_listener::<ev::Click>(move |_ev| *value.borrow_mut() -= 1),
-		#[cloned(value)]
-		html::span().with_dyn_text(move || format!("Value: {}.", value.get())),
+		html!("<span>Value: %{value.get()}%.</span>"),
 	])
 }

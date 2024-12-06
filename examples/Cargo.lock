@@ -98,6 +98,7 @@ name = "dynatos-html-macros"
 version = "0.1.0"
 dependencies = [
  "dynatos-html-parser",
+ "itertools",
  "proc-macro2",
  "quote",
  "syn 2.0.53",

@@ -3,6 +3,7 @@
 // Imports
 use {
 	dynatos_html_parser::{XHtml, XHtmlNode},
+	itertools::Itertools,
 	proc_macro::TokenStream,
 	std::{
 		fs,
@@ -197,11 +198,37 @@ impl Node {
 					return None;
 				}
 
+				let args = self::split_text_args(text);
+
+				// If we have just a single constant argument, return a simple version
+				if let [TextArg::Cons(text)] = &*args {
+					return Some(Self {
+						ty:   NodeTy::Text,
+						expr: syn::parse_quote!(
+							dynatos_html::text(#text)
+						),
+					});
+				};
+
+				let (cons, args) = args
+					.into_iter()
+					.partition_map::<Vec<_>, Vec<_>, _, _, _>(|arg| match arg {
+						TextArg::Cons(text) => itertools::Either::Left(text),
+						TextArg::Argument(arg) => itertools::Either::Right(arg),
+					});
+
+				let fmt = cons.into_iter().join("{}");
+				let args = args
+					.into_iter()
+					.map(|arg| syn::parse_str::<syn::Expr>(arg).expect("Unable to parse argument expression"))
+					.collect::<Vec<_>>();
+
 				Self {
 					ty:   NodeTy::Text,
-					expr: syn::parse_quote!(
-						dynatos_html::text(#text)
-					),
+					expr: syn::parse_quote!(dynatos::NodeWithDynText::with_dyn_text(
+						dynatos_html::text(""),
+						move || format!(#fmt, #(#args),*)
+					)),
 				}
 			},
 			XHtmlNode::Comment(comment) => Self {
@@ -220,4 +247,36 @@ impl quote::ToTokens for Node {
 	fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
 		self.expr.to_tokens(tokens);
 	}
+}
+
+enum TextArg<'a> {
+	/// Constant
+	Cons(&'a str),
+
+	/// Argument
+	Argument(&'a str),
+}
+
+/// Splits a string into constants and arguments
+fn split_text_args(mut text: &str) -> Vec<TextArg> {
+	let mut args = vec![];
+	while !text.is_empty() {
+		// Find the first escape
+		#[expect(clippy::mixed_read_write_in_expression, reason = "False positive")]
+		let Some(start) = text.find("%{") else {
+			args.push(TextArg::Cons(text));
+			text = &text[text.len()..];
+			continue;
+		};
+
+		let Some(end) = text[start..].find("}%") else {
+			panic!("Expected `}}%`, found {:?}", &text[start..]);
+		};
+
+		args.push(TextArg::Cons(&text[..start]));
+		args.push(TextArg::Argument(&text[start..][2..end]));
+		text = &text[start..][end + 2..];
+	}
+
+	args
 }
