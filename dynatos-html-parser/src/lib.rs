@@ -232,20 +232,23 @@ struct ParsedElementAttrs<'a> {
 /// followed with `>` or `/>`.
 fn parse_element_attrs<'a>(s: &mut &'a str) -> Result<ParsedElementAttrs<'a>, anyhow::Error> {
 	let mut is_self_closing = false;
-	let attrs = iter::from_fn(|| match self::eat(s, '>') {
-		Some(_) => None,
-		None => {
-			if self::eat(s, "/>").is_some() {
-				is_self_closing = true;
-				return None;
-			}
-			let Some(attr) = self::parse_ident(s) else {
-				return Some(Err(anyhow::anyhow!("Expected identifier, found {s:?}")));
-			};
-			let value = self::eat(s, '=').map(|_| self::parse_attr_value(s)).transpose();
+	let attrs = iter::from_fn(|| {
+		self::eat_whitespace(s);
+		match self::eat(s, '>') {
+			Some(_) => None,
+			None => {
+				if self::eat(s, "/>").is_some() {
+					is_self_closing = true;
+					return None;
+				}
+				let Some(attr) = self::parse_ident(s) else {
+					return Some(Err(anyhow::anyhow!("Expected identifier, found {s:?}")));
+				};
+				let value = self::eat(s, '=').map(|_| self::parse_attr_value(s)).transpose();
 
-			Some(try { (attr, value?) })
-		},
+				Some(try { (attr, value?) })
+			},
+		}
 	})
 	.collect::<Result<_, anyhow::Error>>()
 	.context("Unable to parse all attributes")?;
