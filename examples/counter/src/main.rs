@@ -5,7 +5,7 @@
 
 // Imports
 use {
-	dynatos::{ElementWithDynAttr, NodeWithDynText},
+	dynatos::NodeWithDynText,
 	dynatos_html::{html, NodeWithChildren, NodeWithText},
 	dynatos_reactive::{Signal, SignalBorrowMut, SignalGet, SignalSet},
 	dynatos_util::{cloned, ev, EventTargetWithListener, JsResultContext},
@@ -44,27 +44,22 @@ fn run() -> Result<(), anyhow::Error> {
 
 fn counter() -> Element {
 	let value = Signal::new(0);
-	html::div()
-		.with_dyn_attr("data-value", {
-			#[cloned(value)]
-			move || Some(value.get().to_string())
-		})
-		.with_children([
-			#[cloned(value)]
-			html::button()
-				.with_text("Clear")
-				.with_event_listener::<ev::Click>(move |_ev| {
-					value.set(0);
-				}),
-			#[cloned(value)]
-			html::button()
-				.with_text("+")
-				.with_event_listener::<ev::Click>(move |_ev| *value.borrow_mut() += 1),
-			#[cloned(value)]
-			html::button()
-				.with_text("-")
-				.with_event_listener::<ev::Click>(move |_ev| *value.borrow_mut() -= 1),
-			#[cloned(value)]
-			html::span().with_dyn_text(move || format!("Value: {}.", value.get())),
-		])
+	html::div().with_children([
+		#[cloned(value)]
+		html::button()
+			.with_text("Clear")
+			.with_event_listener::<ev::Click>(move |_ev| {
+				value.set(0);
+			}),
+		#[cloned(value)]
+		html::button()
+			.with_text("+")
+			.with_event_listener::<ev::Click>(move |_ev| *value.borrow_mut() += 1),
+		#[cloned(value)]
+		html::button()
+			.with_text("-")
+			.with_event_listener::<ev::Click>(move |_ev| *value.borrow_mut() -= 1),
+		#[cloned(value)]
+		html::span().with_dyn_text(move || format!("Value: {}.", value.get())),
+	])
 }
