@@ -6,7 +6,6 @@
 // Imports
 use {
 	dynatos_html_parser::{XHtml, XHtmlNode},
-	itertools::Itertools,
 	proc_macro::TokenStream,
 	std::{
 		fs,
@@ -227,17 +226,24 @@ impl Node {
 					});
 				};
 
-				let (cons, args) = args
-					.into_iter()
-					.partition_map::<Vec<_>, Vec<_>, _, _, _>(|arg| match arg {
-						TextArg::Cons(text) => itertools::Either::Left(text),
-						TextArg::Argument(arg) => itertools::Either::Right(arg),
-					});
+				// Otherwise, we'll format a string with dynamic text
+				let fmt = args
+					.iter()
+					.map(|arg| match arg {
+						TextArg::Cons(text) => text,
+						TextArg::Argument(_) => "{}",
+					})
+					.collect::<String>();
 
-				let fmt = cons.into_iter().join("{}");
 				let args = args
 					.into_iter()
-					.map(|arg| syn::parse_str::<syn::Expr>(arg).expect("Unable to parse argument expression"))
+					.filter_map(|arg| match arg {
+						TextArg::Cons(_) => None,
+						TextArg::Argument(arg) => {
+							let arg = syn::parse_str::<syn::Expr>(arg).expect("Unable to parse argument expression");
+							Some(arg)
+						},
+					})
 					.collect::<Vec<_>>();
 
 				Self {
