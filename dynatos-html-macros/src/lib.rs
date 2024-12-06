@@ -2,6 +2,7 @@
 
 // Imports
 use {
+	dynatos_html_parser::{XHtml, XHtmlNode},
 	proc_macro::TokenStream,
 	std::{
 		fs,
@@ -31,14 +32,11 @@ pub fn html_file(input: TokenStream) -> TokenStream {
 /// Parses html from `input`
 fn parse_html(input: &str, span: proc_macro2::Span, dep_file: Option<&Path>) -> TokenStream {
 	// Parse the html and parse all the root nodes
-	let html = tl::parse(input, tl::ParserOptions::default()).expect("Unable to parse html");
+	let html = XHtml::parse(input).expect("Unable to parse html");
 	let root = html
-		.children()
+		.children
 		.iter()
-		.filter_map(|node| {
-			let node = node.get(html.parser()).expect("Expected node");
-			Node::from_html(&html, node, span)
-		})
+		.filter_map(|node| Node::from_html(node, span))
 		.collect::<Vec<_>>();
 
 	// Check if all nodes have the same type.
@@ -114,27 +112,26 @@ impl Node {
 	/// Parses a node `node` from an html node.
 	///
 	/// Returns `None` is `node` is an empty text element.
-	fn from_html(html: &tl::VDom<'_>, node: &tl::Node, span: proc_macro2::Span) -> Option<Self> {
+	fn from_html(node: &XHtmlNode, span: proc_macro2::Span) -> Option<Self> {
 		let node = match node {
-			// If it's a tag with an empty name, this is an expression
-			tl::Node::Tag(tag) if tag.name().as_bytes().is_empty() => {
-				let expr = tag.inner_text(html.parser());
-				let expr = syn::parse_str(&expr).expect("Unable to parse placeholder");
+			// If it's an element with an empty name, this is an expression
+			XHtmlNode::Element(element) if element.name.as_bytes().is_empty() => {
+				let inner = element.inner.expect("Expression cannot be self-closing");
+				let expr = syn::parse_str(inner).expect("Unable to parse placeholder");
 				Self { ty: NodeTy::Expr, expr }
 			},
 
-			// Otherwise, it's a normal tag
-			tl::Node::Tag(tag) => {
-				let name = tag.name().as_utf8_str();
-				let name = syn::Ident::new(&name, span);
+			// Otherwise, it's a normal element
+			XHtmlNode::Element(element) => {
+				let name = syn::Ident::new(element.name, span);
 
 				// The element name for building it.
 				// Note: The name won't ever conflict with anything else due to it's `mixed_site` span.
 				let el = syn::Ident::new("el", proc_macro2::Span::mixed_site());
 
 				// Adds all attributes to the element
-				let add_attrs = tag
-					.attributes()
+				let add_attrs = element
+					.attrs
 					.iter()
 					.map(|(tag, value)| {
 						// If the tag name starts with a `:`, the value should be an expression
@@ -163,13 +160,11 @@ impl Node {
 				//       all children to the type, as we'll be adding them separately.
 				// TODO: If we only contain text nodes, should we collect them all and
 				//       use `set_text_content` instead?
-				let add_children = tag
-					.children()
-					.top()
+				let add_children = element
+					.children
 					.iter()
 					.filter_map(|child| {
-						let child = child.get(html.parser()).expect("Expected node");
-						let child = Self::from_html(html, child, span)?;
+						let child = Self::from_html(child, span)?;
 						Some(quote::quote! {
 							dynatos_html::NodeAddChildren::add_child(&#el, #child);
 						})
@@ -186,9 +181,7 @@ impl Node {
 					}},
 				}
 			},
-			tl::Node::Raw(bytes) => {
-				let text = bytes.as_utf8_str();
-
+			XHtmlNode::Text(text) => {
 				// If we're an empty text node, return `None`.
 				if text.trim().is_empty() {
 					return None;
@@ -201,21 +194,11 @@ impl Node {
 					),
 				}
 			},
-			tl::Node::Comment(bytes) => {
-				// TODO: Not have to strip `<!--[...]-->`?
-				let comment = bytes.as_utf8_str();
-				let comment = comment
-					.strip_prefix("<!--")
-					.expect("Expected comment to start with `<!--`")
-					.strip_suffix("-->")
-					.expect("Expected comment to end with `-->`");
-
-				Self {
-					ty:   NodeTy::Comment {},
-					expr: syn::parse_quote!(
-						dynatos_html::comment(#comment)
-					),
-				}
+			XHtmlNode::Comment(comment) => Self {
+				ty:   NodeTy::Comment {},
+				expr: syn::parse_quote!(
+					dynatos_html::comment(#comment)
+				),
 			},
 		};
 
