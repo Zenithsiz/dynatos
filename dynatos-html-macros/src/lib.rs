@@ -115,7 +115,7 @@ impl Node {
 	fn from_html(node: &XHtmlNode, span: proc_macro2::Span) -> Option<Self> {
 		let node = match node {
 			// If it's an element with an empty name, this is an expression
-			XHtmlNode::Element(element) if element.name.as_bytes().is_empty() => {
+			XHtmlNode::Element(element) if element.name.is_empty() => {
 				let inner = element.inner.expect("Expression cannot be self-closing");
 				let expr = syn::parse_str(inner).expect("Unable to parse placeholder");
 				Self { ty: NodeTy::Expr, expr }
@@ -123,7 +123,17 @@ impl Node {
 
 			// Otherwise, it's a normal element
 			XHtmlNode::Element(element) => {
-				let name = syn::Ident::new(element.name, span);
+				// If the name starts with a `:`, use an expression for the constructor
+				let constructor = match element.name.strip_prefix(':') {
+					Some(expr) => {
+						let expr = syn::parse_str::<syn::Expr>(expr).expect("Unable to parse tag name as expression");
+						quote::quote! { #expr }
+					},
+					None => {
+						let name = syn::Ident::new(element.name, span);
+						quote::quote! { dynatos_html::html::#name }
+					},
+				};
 
 				// The element name for building it.
 				// Note: The name won't ever conflict with anything else due to it's `mixed_site` span.
@@ -174,7 +184,7 @@ impl Node {
 				Self {
 					ty:   NodeTy::Element,
 					expr: syn::parse_quote! {{
-						let #el = dynatos_html::html::#name();
+						let #el = #constructor();
 						#(#add_attrs)*
 						#(#add_children)*
 						#el
