@@ -48,9 +48,7 @@ fn counter() -> Element {
 		#[cloned(value)]
 		html::button()
 			.with_text("Clear")
-			.with_event_listener::<ev::Click>(move |_ev| {
-				value.set(0);
-			}),
+			.with_event_listener::<ev::Click>(move |_ev| value.set(0)),
 		#[cloned(value)]
 		html::button()
 			.with_text("+")
