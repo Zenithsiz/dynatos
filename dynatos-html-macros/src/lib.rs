@@ -223,9 +223,7 @@ impl Node {
 				if let [TextArg::Cons(text)] = &*args {
 					return Some(Self {
 						ty:   NodeTy::Text,
-						expr: syn::parse_quote!(
-							dynatos_html::text(#text)
-						),
+						expr: syn::parse_quote! { dynatos_html::text(#text) },
 					});
 				};
 
@@ -244,17 +242,15 @@ impl Node {
 
 				Self {
 					ty:   NodeTy::Text,
-					expr: syn::parse_quote!(dynatos::NodeWithDynText::with_dyn_text(
+					expr: syn::parse_quote! { dynatos::NodeWithDynText::with_dyn_text(
 						dynatos_html::text(""),
 						move || format!(#fmt, #(#args),*)
-					)),
+					)},
 				}
 			},
 			XHtmlNode::Comment(comment) => Self {
 				ty:   NodeTy::Comment {},
-				expr: syn::parse_quote!(
-					dynatos_html::comment(#comment)
-				),
+				expr: syn::parse_quote! { dynatos_html::comment(#comment) },
 			},
 		};
 
