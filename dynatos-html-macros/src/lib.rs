@@ -19,7 +19,7 @@ pub fn html(input: TokenStream) -> TokenStream {
 	let input_lit = syn::parse_macro_input!(input as syn::LitStr);
 	let input = input_lit.value();
 
-	self::parse_html(&input, input_lit.span(), None)
+	self::parse_html(&input, None)
 }
 
 #[proc_macro]
@@ -29,17 +29,17 @@ pub fn html_file(input: TokenStream) -> TokenStream {
 	let input_file = input_file.canonicalize().expect("Unable to canonicalize input file");
 	let input = fs::read_to_string(&input_file).expect("Unable to read file");
 
-	self::parse_html(&input, input_file_lit.span(), Some(&input_file))
+	self::parse_html(&input, Some(&input_file))
 }
 
 /// Parses html from `input`
-fn parse_html(input: &str, span: proc_macro2::Span, dep_file: Option<&Path>) -> TokenStream {
+fn parse_html(input: &str, dep_file: Option<&Path>) -> TokenStream {
 	// Parse the html and parse all the root nodes
 	let html = XHtml::parse(input).expect("Unable to parse html");
 	let root = html
 		.children
 		.iter()
-		.filter_map(|node| Node::from_html(node, span))
+		.filter_map(|node| Node::from_html(node))
 		.collect::<Vec<_>>();
 
 	// Check if all nodes have the same type.
@@ -115,7 +115,7 @@ impl Node {
 	/// Parses a node `node` from an html node.
 	///
 	/// Returns `None` is `node` is an empty text element.
-	fn from_html(node: &XHtmlNode, span: proc_macro2::Span) -> Option<Self> {
+	fn from_html(node: &XHtmlNode) -> Option<Self> {
 		let node = match node {
 			// If it's an element with an empty name, this is an expression
 			XHtmlNode::Element(element) if element.name.is_empty() => {
@@ -129,11 +129,13 @@ impl Node {
 				// If the name starts with a `:`, use an expression for the constructor
 				let constructor = match element.name.strip_prefix(':') {
 					Some(expr) => {
-						let expr = syn::parse_str::<syn::Expr>(expr).expect("Unable to parse tag name as expression");
+						let expr =
+							syn::parse_str::<syn::Expr>(expr).expect("Unable to parse tag name as an expression");
 						quote::quote! { #expr }
 					},
 					None => {
-						let name = syn::Ident::new(element.name, span);
+						let name = syn::parse_str::<syn::Ident>(element.name)
+							.expect("Unable to parse tag name as an identifier");
 						quote::quote! { dynatos_html::html::#name }
 					},
 				};
@@ -152,7 +154,8 @@ impl Node {
 							tag if let Some(tag) = tag.strip_prefix(":") => {
 								// Use the tag as the value if none is provided
 								let value = value.as_deref().unwrap_or(tag);
-								let value = syn::Ident::new(value, span);
+								let value = syn::parse_str::<syn::Ident>(value)
+									.expect("Unable to parse attribute value as an identifier");
 								quote::quote! {
 									dynatos_html::ElementWithAttr::with_attr(&#el, #tag, #value);
 								}
@@ -161,7 +164,8 @@ impl Node {
 							// If the tag name starts with a `@`, the value should be an event listener
 							tag if let Some(tag) = tag.strip_prefix("@") => {
 								// Use the tag as the event type
-								let tag = syn::Ident::new(tag, span);
+								let tag = syn::parse_str::<syn::Ident>(tag)
+									.expect("Unable to parse attribute name as an identifier");
 
 								// Use the value as the function handler
 								let value = value.as_deref().expect("Event listener needs a value");
@@ -193,7 +197,7 @@ impl Node {
 					.children
 					.iter()
 					.filter_map(|child| {
-						let child = Self::from_html(child, span)?;
+						let child = Self::from_html(child)?;
 						Some(quote::quote! {
 							dynatos_html::NodeAddChildren::add_child(&#el, #child);
 						})
