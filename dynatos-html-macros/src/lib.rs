@@ -61,28 +61,25 @@ fn parse_html(input: &str, dep_file: Option<&Path>) -> TokenStream {
 	let root = root
 		.into_iter()
 		.map(|node| match root_ty_all_eq {
-			true => quote::quote! { #node },
-			false => quote::quote! { web_sys::Node::from(#node) },
+			true => syn::parse_quote! { #node },
+			false => syn::parse_quote! { web_sys::Node::from(#node) },
 		})
-		.collect::<Vec<_>>();
+		.collect::<Vec<syn::Expr>>();
 
 	// And finally pack them all into an array, or return the single node
-	let root = match &*root {
-		[root] => quote::quote! { #root },
+	let root: syn::Expr = match &*root {
+		[root] => syn::parse_quote! { #root },
 		_ => {
 			let root = root.into_iter().collect::<Punctuated<_, syn::Token![,]>>();
-			quote::quote! { [#root] }
+			syn::parse_quote! { [#root] }
 		},
 	};
 
 	// Quote the dependency file, if we have one
-	let dep = match dep_file {
-		Some(dep_file) => {
-			let dep_file = dep_file.display().to_string();
-			quote::quote! { const _: &[u8] = include_bytes!(#dep_file); }
-		},
-		None => quote::quote! {},
-	};
+	let dep: Option<syn::Expr> = dep_file.map(|dep_file| {
+		let dep_file = dep_file.display().to_string();
+		syn::parse_quote! { const _: &[u8] = include_bytes!(#dep_file); }
+	});
 
 	TokenStream::from(quote::quote! {{
 		#dep
@@ -127,16 +124,16 @@ impl Node {
 			// Otherwise, it's a normal element
 			XHtmlNode::Element(element) => {
 				// If the name starts with a `:`, use an expression for the constructor
-				let constructor = match element.name.strip_prefix(':') {
+				let constructor: syn::Expr = match element.name.strip_prefix(':') {
 					Some(expr) => {
 						let expr =
 							syn::parse_str::<syn::Expr>(expr).expect("Unable to parse tag name as an expression");
-						quote::quote! { #expr }
+						syn::parse_quote! { #expr }
 					},
 					None => {
 						let name = syn::parse_str::<syn::Ident>(element.name)
 							.expect("Unable to parse tag name as an identifier");
-						quote::quote! { dynatos_html::html::#name }
+						syn::parse_quote! { dynatos_html::html::#name }
 					},
 				};
 
@@ -156,7 +153,7 @@ impl Node {
 								let value = value.as_deref().unwrap_or(tag);
 								let value = syn::parse_str::<syn::Ident>(value)
 									.expect("Unable to parse attribute value as an identifier");
-								quote::quote! {
+								syn::parse_quote! {
 									dynatos_html::ElementWithAttr::with_attr(&#el, #tag, #value);
 								}
 							},
@@ -172,20 +169,20 @@ impl Node {
 								let value =
 									syn::parse_str::<syn::Expr>(value).expect("Unable to parse event listener value");
 
-								quote::quote! {
+								syn::parse_quote! {
 									dynatos_util::EventTargetAddListener::add_event_listener::<dynatos_util::ev::#tag>(&#el, #value);
 								}
 							},
 
 							_ => {
 								let value = value.unwrap_or_default();
-								quote::quote! {
+								syn::parse_quote! {
 									dynatos_html::ElementWithAttr::with_attr(&#el, #tag, #value);
 								}
 							},
 						}
 					})
-					.collect::<Vec<_>>();
+					.collect::<Vec<syn::Stmt>>();
 
 				// Adds all children to the element
 				//
@@ -198,11 +195,11 @@ impl Node {
 					.iter()
 					.filter_map(|child| {
 						let child = Self::from_html(child)?;
-						Some(quote::quote! {
+						Some(syn::parse_quote! {
 							dynatos_html::NodeAddChildren::add_child(&#el, #child);
 						})
 					})
-					.collect::<Vec<_>>();
+					.collect::<Vec<syn::Stmt>>();
 
 				Self {
 					ty:   NodeTy::Element,
