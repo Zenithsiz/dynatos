@@ -8,17 +8,6 @@ edition = "2021"
 anyhow = { workspace = true }
 duplicate = { workspace = true }
 extend = { workspace = true }
-js-sys = { workspace = true }
-wasm-bindgen = { workspace = true }
-web-sys = { workspace = true, features = [
-	"Document",
-	"Element",
-	"HtmlElement",
-	"PointerEvent",
-	"InputEvent",
-	"PopStateEvent",
-	"Window",
-] }
 
 [lints]
 workspace = true

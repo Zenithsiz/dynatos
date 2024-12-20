@@ -185,9 +185,6 @@ dependencies = [
  "anyhow",
  "duplicate",
  "extend",
- "js-sys",
- "wasm-bindgen",
- "web-sys",
 ]
 
 [[package]]
