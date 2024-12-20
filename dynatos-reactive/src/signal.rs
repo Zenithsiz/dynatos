@@ -23,7 +23,7 @@ pub use ops::{
 
 // Imports
 use {
-	crate::{effect, Trigger},
+	crate::Trigger,
 	core::{
 		cell::{self, RefCell},
 		fmt,
@@ -94,9 +94,7 @@ impl<T: ?Sized + 'static> SignalBorrow for Signal<T> {
 
 	#[track_caller]
 	fn borrow(&self) -> Self::Ref<'_> {
-		if let Some(effect) = effect::running() {
-			self.inner.trigger.add_subscriber(effect);
-		}
+		self.inner.trigger.gather_subscribers();
 
 		let borrow = self
 			.inner

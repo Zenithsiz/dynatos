@@ -5,7 +5,7 @@
 
 // Imports
 use {
-	crate::{Effect, WeakEffect},
+	crate::{effect, Effect, WeakEffect},
 	core::{cell::RefCell, fmt, marker::Unsize},
 	std::{
 		collections::{hash_map, HashMap},
@@ -112,11 +112,25 @@ impl Trigger {
 		}
 	}
 
+	/// Gathers all effects depending on this trigger.
+	///
+	/// When triggering this trigger, all effects active during this gathering
+	/// will be re-run.
+	///
+	/// You can gather multiple times without removing the previous gathered
+	/// effects. Previous effects will only be removed when they are dropped.
+	// TODO: Should we remove all existing subscribers before gathering them?
+	pub fn gather_subscribers(&self) {
+		if let Some(effect) = effect::running() {
+			self.add_subscriber(effect);
+		}
+	}
+
 	/// Adds a subscriber to this trigger.
 	///
 	/// Returns if the subscriber already existed.
 	#[track_caller]
-	pub fn add_subscriber<S: IntoSubscriber>(&self, subscriber: S) -> bool {
+	fn add_subscriber<S: IntoSubscriber>(&self, subscriber: S) -> bool {
 		let mut subscribers = self.inner.subscribers.borrow_mut();
 		match subscribers.entry(subscriber.into_subscriber()) {
 			hash_map::Entry::Occupied(mut entry) => {
@@ -134,7 +148,7 @@ impl Trigger {
 	///
 	/// Returns if the subscriber existed
 	#[track_caller]
-	pub fn remove_subscriber<S: IntoSubscriber>(&self, subscriber: S) -> bool {
+	fn remove_subscriber<S: IntoSubscriber>(&self, subscriber: S) -> bool {
 		let mut subscribers = self.inner.subscribers.borrow_mut();
 		subscribers.remove(&subscriber.into_subscriber()).is_some()
 	}

@@ -32,7 +32,7 @@
 
 // Imports
 use {
-	crate::{effect, Effect, SignalBorrow, SignalWith, Trigger},
+	crate::{Effect, SignalBorrow, SignalWith, Trigger},
 	core::{
 		cell::{self, RefCell},
 		fmt,
@@ -88,9 +88,7 @@ impl<T: 'static, F: ?Sized> SignalBorrow for Derived<T, F> {
 
 	#[track_caller]
 	fn borrow(&self) -> Self::Ref<'_> {
-		if let Some(effect) = effect::running() {
-			self.effect.inner_fn().trigger.add_subscriber(effect);
-		}
+		self.effect.inner_fn().trigger.gather_subscribers();
 
 		let effect_fn = self.effect.inner_fn();
 		let value = effect_fn.value.borrow();

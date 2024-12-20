@@ -5,7 +5,7 @@
 
 // Imports
 use {
-	crate::{effect, signal, SignalBorrow, SignalBorrowMut, SignalUpdate, SignalWith, Trigger},
+	crate::{signal, SignalBorrow, SignalBorrowMut, SignalUpdate, SignalWith, Trigger},
 	core::{
 		cell::{self, RefCell},
 		fmt,
@@ -99,10 +99,7 @@ impl<F: Future> AsyncSignal<F> {
 	#[must_use]
 	#[track_caller]
 	pub fn borrow_inner(&self) -> Option<BorrowRef<'_, F::Output>> {
-		// If there's an effect running, add it to the subscribers
-		if let Some(effect) = effect::running() {
-			self.inner.waker.trigger.add_subscriber(effect);
-		}
+		self.inner.waker.trigger.gather_subscribers();
 
 		let borrow = self.inner.value.borrow();
 		borrow.is_some().then(|| BorrowRef(borrow))
