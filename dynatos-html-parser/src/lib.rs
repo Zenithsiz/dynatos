@@ -215,7 +215,7 @@ fn parse_element_start<'a>(s: &mut &'a str) -> Result<ParsedElementStart<'a>, an
 		Some(_) => ("", true),
 		None => match self::parse_ident(s) {
 			Some(name) => (name, false),
-			None => anyhow::bail!("Expected idenfitier, found {s:?}"),
+			None => anyhow::bail!("Expected identifier, found {s:?}"),
 		},
 	};
 
