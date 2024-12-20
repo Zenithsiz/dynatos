@@ -7,9 +7,10 @@
 use {
 	dynatos_html::html,
 	dynatos_reactive::{Signal, SignalBorrowMut, SignalGet, SignalSet},
-	dynatos_util::{cloned, JsResultContext},
+	dynatos_util::JsResultContext,
 	tracing_subscriber::prelude::*,
 	web_sys::Element,
+	zutil_cloned::cloned,
 };
 
 fn main() {

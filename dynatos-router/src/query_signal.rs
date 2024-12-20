@@ -21,8 +21,8 @@ use {
 		SignalUpdate,
 		SignalWith,
 	},
-	dynatos_util::cloned,
 	std::{collections::HashMap, rc::Rc},
+	zutil_cloned::cloned,
 };
 
 /// Query signal

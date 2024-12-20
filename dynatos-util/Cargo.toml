@@ -5,8 +5,6 @@ edition = "2021"
 
 [dependencies]
 
-dynatos-util-macros = { workspace = true }
-
 anyhow = { workspace = true }
 duplicate = { workspace = true }
 extend = { workspace = true }

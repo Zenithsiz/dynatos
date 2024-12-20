@@ -14,6 +14,8 @@ dynatos-router = { path = "../dynatos-router" }
 dynatos-title = { path = "../dynatos-title" }
 dynatos-util = { path = "../dynatos-util" }
 
+zutil-cloned = { git = "https://github.com/Zenithsiz/zutil", rev = "5d30b6e1947b166ebfef987150234f99bc01dd5d" }
+
 anyhow = "1.0.94"
 console_error_panic_hook = "0.1.7"
 duplicate = "2.0.0"

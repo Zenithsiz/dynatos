@@ -167,6 +167,7 @@ dependencies = [
  "url",
  "wasm-bindgen",
  "web-sys",
+ "zutil-cloned",
 ]
 
 [[package]]
@@ -190,19 +191,10 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "duplicate",
- "dynatos-util-macros",
  "extend",
  "js-sys",
  "wasm-bindgen",
  "web-sys",
-]
-
-[[package]]
-name = "dynatos-util-macros"
-version = "0.1.0"
-dependencies = [
- "quote",
- "syn",
 ]
 
 [[package]]
@@ -782,6 +774,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "6eafa6dfb17584ea3e2bd6e76e0cc15ad7af12b09abdd1ca55961bed9b1063c6"
 dependencies = [
  "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "zutil-cloned"
+version = "0.1.0"
+source = "git+https://github.com/Zenithsiz/zutil?rev=5d30b6e1947b166ebfef987150234f99bc01dd5d#5d30b6e1947b166ebfef987150234f99bc01dd5d"
+dependencies = [
  "quote",
  "syn",
 ]

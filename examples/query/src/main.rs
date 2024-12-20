@@ -9,9 +9,10 @@ use {
 	dynatos_html::{html, NodeWithChildren, NodeWithText},
 	dynatos_reactive::{SignalBorrowMut, SignalGet, SignalSet, SignalWithDefault},
 	dynatos_router::{Location, QuerySignal},
-	dynatos_util::{cloned, ev, EventTargetWithListener},
+	dynatos_util::{ev, EventTargetWithListener},
 	tracing_subscriber::prelude::*,
 	web_sys::Element,
+	zutil_cloned::cloned,
 };
 
 fn main() {

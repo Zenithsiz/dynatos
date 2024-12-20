@@ -12,6 +12,8 @@ dynatos-reactive = { workspace = true }
 dynatos-router = { workspace = true }
 dynatos-util = { workspace = true }
 
+zutil-cloned = { workspace = true }
+
 anyhow = { workspace = true }
 console_error_panic_hook = { workspace = true }
 extend = { workspace = true }

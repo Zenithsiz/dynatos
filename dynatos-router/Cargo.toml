@@ -10,6 +10,8 @@ dynatos-html = { workspace = true }
 dynatos-reactive = { workspace = true }
 dynatos-util = { workspace = true }
 
+zutil-cloned = { workspace = true }
+
 anyhow = { workspace = true }
 duplicate = { workspace = true }
 extend = { workspace = true }
