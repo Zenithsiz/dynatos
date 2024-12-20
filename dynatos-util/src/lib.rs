@@ -5,7 +5,6 @@
 
 // Modules
 mod event_listener;
-pub mod seg_vec;
 pub mod try_or_return;
 pub mod weak_ref;
 
