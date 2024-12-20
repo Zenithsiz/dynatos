@@ -3,9 +3,10 @@
 // Imports
 use {
 	crate::ObjectAttachEffect,
+	dynatos_html::{ObjectRemoveProp, ObjectSetProp, WeakRef},
 	dynatos_reactive::{Derived, Effect, Memo, Signal, SignalWith, WithDefault},
 	dynatos_router::QuerySignal,
-	dynatos_util::{ObjectRemoveProp, ObjectSetProp, TryOrReturnExt, WeakRef},
+	dynatos_util::TryOrReturnExt,
 	wasm_bindgen::JsValue,
 };
 

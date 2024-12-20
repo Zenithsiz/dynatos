@@ -3,9 +3,8 @@
 // Imports
 use {
 	crate::Location,
-	dynatos_html::{html, ElementWithAttr},
+	dynatos_html::{ev, html, ElementWithAttr, EventTargetWithListener},
 	dynatos_reactive::{SignalBorrow, SignalSet},
-	dynatos_util::{ev, EventTargetWithListener},
 	web_sys::Element,
 };
 

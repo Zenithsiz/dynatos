@@ -170,7 +170,7 @@ impl Node {
 									syn::parse_str::<syn::Expr>(value).expect("Unable to parse event listener value");
 
 								syn::parse_quote! {
-									dynatos_util::EventTargetAddListener::add_event_listener::<dynatos_util::ev::#tag>(&#el, #value);
+									dynatos_html::EventTargetAddListener::add_event_listener::<dynatos_html::ev::#tag>(&#el, #value);
 								}
 							},
 

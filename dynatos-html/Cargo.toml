@@ -6,7 +6,9 @@ edition = "2021"
 [dependencies]
 
 dynatos-html-macros = { workspace = true }
+dynatos-util = { workspace = true }
 
+anyhow = { workspace = true }
 duplicate = { workspace = true }
 extend = { workspace = true }
 itertools = { workspace = true }

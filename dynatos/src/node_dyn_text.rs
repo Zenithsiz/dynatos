@@ -3,9 +3,10 @@
 // Imports
 use {
 	crate::ObjectAttachEffect,
+	dynatos_html::WeakRef,
 	dynatos_reactive::{Derived, Effect, Memo, Signal, SignalWith, WithDefault},
 	dynatos_router::QuerySignal,
-	dynatos_util::{TryOrReturnExt, WeakRef},
+	dynatos_util::TryOrReturnExt,
 };
 
 /// Extension trait to add reactive text to a node

@@ -3,8 +3,8 @@
 // Imports
 use {
 	core::ops::{Deref, DerefMut},
+	dynatos_html::{ev, EventTargetAddListener},
 	dynatos_reactive::{signal, Signal, SignalBorrow, SignalBorrowMut, SignalUpdate, SignalWith},
-	dynatos_util::{ev, EventTargetAddListener},
 	url::Url,
 	wasm_bindgen::JsValue,
 	zutil_cloned::cloned,

@@ -1,11 +1,7 @@
 //! Node reactive children
 
 // Imports
-use {
-	crate::ObjectAttachEffect,
-	dynatos_reactive::Effect,
-	dynatos_util::{TryOrReturnExt, WeakRef},
-};
+use {crate::ObjectAttachEffect, dynatos_html::WeakRef, dynatos_reactive::Effect, dynatos_util::TryOrReturnExt};
 
 /// Extension trait to reactively manage all children of an element
 #[extend::ext(name = ElementDynChildren)]

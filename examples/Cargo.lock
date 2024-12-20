@@ -114,8 +114,10 @@ version = "0.1.0"
 name = "dynatos-html"
 version = "0.1.0"
 dependencies = [
+ "anyhow",
  "duplicate",
  "dynatos-html-macros",
+ "dynatos-util",
  "extend",
  "itertools",
  "js-sys",

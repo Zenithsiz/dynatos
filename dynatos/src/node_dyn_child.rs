@@ -4,9 +4,9 @@
 use {
 	crate::ObjectAttachEffect,
 	core::cell::RefCell,
-	dynatos_html::html,
+	dynatos_html::{html, WeakRef},
 	dynatos_reactive::Effect,
-	dynatos_util::{TryOrReturnExt, WeakRef},
+	dynatos_util::TryOrReturnExt,
 	wasm_bindgen::JsCast,
 };
 

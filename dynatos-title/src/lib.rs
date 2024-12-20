@@ -6,7 +6,7 @@
 #![feature(thread_local)]
 
 // Imports
-use {core::cell::RefCell, dynatos_util::ObjectSetProp, wasm_bindgen::prelude::wasm_bindgen};
+use {core::cell::RefCell, dynatos_html::ObjectSetProp, wasm_bindgen::prelude::wasm_bindgen};
 
 /// Title stack.
 #[thread_local]

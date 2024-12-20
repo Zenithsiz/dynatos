@@ -3,9 +3,8 @@
 // Imports
 use {
 	dynatos::NodeWithDynText,
-	dynatos_html::{html, NodeWithChildren, NodeWithText},
+	dynatos_html::{ev, html, EventTargetWithListener, JsResultContext, NodeWithChildren, NodeWithText},
 	dynatos_reactive::{Signal, SignalBorrowMut, SignalGet, SignalSet},
-	dynatos_util::{ev, EventTargetWithListener, JsResultContext},
 	tracing_subscriber::prelude::*,
 	web_sys::Element,
 };

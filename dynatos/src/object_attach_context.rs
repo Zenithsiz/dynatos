@@ -3,7 +3,7 @@
 // Imports
 use {
 	dynatos_context::OpaqueHandle,
-	dynatos_util::{ObjectGet, ObjectSetProp},
+	dynatos_html::{ObjectGet, ObjectSetProp},
 	wasm_bindgen::prelude::wasm_bindgen,
 };
 
@@ -18,8 +18,8 @@ pub impl js_sys::Object {
 		let prop_name = "__dynatos_ctx_handles";
 		let ctx_handles = match self.get::<js_sys::Array>(prop_name) {
 			Ok(ctx_handles) => ctx_handles,
-			Err(dynatos_util::GetError::WrongType(err)) => panic!("Contexts array was the wrong type: {err:?}"),
-			Err(dynatos_util::GetError::Missing) => {
+			Err(dynatos_html::GetError::WrongType(err)) => panic!("Contexts array was the wrong type: {err:?}"),
+			Err(dynatos_html::GetError::Missing) => {
 				let ctx_handles = js_sys::Array::new();
 				self.set_prop(prop_name, &ctx_handles);
 				ctx_handles

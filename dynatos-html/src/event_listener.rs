@@ -2,7 +2,8 @@
 
 // Imports
 use {
-	crate::{TryOrReturnExt, WeakRef},
+	crate::WeakRef,
+	dynatos_util::TryOrReturnExt,
 	wasm_bindgen::{closure::Closure, convert::FromWasmAbi, JsCast},
 };
 

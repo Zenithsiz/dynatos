@@ -3,8 +3,8 @@
 // Imports
 use {
 	core::marker::Unsize,
+	dynatos_html::{ObjectGet, ObjectSetProp},
 	dynatos_reactive::Effect,
-	dynatos_util::{ObjectGet, ObjectSetProp},
 	wasm_bindgen::prelude::wasm_bindgen,
 };
 
@@ -22,8 +22,8 @@ pub impl js_sys::Object {
 		let prop_name = "__dynatos_effects";
 		let effects = match self.get::<js_sys::Map>(prop_name) {
 			Ok(effects) => effects,
-			Err(dynatos_util::GetError::WrongType(err)) => panic!("Effects map was the wrong type: {err:?}"),
-			Err(dynatos_util::GetError::Missing) => {
+			Err(dynatos_html::GetError::WrongType(err)) => panic!("Effects map was the wrong type: {err:?}"),
+			Err(dynatos_html::GetError::Missing) => {
 				let effects = js_sys::Map::new();
 				self.set_prop(prop_name, &effects);
 				effects
