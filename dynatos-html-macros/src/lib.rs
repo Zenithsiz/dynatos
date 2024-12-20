@@ -76,7 +76,7 @@ fn parse_html(input: &str, dep_file: Option<&Path>) -> TokenStream {
 	};
 
 	// Quote the dependency file, if we have one
-	let dep: Option<syn::Expr> = dep_file.map(|dep_file| {
+	let dep: Option<syn::Stmt> = dep_file.map(|dep_file| {
 		let dep_file = dep_file.display().to_string();
 		syn::parse_quote! { const _: &[u8] = include_bytes!(#dep_file); }
 	});
