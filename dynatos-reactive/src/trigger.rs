@@ -51,6 +51,7 @@ impl SubscriberInfo {
 	}
 
 	/// Updates this subscriber info
+	#[track_caller]
 	#[cfg_attr(
 		not(debug_assertions),
 		expect(clippy::unused_self, reason = "We use it with `debug_assertions`")
@@ -120,6 +121,7 @@ impl Trigger {
 	/// You can gather multiple times without removing the previous gathered
 	/// effects. Previous effects will only be removed when they are dropped.
 	// TODO: Should we remove all existing subscribers before gathering them?
+	#[track_caller]
 	pub fn gather_subscribers(&self) {
 		if let Some(effect) = effect::running() {
 			self.add_subscriber(effect);

@@ -107,6 +107,7 @@ impl<F: Future> AsyncSignal<F> {
 
 	/// Uses the inner value, without polling the future.
 	// TODO: Better name that indicates that we don't poll?
+	#[track_caller]
 	pub fn with_inner<F2, O>(&self, f: F2) -> O
 	where
 		F2: for<'a> FnOnce(Option<&'a F::Output>) -> O,
