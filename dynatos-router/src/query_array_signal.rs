@@ -96,7 +96,7 @@ impl<T> QueryArraySignal<T> {
 #[derive(Debug)]
 pub struct BorrowRef<'a, T>(signal::BorrowRef<'a, Vec<T>>);
 
-impl<'a, T> Deref for BorrowRef<'a, T> {
+impl<T> Deref for BorrowRef<'_, T> {
 	type Target = [T];
 
 	fn deref(&self) -> &Self::Target {
@@ -145,7 +145,7 @@ where
 #[derive(Debug)]
 struct UpdateLocationOnDrop<'a, T: ToString + 'static>(pub &'a QueryArraySignal<T>);
 
-impl<'a, T> Drop for UpdateLocationOnDrop<'a, T>
+impl<T> Drop for UpdateLocationOnDrop<'_, T>
 where
 	T: ToString + 'static,
 {
@@ -186,7 +186,7 @@ where
 	_update_location_on_drop: UpdateLocationOnDrop<'a, T>,
 }
 
-impl<'a, T> Deref for BorrowRefMut<'a, T>
+impl<T> Deref for BorrowRefMut<'_, T>
 where
 	T: ToString,
 {
@@ -197,7 +197,7 @@ where
 	}
 }
 
-impl<'a, T> DerefMut for BorrowRefMut<'a, T>
+impl<T> DerefMut for BorrowRefMut<'_, T>
 where
 	T: ToString,
 {

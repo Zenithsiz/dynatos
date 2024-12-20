@@ -42,7 +42,7 @@ impl<T, F> Memo<T, F> {
 #[derive(Debug)]
 pub struct BorrowRef<'a, T>(cell::Ref<'a, Option<T>>);
 
-impl<'a, T> Deref for BorrowRef<'a, T> {
+impl<T> Deref for BorrowRef<'_, T> {
 	type Target = T;
 
 	fn deref(&self) -> &Self::Target {

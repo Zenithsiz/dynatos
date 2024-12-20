@@ -77,7 +77,7 @@ where
 #[derive(Debug)]
 pub struct BorrowRef<'a, T, E>(async_signal::BorrowRef<'a, Result<T, E>>);
 
-impl<'a, T, E> Deref for BorrowRef<'a, T, E> {
+impl<T, E> Deref for BorrowRef<'_, T, E> {
 	type Target = T;
 
 	fn deref(&self) -> &Self::Target {
@@ -123,7 +123,7 @@ impl<F: Future<Output = Result<T, E>> + 'static, T: 'static, E: Clone + 'static>
 #[derive(Debug)]
 pub struct BorrowRefMut<'a, T, E>(async_signal::BorrowRefMut<'a, Result<T, E>>);
 
-impl<'a, T, E> Deref for BorrowRefMut<'a, T, E> {
+impl<T, E> Deref for BorrowRefMut<'_, T, E> {
 	type Target = T;
 
 	fn deref(&self) -> &Self::Target {
@@ -133,7 +133,7 @@ impl<'a, T, E> Deref for BorrowRefMut<'a, T, E> {
 	}
 }
 
-impl<'a, T, E> DerefMut for BorrowRefMut<'a, T, E> {
+impl<T, E> DerefMut for BorrowRefMut<'_, T, E> {
 	fn deref_mut(&mut self) -> &mut Self::Target {
 		self.0
 			.as_mut()

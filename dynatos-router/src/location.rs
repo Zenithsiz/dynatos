@@ -49,7 +49,7 @@ impl Location {
 #[derive(Debug)]
 pub struct BorrowRef<'a>(signal::BorrowRef<'a, Inner>);
 
-impl<'a> Deref for BorrowRef<'a> {
+impl Deref for BorrowRef<'_> {
 	type Target = Url;
 
 	fn deref(&self) -> &Self::Target {
@@ -86,7 +86,7 @@ impl SignalWith for Location {
 #[derive(Debug)]
 pub struct BorrowRefMut<'a>(signal::BorrowRefMut<'a, Inner>);
 
-impl<'a> Deref for BorrowRefMut<'a> {
+impl Deref for BorrowRefMut<'_> {
 	type Target = Url;
 
 	fn deref(&self) -> &Self::Target {
@@ -94,13 +94,13 @@ impl<'a> Deref for BorrowRefMut<'a> {
 	}
 }
 
-impl<'a> DerefMut for BorrowRefMut<'a> {
+impl DerefMut for BorrowRefMut<'_> {
 	fn deref_mut(&mut self) -> &mut Self::Target {
 		&mut self.0.location
 	}
 }
 
-impl<'a> Drop for BorrowRefMut<'a> {
+impl Drop for BorrowRefMut<'_> {
 	fn drop(&mut self) {
 		let window = web_sys::window().expect("Unable to get window");
 		let history = window.history().expect("Unable to get history");

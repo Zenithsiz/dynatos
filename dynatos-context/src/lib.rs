@@ -1,14 +1,7 @@
 //! Context passing for `dynatos`
 
 // Features
-#![feature(
-	try_blocks,
-	thread_local,
-	test,
-	const_collections_with_hasher,
-	negative_impls,
-	decl_macro
-)]
+#![feature(try_blocks, thread_local, test, negative_impls, decl_macro)]
 
 // Imports
 use {

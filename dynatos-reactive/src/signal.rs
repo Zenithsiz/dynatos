@@ -78,7 +78,7 @@ where
 #[derive(Debug)]
 pub struct BorrowRef<'a, T: ?Sized>(cell::Ref<'a, T>);
 
-impl<'a, T: ?Sized> Deref for BorrowRef<'a, T> {
+impl<T: ?Sized> Deref for BorrowRef<'_, T> {
 	type Target = T;
 
 	fn deref(&self) -> &Self::Target {
@@ -133,7 +133,7 @@ impl<T: 'static> SignalReplace<T> for Signal<T> {
 #[derive(Debug)]
 pub(crate) struct TriggerOnDrop<'a>(pub &'a Trigger);
 
-impl<'a> Drop for TriggerOnDrop<'a> {
+impl Drop for TriggerOnDrop<'_> {
 	fn drop(&mut self) {
 		self.0.trigger();
 	}
@@ -150,7 +150,7 @@ pub struct BorrowRefMut<'a, T: ?Sized> {
 	_trigger_on_drop: TriggerOnDrop<'a>,
 }
 
-impl<'a, T: ?Sized> Deref for BorrowRefMut<'a, T> {
+impl<T: ?Sized> Deref for BorrowRefMut<'_, T> {
 	type Target = T;
 
 	fn deref(&self) -> &Self::Target {
@@ -158,7 +158,7 @@ impl<'a, T: ?Sized> Deref for BorrowRefMut<'a, T> {
 	}
 }
 
-impl<'a, T: ?Sized> DerefMut for BorrowRefMut<'a, T> {
+impl<T: ?Sized> DerefMut for BorrowRefMut<'_, T> {
 	fn deref_mut(&mut self) -> &mut Self::Target {
 		&mut self.value
 	}

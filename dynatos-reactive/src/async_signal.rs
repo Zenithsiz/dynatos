@@ -141,7 +141,7 @@ where
 #[derive(Debug)]
 pub struct BorrowRef<'a, T>(cell::Ref<'a, Option<T>>);
 
-impl<'a, T> Deref for BorrowRef<'a, T> {
+impl<T> Deref for BorrowRef<'_, T> {
 	type Target = T;
 
 	fn deref(&self) -> &Self::Target {
@@ -203,7 +203,7 @@ pub struct BorrowRefMut<'a, T> {
 	_trigger_on_drop: signal::TriggerOnDrop<'a>,
 }
 
-impl<'a, T> Deref for BorrowRefMut<'a, T> {
+impl<T> Deref for BorrowRefMut<'_, T> {
 	type Target = T;
 
 	fn deref(&self) -> &Self::Target {
@@ -211,7 +211,7 @@ impl<'a, T> Deref for BorrowRefMut<'a, T> {
 	}
 }
 
-impl<'a, T> DerefMut for BorrowRefMut<'a, T> {
+impl<T> DerefMut for BorrowRefMut<'_, T> {
 	fn deref_mut(&mut self) -> &mut Self::Target {
 		self.value.as_mut().expect("Value wasn't initialized")
 	}
