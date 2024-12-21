@@ -139,6 +139,22 @@ impl<F: ?Sized> Effect<F> {
 		Rc::as_ptr(&self.inner).cast()
 	}
 
+	/// Creates an effect dependency gatherer
+	///
+	/// While this type lives, all signals used will be gathered as dependencies
+	/// for this effect.
+	#[must_use]
+	pub fn deps_gatherer(&self) -> EffectDepsGatherer
+	where
+		F: Unsize<dyn Fn() + SyncBounds> + 'static,
+	{
+		// Push the effect, run the closure and pop it
+		EFFECT_STACK.borrow_mut().push(self.downgrade());
+
+		// Then return the gatherer, which will pop the effect from the stack on drop
+		EffectDepsGatherer(())
+	}
+
 	/// Gathers dependencies for this effect.
 	///
 	/// All signals used within `gather` will have this effect as a dependency.
@@ -147,16 +163,8 @@ impl<F: ?Sized> Effect<F> {
 		F: Unsize<dyn Fn() + SyncBounds> + 'static,
 		G: FnOnce() -> O,
 	{
-		// Push the effect, run the closure and pop it
-		EFFECT_STACK.borrow_mut().push(self.downgrade());
-
-		// Then run the gatherer
-		let output = gather();
-
-		// And finally pop the effect from the stack
-		EFFECT_STACK.borrow_mut().pop().expect("Missing added effect");
-
-		output
+		let _gatherer = self.deps_gatherer();
+		gather()
 	}
 
 	/// Runs the effect
@@ -303,6 +311,19 @@ where
 	T: ?Sized + Unsize<U>,
 	U: ?Sized,
 {
+}
+
+/// Effect dependency gatherer.
+///
+/// While this type is alive, any signals used will
+/// be added as a dependency.
+pub struct EffectDepsGatherer(());
+
+impl Drop for EffectDepsGatherer {
+	fn drop(&mut self) {
+		// Pop our effect from the stack
+		EFFECT_STACK.borrow_mut().pop().expect("Missing added effect");
+	}
 }
 
 /// Returns the current running effect
