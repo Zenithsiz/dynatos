@@ -99,11 +99,7 @@ impl<T: ?Sized + 'static> SignalBorrow for Signal<T> {
 	fn borrow(&self) -> Self::Ref<'_> {
 		self.inner.trigger.gather_subscribers();
 
-		let borrow = self
-			.inner
-			.value
-			.imut_try_read()
-			.expect("Cannot use signal value while updating");
+		let borrow = self.inner.value.imut_read();
 		BorrowRef(borrow)
 	}
 }
@@ -173,11 +169,7 @@ impl<T: ?Sized + 'static> SignalBorrowMut for Signal<T> {
 
 	#[track_caller]
 	fn borrow_mut(&self) -> Self::RefMut<'_> {
-		let value = self
-			.inner
-			.value
-			.imut_try_write()
-			.expect("Cannot update signal value while using it");
+		let value = self.inner.value.imut_write();
 		BorrowRefMut {
 			value,
 			_trigger_on_drop: TriggerOnDrop(&self.inner.trigger),

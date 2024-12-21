@@ -62,14 +62,6 @@ mod private {
 		fn imut_write(&self) -> IMutRefMut<'_, T> {
 			self.write()
 		}
-
-		fn imut_try_read(&self) -> Option<IMutRef<'_, T>> {
-			self.try_read()
-		}
-
-		fn imut_try_write(&self) -> Option<IMutRefMut<'_, T>> {
-			self.try_write()
-		}
 	}
 }
 
@@ -90,14 +82,6 @@ mod private {
 		fn imut_write(&self) -> IMutRefMut<'_, T> {
 			self.borrow_mut()
 		}
-
-		fn imut_try_read(&self) -> Option<IMutRef<'_, T>> {
-			self.try_borrow().ok()
-		}
-
-		fn imut_try_write(&self) -> Option<IMutRefMut<'_, T>> {
-			self.try_borrow_mut().ok()
-		}
 	}
 }
 
@@ -106,7 +90,4 @@ use private::*;
 trait IMutExt<T: ?Sized> {
 	fn imut_read(&self) -> IMutRef<'_, T>;
 	fn imut_write(&self) -> IMutRefMut<'_, T>;
-
-	fn imut_try_read(&self) -> Option<IMutRef<'_, T>>;
-	fn imut_try_write(&self) -> Option<IMutRefMut<'_, T>>;
 }
