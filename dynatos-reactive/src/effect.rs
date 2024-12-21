@@ -61,18 +61,27 @@ impl<F> Effect<F> {
 		F: Fn() + 'static + SyncBounds,
 	{
 		// Create the effect
+		let effect = Self::new_raw(run);
+
+		// And run it once to gather dependencies.
+		effect.run();
+
+		effect
+	}
+
+	/// Crates a new raw computed effect.
+	///
+	/// The effect won't be run, and instead you must gather
+	/// dependencies manually.
+	pub fn new_raw(run: F) -> Self {
 		let inner = Inner {
 			suppressed: AtomicBool::new(false),
 			#[cfg(debug_assertions)]
 			defined_loc: Location::caller(),
 			run,
 		};
-		let effect = Self { inner: Rc::new(inner) };
 
-		// And run it once to gather dependencies.
-		effect.run();
-
-		effect
+		Self { inner: Rc::new(inner) }
 	}
 
 	/// Tries to create a new effect.
@@ -130,21 +139,38 @@ impl<F: ?Sized> Effect<F> {
 		Rc::as_ptr(&self.inner).cast()
 	}
 
+	/// Gathers dependencies for this effect.
+	///
+	/// All signals used within `gather` will have this effect as a dependency.
+	pub fn gather_dependencies<G, O>(&self, gather: G) -> O
+	where
+		F: Unsize<dyn Fn() + SyncBounds> + 'static,
+		G: FnOnce() -> O,
+	{
+		// Push the effect, run the closure and pop it
+		EFFECT_STACK.borrow_mut().push(self.downgrade());
+
+		// Then run the gatherer
+		let output = gather();
+
+		// And finally pop the effect from the stack
+		EFFECT_STACK.borrow_mut().pop().expect("Missing added effect");
+
+		output
+	}
+
 	/// Runs the effect
 	pub fn run(&self)
 	where
 		F: Fn() + Unsize<dyn Fn() + SyncBounds> + 'static,
 	{
-		// Push the effect, run the closure and pop it
-		EFFECT_STACK.borrow_mut().push(self.downgrade());
-
-		// Then run it, if it's not suppressed
-		if !self.inner.suppressed.load(atomic::Ordering::Acquire) {
-			(self.inner.run)();
+		// If we're supressed, don't do anything
+		if self.inner.suppressed.load(atomic::Ordering::Acquire) {
+			return;
 		}
 
-		// And finally pop the effect from the stack
-		EFFECT_STACK.borrow_mut().pop().expect("Missing added effect");
+		// Otherwise, run it
+		self.gather_dependencies(move || (self.inner.run)());
 	}
 
 	/// Suppresses this effect from running while calling this function
