@@ -33,7 +33,7 @@ dynatos-title = { path = "dynatos-title" }
 dynatos-util = { path = "dynatos-util" }
 
 # zutil
-zutil-cloned = { git = "https://github.com/Zenithsiz/zutil", rev = "5d30b6e1947b166ebfef987150234f99bc01dd5d" }
+zutil-cloned = { git = "https://github.com/Zenithsiz/zutil", rev = "978fa5df733d59fc691812ce2fa6072bf901dc7f" }
 
 anyhow = "1.0.94"
 convert_case = "0.6.0"
