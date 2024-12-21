@@ -23,15 +23,13 @@ pub use ops::{
 
 // Imports
 use {
-	crate::Trigger,
+	crate::{IMut, IMutExt, IMutRef, IMutRefMut, Rc, Trigger},
 	core::{
-		cell::{self, RefCell},
 		fmt,
 		marker::Unsize,
 		mem,
 		ops::{CoerceUnsized, Deref, DerefMut},
 	},
-	std::rc::Rc,
 };
 
 /// Inner
@@ -40,11 +38,16 @@ struct Inner<T: ?Sized> {
 	trigger: Trigger,
 
 	/// Value
-	value: RefCell<T>,
+	value: IMut<T>,
 }
 
-// TODO: Add `T: ?Sized, U: ?Sized` once `RefCell` supports it.
-impl<T, U> CoerceUnsized<Inner<U>> for Inner<T> where T: CoerceUnsized<U> {}
+// TODO: Add `T: ?Sized, U: ?Sized` once `RwLock` supports it.
+impl<T, U> CoerceUnsized<Inner<U>> for Inner<T>
+where
+	T: CoerceUnsized<U>,
+	IMut<T>: CoerceUnsized<IMut<U>>,
+{
+}
 
 /// Signal
 pub struct Signal<T: ?Sized> {
@@ -57,7 +60,7 @@ impl<T> Signal<T> {
 	#[track_caller]
 	pub fn new(value: T) -> Self {
 		let inner = Inner {
-			value:   RefCell::new(value),
+			value:   IMut::new(value),
 			trigger: Trigger::new(),
 		};
 		Self { inner: Rc::new(inner) }
@@ -76,7 +79,7 @@ where
 
 /// Reference type for [`SignalBorrow`] impl
 #[derive(Debug)]
-pub struct BorrowRef<'a, T: ?Sized>(cell::Ref<'a, T>);
+pub struct BorrowRef<'a, T: ?Sized>(IMutRef<'a, T>);
 
 impl<T: ?Sized> Deref for BorrowRef<'_, T> {
 	type Target = T;
@@ -99,7 +102,7 @@ impl<T: ?Sized + 'static> SignalBorrow for Signal<T> {
 		let borrow = self
 			.inner
 			.value
-			.try_borrow()
+			.imut_try_read()
 			.expect("Cannot use signal value while updating");
 		BorrowRef(borrow)
 	}
@@ -141,7 +144,7 @@ impl Drop for TriggerOnDrop<'_> {
 #[derive(Debug)]
 pub struct BorrowRefMut<'a, T: ?Sized> {
 	/// Value
-	value: cell::RefMut<'a, T>,
+	value: IMutRefMut<'a, T>,
 
 	/// Trigger on drop
 	// Note: Must be dropped *after* `value`.
@@ -173,7 +176,7 @@ impl<T: ?Sized + 'static> SignalBorrowMut for Signal<T> {
 		let value = self
 			.inner
 			.value
-			.try_borrow_mut()
+			.imut_try_write()
 			.expect("Cannot update signal value while using it");
 		BorrowRefMut {
 			value,
@@ -207,7 +210,7 @@ impl<T> Clone for Signal<T> {
 impl<T: fmt::Debug> fmt::Debug for Signal<T> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		f.debug_struct("Signal")
-			.field("value", &*self.inner.value.borrow())
+			.field("value", &*self.inner.value.imut_read())
 			.field("trigger", &self.inner.trigger)
 			.finish()
 	}

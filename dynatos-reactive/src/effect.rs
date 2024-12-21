@@ -10,24 +10,25 @@
 #[cfg(debug_assertions)]
 use core::panic::Location;
 use {
+	crate::{Rc, SyncBounds, Weak},
 	core::{
-		cell::{Cell, RefCell},
+		cell::RefCell,
 		fmt,
 		hash::Hash,
 		marker::Unsize,
 		ops::CoerceUnsized,
+		sync::atomic::{self, AtomicBool},
 	},
-	std::rc::{Rc, Weak},
 };
 
 /// Effect stack
 #[thread_local]
-static EFFECT_STACK: RefCell<Vec<WeakEffect<dyn Fn()>>> = RefCell::new(vec![]);
+static EFFECT_STACK: RefCell<Vec<WeakEffect<dyn Fn() + SyncBounds>>> = RefCell::new(vec![]);
 
 /// Effect inner
 struct Inner<F: ?Sized> {
 	/// Whether this effect is currently suppressed
-	suppressed: Cell<bool>,
+	suppressed: AtomicBool,
 
 	#[cfg(debug_assertions)]
 	/// Where this effect was defined
@@ -57,11 +58,11 @@ impl<F> Effect<F> {
 	#[track_caller]
 	pub fn new(run: F) -> Self
 	where
-		F: Fn() + 'static,
+		F: Fn() + 'static + SyncBounds,
 	{
 		// Create the effect
 		let inner = Inner {
-			suppressed: Cell::new(false),
+			suppressed: AtomicBool::new(false),
 			#[cfg(debug_assertions)]
 			defined_loc: Location::caller(),
 			run,
@@ -80,7 +81,7 @@ impl<F> Effect<F> {
 	#[track_caller]
 	pub fn try_new(run: F) -> Option<Self>
 	where
-		F: Fn() + 'static,
+		F: Fn() + 'static + SyncBounds,
 	{
 		let effect = Self::new(run);
 		match effect.is_inert() {
@@ -132,13 +133,13 @@ impl<F: ?Sized> Effect<F> {
 	/// Runs the effect
 	pub fn run(&self)
 	where
-		F: Fn() + Unsize<dyn Fn()> + 'static,
+		F: Fn() + Unsize<dyn Fn() + SyncBounds> + 'static,
 	{
 		// Push the effect, run the closure and pop it
 		EFFECT_STACK.borrow_mut().push(self.downgrade());
 
 		// Then run it, if it's not suppressed
-		if !self.inner.suppressed.get() {
+		if !self.inner.suppressed.load(atomic::Ordering::Acquire) {
 			(self.inner.run)();
 		}
 
@@ -152,11 +153,11 @@ impl<F: ?Sized> Effect<F> {
 		F2: FnOnce() -> O,
 	{
 		// Set the suppress flag and run `f`
-		let last_suppressed = self.inner.suppressed.replace(true);
+		let last_suppressed = self.inner.suppressed.swap(true, atomic::Ordering::AcqRel);
 		let output = f();
 
 		// Then restore it
-		self.inner.suppressed.set(last_suppressed);
+		self.inner.suppressed.store(last_suppressed, atomic::Ordering::Release);
 
 		output
 	}
@@ -230,7 +231,7 @@ impl<F: ?Sized> WeakEffect<F> {
 	)]
 	pub fn try_run(&self) -> bool
 	where
-		F: Fn() + Unsize<dyn Fn()> + 'static,
+		F: Fn() + Unsize<dyn Fn() + SyncBounds> + 'static,
 	{
 		// Try to upgrade, else return that it was missing
 		let Some(effect) = self.upgrade() else {
@@ -279,7 +280,7 @@ where
 }
 
 /// Returns the current running effect
-pub fn running() -> Option<WeakEffect<dyn Fn()>> {
+pub fn running() -> Option<WeakEffect<dyn Fn() + SyncBounds>> {
 	EFFECT_STACK.borrow().last().cloned()
 }
 

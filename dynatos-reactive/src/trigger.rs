@@ -5,12 +5,9 @@
 
 // Imports
 use {
-	crate::{effect, Effect, WeakEffect},
-	core::{cell::RefCell, fmt, marker::Unsize},
-	std::{
-		collections::{hash_map, HashMap},
-		rc::{Rc, Weak},
-	},
+	crate::{effect, Effect, IMut, IMutExt, Rc, SyncBounds, Weak, WeakEffect},
+	core::{fmt, marker::Unsize},
+	std::collections::{hash_map, HashMap},
 };
 #[cfg(debug_assertions)]
 use {
@@ -22,7 +19,7 @@ use {
 #[derive(PartialEq, Eq, Clone, Hash, Debug)]
 pub struct Subscriber {
 	/// Effect
-	effect: WeakEffect<dyn Fn()>,
+	effect: WeakEffect<dyn Fn() + SyncBounds>,
 }
 
 /// Subscriber info
@@ -72,7 +69,7 @@ struct Inner {
 			reason = "It isn't zero-sized with `debug_assertions`"
 		)
 	)]
-	subscribers: RefCell<HashMap<Subscriber, SubscriberInfo>>,
+	subscribers: IMut<HashMap<Subscriber, SubscriberInfo>>,
 
 	#[cfg(debug_assertions)]
 	/// Where this trigger was defined
@@ -98,7 +95,7 @@ impl Trigger {
 					reason = "It isn't zero-sized with `debug_assertions`"
 				)
 			)]
-			subscribers: RefCell::new(HashMap::new()),
+			subscribers: IMut::new(HashMap::new()),
 			#[cfg(debug_assertions)]
 			defined_loc: Location::caller(),
 		};
@@ -133,7 +130,7 @@ impl Trigger {
 	/// Returns if the subscriber already existed.
 	#[track_caller]
 	fn add_subscriber<S: IntoSubscriber>(&self, subscriber: S) -> bool {
-		let mut subscribers = self.inner.subscribers.borrow_mut();
+		let mut subscribers = self.inner.subscribers.imut_write();
 		match subscribers.entry(subscriber.into_subscriber()) {
 			hash_map::Entry::Occupied(mut entry) => {
 				entry.get_mut().update();
@@ -151,7 +148,7 @@ impl Trigger {
 	/// Returns if the subscriber existed
 	#[track_caller]
 	fn remove_subscriber<S: IntoSubscriber>(&self, subscriber: S) -> bool {
-		let mut subscribers = self.inner.subscribers.borrow_mut();
+		let mut subscribers = self.inner.subscribers.imut_write();
 		subscribers.remove(&subscriber.into_subscriber()).is_some()
 	}
 
@@ -170,7 +167,7 @@ impl Trigger {
 		let subscribers = self
 			.inner
 			.subscribers
-			.borrow()
+			.imut_write()
 			.iter()
 			.map(|(subscriber, info)| (subscriber.clone(), info.clone()))
 			.collect::<Vec<_>>();
@@ -267,7 +264,7 @@ impl IntoSubscriber for Subscriber {
 )]
 impl<F> IntoSubscriber for T<F>
 where
-	F: ?Sized + Fn() + Unsize<dyn Fn()> + 'static,
+	F: ?Sized + Fn() + Unsize<dyn Fn() + SyncBounds> + 'static,
 {
 	#[track_caller]
 	fn into_subscriber(self) -> Subscriber {

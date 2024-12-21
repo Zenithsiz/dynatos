@@ -5,9 +5,20 @@
 
 // Imports
 use {
-	crate::{signal, SignalBorrow, SignalBorrowMut, SignalUpdate, SignalWith, Trigger},
+	crate::{
+		signal,
+		IMut,
+		IMutExt,
+		IMutRef,
+		IMutRefMut,
+		Rc,
+		SignalBorrow,
+		SignalBorrowMut,
+		SignalUpdate,
+		SignalWith,
+		Trigger,
+	},
 	core::{
-		cell::{self, RefCell},
 		fmt,
 		future::Future,
 		ops::{Deref, DerefMut},
@@ -16,7 +27,6 @@ use {
 	},
 	pin_cell::PinCell,
 	std::{
-		rc::Rc,
 		sync::Arc,
 		task::Wake,
 		thread::{self, ThreadId},
@@ -52,8 +62,11 @@ impl Wake for Waker {
 // SAFETY: We ensure that the inner trigger is only accessed
 //         in the same thread as it was created on.
 #[expect(clippy::non_send_fields_in_send_ty, reason = "See SAFETY")]
-unsafe impl Send for Waker {}
-unsafe impl Sync for Waker {}
+#[cfg(not(feature = "sync"))]
+const _: () = {
+	unsafe impl Send for Waker {}
+	unsafe impl Sync for Waker {}
+};
 
 /// Inner
 #[pin_project::pin_project]
@@ -66,7 +79,7 @@ struct Inner<F: Future> {
 	waker: Arc<Waker>,
 
 	/// Value
-	value: RefCell<Option<F::Output>>,
+	value: IMut<Option<F::Output>>,
 }
 
 /// Async signal.
@@ -89,7 +102,7 @@ impl<F: Future> AsyncSignal<F> {
 				thread:  thread::current().id(),
 				trigger: Trigger::new(),
 			}),
-			value: RefCell::new(None),
+			value: IMut::new(None),
 		});
 		Self { inner }
 	}
@@ -101,7 +114,7 @@ impl<F: Future> AsyncSignal<F> {
 	pub fn borrow_inner(&self) -> Option<BorrowRef<'_, F::Output>> {
 		self.inner.waker.trigger.gather_subscribers();
 
-		let borrow = self.inner.value.borrow();
+		let borrow = self.inner.value.imut_read();
 		borrow.is_some().then(|| BorrowRef(borrow))
 	}
 
@@ -130,14 +143,14 @@ where
 	F::Output: fmt::Debug,
 {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		let value = self.inner.value.borrow();
+		let value = self.inner.value.imut_read();
 		f.debug_struct("AsyncSignal").field("value", &value).finish()
 	}
 }
 
 /// Reference type for [`SignalBorrow`] impl
 #[derive(Debug)]
-pub struct BorrowRef<'a, T>(cell::Ref<'a, Option<T>>);
+pub struct BorrowRef<'a, T>(IMutRef<'a, Option<T>>);
 
 impl<T> Deref for BorrowRef<'_, T> {
 	type Target = T;
@@ -156,7 +169,8 @@ impl<F: Future> SignalBorrow for AsyncSignal<F> {
 	#[track_caller]
 	fn borrow(&self) -> Self::Ref<'_> {
 		// Try to poll the future, if we don't have a value yet
-		if self.inner.value.borrow().is_none() {
+		// TODO: Is it fine to not keep the value locked throughout the poll?
+		if self.inner.value.imut_read().is_none() {
 			// Get the inner future through pin-project + pin-cell.
 			let inner = self.inner.as_ref().project_ref();
 			let mut fut = inner.fut.borrow_mut();
@@ -165,8 +179,8 @@ impl<F: Future> SignalBorrow for AsyncSignal<F> {
 			// Then poll it, and store the value if finished.
 			let waker = task::Waker::from(Arc::clone(&self.inner.waker));
 			let mut cx = task::Context::from_waker(&waker);
-			if let Poll::Ready(value) = fut.poll(&mut cx) {
-				*self.inner.value.borrow_mut() = Some(value);
+			if let Poll::Ready(new_value) = fut.poll(&mut cx) {
+				*self.inner.value.imut_write() = Some(new_value);
 			}
 		}
 
@@ -194,7 +208,7 @@ where
 #[derive(Debug)]
 pub struct BorrowRefMut<'a, T> {
 	/// Value
-	value: cell::RefMut<'a, Option<T>>,
+	value: IMutRefMut<'a, Option<T>>,
 
 	/// Trigger on drop
 	// Note: Must be dropped *after* `value`.
@@ -223,7 +237,7 @@ impl<F: Future> SignalBorrowMut for AsyncSignal<F> {
 
 	#[track_caller]
 	fn borrow_mut(&self) -> Self::RefMut<'_> {
-		let value = self.inner.value.borrow_mut();
+		let value = self.inner.value.imut_write();
 		value.is_some().then(|| BorrowRefMut {
 			value,
 			_trigger_on_drop: signal::TriggerOnDrop(&self.inner.waker.trigger),
