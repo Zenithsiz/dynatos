@@ -51,6 +51,14 @@ impl<F: Future<Output = Result<T, E>>, T, E> LoadableSignal<F> {
 		self.inner.has_polled()
 	}
 
+	/// Gets whether this future should is loading.
+	///
+	/// Returns `true` is [`Self::load`] is currently loading.
+	#[must_use]
+	pub fn is_loading(&self) -> bool {
+		self.inner.is_loading()
+	}
+
 	/// Loads this value asynchronously and returns the value
 	pub async fn load(&self) -> Result<BorrowRef<'_, T, E>, E>
 	where

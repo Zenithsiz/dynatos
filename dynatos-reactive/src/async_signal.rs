@@ -77,6 +77,9 @@ struct Inner<F: Future> {
 	/// Whether we've been polled.
 	has_polled: AtomicBool,
 
+	/// Whether we're currently loading
+	is_loading: AtomicBool,
+
 	/// Value
 	value: OnceLock<F::Output>,
 }
@@ -104,7 +107,7 @@ impl<F: Future> AsyncSignal<F> {
 		Self::new_inner(fut, true)
 	}
 
-	/// Creates a new async signal from a future
+	/// Inner constructor
 	#[track_caller]
 	fn new_inner(fut: F, is_suspended: bool) -> Self {
 		let inner = Rc::pin(Inner {
@@ -116,6 +119,7 @@ impl<F: Future> AsyncSignal<F> {
 			}),
 			is_suspended: AtomicBool::new(is_suspended),
 			has_polled:   AtomicBool::new(false),
+			is_loading:   AtomicBool::new(false),
 			value:        OnceLock::new(),
 		});
 		Self { inner }
@@ -138,12 +142,26 @@ impl<F: Future> AsyncSignal<F> {
 		self.inner.has_polled.load(atomic::Ordering::Acquire)
 	}
 
+	/// Gets whether this future should is loading.
+	///
+	/// Returns `true` is [`Self::load`] is currently loading.
+	#[must_use]
+	pub fn is_loading(&self) -> bool {
+		self.inner.is_loading.load(atomic::Ordering::Acquire)
+	}
+
 	/// Loads this value asynchronously and returns the value
 	pub async fn load(&self) -> &'_ F::Output {
 		// Gather subcribers before polling
 		// TODO: Is this correct? We should probably be gathering by task,
 		//       instead of by thread.
 		self.inner.waker.trigger.gather_subscribers();
+
+		// Signal that we're loading, and defer setting otherwise at the end
+		self.inner.is_loading.store(true, atomic::Ordering::Release);
+		scopeguard::defer! {
+			self.inner.is_loading.store(false, atomic::Ordering::Release);
+		};
 
 		// Poll until we're loaded
 		future::poll_fn(|cx| match self.try_load(cx) {

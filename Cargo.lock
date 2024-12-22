@@ -142,6 +142,7 @@ dependencies = [
  "anyhow",
  "duplicate",
  "dynatos-reactive",
+ "dynatos-reactive-sync",
  "dynatos-util",
  "extend",
  "tracing",
@@ -158,6 +159,7 @@ dependencies = [
  "extend",
  "itertools",
  "pin-project",
+ "scopeguard",
  "tracing",
 ]
 

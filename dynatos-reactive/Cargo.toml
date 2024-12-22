@@ -13,6 +13,7 @@ duplicate = { workspace = true }
 extend = { workspace = true }
 itertools = { workspace = true }
 pin-project = { workspace = true }
+scopeguard = { workspace = true }
 tracing = { workspace = true }
 
 [lints]
