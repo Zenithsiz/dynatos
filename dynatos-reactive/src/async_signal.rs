@@ -3,21 +3,26 @@
 // TODO: Support wakers that wake from a separate thread
 //       by using some runtime and a channel.
 
+// TODO: Trigger whenever we finish loading the future, not just when
+//       the waker wakes.
+
 // Imports
 #[cfg(not(feature = "sync"))]
 use std::thread::{self, ThreadId};
 use {
-	crate::{signal, SignalBorrow, SignalBorrowMut, SignalUpdate, SignalWith, Trigger},
+	crate::{SignalBorrow, SignalWith, Trigger},
 	core::{
 		fmt,
 		future::{self, Future},
-		ops::{Deref, DerefMut},
 		pin::Pin,
 		sync::atomic::{self, AtomicBool},
 		task::{self, Poll},
 	},
-	dynatos_reactive_sync::{IMut, IMutExt, IMutRef, IMutRefMut, Rc},
-	std::{sync::Arc, task::Wake},
+	dynatos_reactive_sync::{IMut, IMutExt, Rc},
+	std::{
+		sync::{Arc, OnceLock},
+		task::Wake,
+	},
 };
 
 /// Waker
@@ -63,8 +68,8 @@ struct Inner<F: Future> {
 	/// Future
 	///
 	/// SAFETY:
-	/// Must not be moved out until we're dropped.
-	fut: IMut<F>,
+	/// Must not be moved out until it's finished.
+	fut: IMut<Option<F>>,
 
 	/// Waker
 	waker: Arc<Waker>,
@@ -73,7 +78,7 @@ struct Inner<F: Future> {
 	is_suspended: AtomicBool,
 
 	/// Value
-	value: IMut<Option<F::Output>>,
+	value: OnceLock<F::Output>,
 }
 
 /// Async signal.
@@ -103,14 +108,14 @@ impl<F: Future> AsyncSignal<F> {
 	#[track_caller]
 	fn new_inner(fut: F, is_suspended: bool) -> Self {
 		let inner = Rc::pin(Inner {
-			fut:          IMut::new(fut),
+			fut:          IMut::new(Some(fut)),
 			waker:        Arc::new(Waker {
 				#[cfg(not(feature = "sync"))]
 				thread: thread::current().id(),
 				trigger: Trigger::new(),
 			}),
 			is_suspended: AtomicBool::new(is_suspended),
-			value:        IMut::new(None),
+			value:        OnceLock::new(),
 		});
 		Self { inner }
 	}
@@ -127,37 +132,54 @@ impl<F: Future> AsyncSignal<F> {
 	}
 
 	/// Loads this value asynchronously and returns the value
-	pub async fn load(&self) -> BorrowRef<'_, F::Output> {
-		// Poll until we're loaded
-		future::poll_fn(|cx| {
-			// Get the inner future through pin projection.
-			let mut fut = self.inner.fut.imut_write();
-
-			// SAFETY: We guarantee that the future is not moved until it's dropped.
-			let mut fut = unsafe { Pin::new_unchecked(&mut *fut) };
-
-			// Then poll it, and store the value if finished.
-			let new_value = task::ready!(fut.as_mut().poll(cx));
-			*self.inner.value.imut_write() = Some(new_value);
-
-			Poll::Ready(())
-		})
-		.await;
-
-		// Then borrow
+	pub async fn load(&self) -> &'_ F::Output {
+		// Gather subcribers before polling
+		// TODO: Is this correct? We should probably be gathering by task,
+		//       instead of by thread.
 		self.inner.waker.trigger.gather_subscribers();
-		let borrow = self.inner.value.imut_read();
-		BorrowRef(borrow)
+
+		// Poll until we're loaded
+		future::poll_fn(|cx| match self.try_load(cx) {
+			Some(value) => Poll::Ready(value),
+			None => Poll::Pending,
+		})
+		.await
+	}
+
+	/// Inner function to try to load the future
+	fn try_load(&self, cx: &mut task::Context<'_>) -> Option<&F::Output> {
+		self.inner
+			.value
+			.get_or_try_init(|| {
+				// Get the inner future through pin projection.
+				let mut inner_fut = self.inner.fut.imut_write();
+				let fut = inner_fut
+					.as_mut()
+					.expect("Future was missing without value being initialized");
+
+				// SAFETY: We guarantee that the future is not moved until it's finished.
+				let mut fut = unsafe { Pin::new_unchecked(&mut *fut) };
+
+				// Then poll it
+				match fut.as_mut().poll(cx) {
+					Poll::Ready(value) => {
+						// Drop the future once we load it
+						let _: Option<F> = inner_fut.take();
+
+						Ok(value)
+					},
+					Poll::Pending => Err(()),
+				}
+			})
+			.ok()
 	}
 
 	/// Borrows the inner value, without polling the future.
 	#[must_use]
 	#[track_caller]
-	pub fn borrow_suspended(&self) -> Option<BorrowRef<'_, F::Output>> {
+	pub fn borrow_suspended(&self) -> Option<&'_ F::Output> {
 		self.inner.waker.trigger.gather_subscribers();
-
-		let borrow = self.inner.value.imut_read();
-		borrow.is_some().then(|| BorrowRef(borrow))
+		self.inner.value.get()
 	}
 
 	/// Uses the inner value, without polling the future.
@@ -167,7 +189,7 @@ impl<F: Future> AsyncSignal<F> {
 		F2: for<'a> FnOnce(Option<&'a F::Output>) -> O,
 	{
 		let borrow = self.borrow_suspended();
-		f(borrow.as_deref())
+		f(borrow)
 	}
 }
 
@@ -184,49 +206,31 @@ where
 	F::Output: fmt::Debug,
 {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		let value = self.inner.value.imut_read();
+		let value = self.inner.value.get();
 		f.debug_struct("AsyncSignal").field("value", &value).finish()
-	}
-}
-
-/// Reference type for [`SignalBorrow`] impl
-#[derive(Debug)]
-pub struct BorrowRef<'a, T>(IMutRef<'a, Option<T>>);
-
-impl<T> Deref for BorrowRef<'_, T> {
-	type Target = T;
-
-	fn deref(&self) -> &Self::Target {
-		self.0.as_ref().expect("Value wasn't initialized")
 	}
 }
 
 impl<F: Future> SignalBorrow for AsyncSignal<F> {
 	type Ref<'a>
-		= Option<BorrowRef<'a, F::Output>>
+		= Option<&'a F::Output>
 	where
 		Self: 'a;
 
 	#[track_caller]
 	fn borrow(&self) -> Self::Ref<'_> {
-		// Try to poll the future, if we're not suspended and don't have a value yet
-		// TODO: Is it fine to not keep the value locked throughout the poll?
-		if !self.is_suspended() && self.inner.value.imut_read().is_none() {
-			// Get the inner future through pin projection.
-			let mut fut = self.inner.fut.imut_write();
+		self.inner.waker.trigger.gather_subscribers();
 
-			// SAFETY: We guarantee that the future is not moved until it's dropped.
-			let mut fut = unsafe { Pin::new_unchecked(&mut *fut) };
-
-			// Then poll it, and store the value if finished.
-			let waker = task::Waker::from(Arc::clone(&self.inner.waker));
-			let mut cx = task::Context::from_waker(&waker);
-			if let Poll::Ready(new_value) = fut.as_mut().poll(&mut cx) {
-				*self.inner.value.imut_write() = Some(new_value);
-			}
+		// If we're suspended, don't poll
+		if self.is_suspended() {
+			return self.inner.value.get();
 		}
 
-		self.borrow_suspended()
+		// Otherwise, try to load it
+		self.inner.waker.trigger.gather_subscribers();
+		let waker = task::Waker::from(Arc::clone(&self.inner.waker));
+		let mut cx = task::Context::from_waker(&waker);
+		self.try_load(&mut cx)
 	}
 }
 
@@ -247,69 +251,6 @@ where
 		}
 
 		let value = self.borrow();
-		f(value.as_deref())
-	}
-}
-
-/// Reference type for [`SignalBorrowMut`] impl
-#[derive(Debug)]
-pub struct BorrowRefMut<'a, T> {
-	/// Value
-	value: IMutRefMut<'a, Option<T>>,
-
-	/// Trigger on drop
-	// Note: Must be dropped *after* `value`.
-	_trigger_on_drop: signal::TriggerOnDrop<'a>,
-}
-
-impl<T> Deref for BorrowRefMut<'_, T> {
-	type Target = T;
-
-	fn deref(&self) -> &Self::Target {
-		self.value.as_ref().expect("Value wasn't initialized")
-	}
-}
-
-impl<T> DerefMut for BorrowRefMut<'_, T> {
-	fn deref_mut(&mut self) -> &mut Self::Target {
-		self.value.as_mut().expect("Value wasn't initialized")
-	}
-}
-
-impl<F: Future> SignalBorrowMut for AsyncSignal<F> {
-	type RefMut<'a>
-		= Option<BorrowRefMut<'a, F::Output>>
-	where
-		Self: 'a;
-
-	#[track_caller]
-	fn borrow_mut(&self) -> Self::RefMut<'_> {
-		// Note: No need to check if we're suspended, since we doesn't poll here
-
-		let value = self.inner.value.imut_write();
-		value.is_some().then(|| BorrowRefMut {
-			value,
-			_trigger_on_drop: signal::TriggerOnDrop(&self.inner.waker.trigger),
-		})
-	}
-}
-
-/// Updates the value within the async signal.
-///
-/// Does not poll the inner future, and does not allow
-/// early initializing the signal.
-impl<F: Future> SignalUpdate for AsyncSignal<F>
-where
-	F::Output: 'static,
-{
-	type Value<'a> = Option<&'a mut F::Output>;
-
-	#[track_caller]
-	fn update<F2, O>(&self, f: F2) -> O
-	where
-		F2: for<'a> FnOnce(Self::Value<'a>) -> O,
-	{
-		let mut value = self.borrow_mut();
-		f(value.as_deref_mut())
+		f(value)
 	}
 }

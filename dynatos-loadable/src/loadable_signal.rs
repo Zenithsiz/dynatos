@@ -3,12 +3,8 @@
 // Imports
 use {
 	crate::Loadable,
-	core::{
-		fmt,
-		future::Future,
-		ops::{Deref, DerefMut},
-	},
-	dynatos_reactive::{async_signal, AsyncSignal, SignalBorrow, SignalBorrowMut, SignalUpdate, SignalWith},
+	core::{fmt, future::Future, ops::Deref},
+	dynatos_reactive::{AsyncSignal, SignalBorrow, SignalWith},
 };
 
 /// Loadable signal.
@@ -57,7 +53,7 @@ impl<F: Future<Output = Result<T, E>>, T, E> LoadableSignal<F> {
 		E: Clone + 'static,
 	{
 		let value = self.inner.load().await;
-		match &*value {
+		match value {
 			Ok(_) => Ok(BorrowRef(value)),
 			Err(err) => Err(err.clone()),
 		}
@@ -71,7 +67,7 @@ impl<F: Future<Output = Result<T, E>>, T, E> LoadableSignal<F> {
 	{
 		let borrow = self.inner.borrow_suspended();
 		match borrow {
-			Some(borrow) => match &*borrow {
+			Some(borrow) => match borrow {
 				Ok(_) => Loadable::Loaded(BorrowRef(borrow)),
 				Err(err) => Loadable::Err(err.clone()),
 			},
@@ -111,7 +107,7 @@ where
 
 /// Reference type for [`SignalBorrow`] impl
 #[derive(Debug)]
-pub struct BorrowRef<'a, T, E>(async_signal::BorrowRef<'a, Result<T, E>>);
+pub struct BorrowRef<'a, T, E>(&'a Result<T, E>);
 
 impl<T, E> Deref for BorrowRef<'_, T, E> {
 	type Target = T;
@@ -133,7 +129,7 @@ impl<F: Future<Output = Result<T, E>> + 'static, T: 'static, E: Clone + 'static>
 	fn borrow(&self) -> Self::Ref<'_> {
 		let borrow = self.inner.borrow();
 		match borrow {
-			Some(borrow) => match &*borrow {
+			Some(borrow) => match borrow {
 				Ok(_) => Loadable::Loaded(BorrowRef(borrow)),
 				Err(err) => Loadable::Err(err.clone()),
 			},
@@ -152,64 +148,5 @@ impl<F: Future<Output = Result<T, E>> + 'static, T: 'static, E: Clone + 'static>
 	{
 		let value = self.borrow();
 		f(value.as_deref())
-	}
-}
-
-/// Reference type for [`SignalBorrowMut`] impl
-#[derive(Debug)]
-pub struct BorrowRefMut<'a, T, E>(async_signal::BorrowRefMut<'a, Result<T, E>>);
-
-impl<T, E> Deref for BorrowRefMut<'_, T, E> {
-	type Target = T;
-
-	fn deref(&self) -> &Self::Target {
-		self.0
-			.as_ref()
-			.unwrap_or_else(|_| panic!("Loadable should not be an error"))
-	}
-}
-
-impl<T, E> DerefMut for BorrowRefMut<'_, T, E> {
-	fn deref_mut(&mut self) -> &mut Self::Target {
-		self.0
-			.as_mut()
-			.unwrap_or_else(|_| panic!("Loadable should not be an error"))
-	}
-}
-
-impl<F: Future<Output = Result<T, E>>, T: 'static, E: Clone + 'static> SignalBorrowMut for LoadableSignal<F> {
-	type RefMut<'a>
-		= Loadable<BorrowRefMut<'a, T, E>, E>
-	where
-		Self: 'a;
-
-	#[track_caller]
-	fn borrow_mut(&self) -> Self::RefMut<'_> {
-		let borrow = self.inner.borrow_mut();
-		match borrow {
-			Some(borrow) => match &*borrow {
-				Ok(_) => Loadable::Loaded(BorrowRefMut(borrow)),
-				Err(err) => Loadable::Err(err.clone()),
-			},
-			None => Loadable::Empty,
-		}
-	}
-}
-
-/// Updates the value within the loadable signal.
-impl<F: Future<Output = Result<T, E>>, T: 'static, E: Clone + 'static> SignalUpdate for LoadableSignal<F>
-where
-	F::Output: 'static,
-{
-	type Value<'a> = Loadable<&'a mut T, E>;
-
-	#[track_caller]
-	fn update<F2, O>(&self, f: F2) -> O
-	where
-		F2: for<'a> FnOnce(Self::Value<'a>) -> O,
-	{
-		// Note: No need to check if we're suspended, `borrow_mut` doesn't poll
-		let mut value = self.borrow_mut();
-		f(value.as_deref_mut())
 	}
 }

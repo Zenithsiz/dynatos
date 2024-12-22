@@ -9,7 +9,8 @@
 	test,
 	thread_local,
 	cfg_match,
-	trait_alias
+	trait_alias,
+	once_cell_try
 )]
 
 // Modules
