@@ -7,27 +7,16 @@ use {
 		fmt,
 		future::Future,
 		ops::{Deref, DerefMut},
-		sync::atomic::{self, AtomicBool},
 	},
 	dynatos_reactive::{async_signal, AsyncSignal, SignalBorrow, SignalBorrowMut, SignalUpdate, SignalWith},
-	dynatos_reactive_sync::Rc,
 };
-
-/// Inner
-struct Inner<F: Future> {
-	/// Signal
-	signal: AsyncSignal<F>,
-
-	/// Whether we're suspended
-	is_suspended: AtomicBool,
-}
 
 /// Loadable signal.
 ///
 /// Wrapper around an [`AsyncSignal`].
 pub struct LoadableSignal<F: Future> {
 	/// Inner
-	inner: Rc<Inner<F>>,
+	inner: AsyncSignal<F>,
 }
 
 impl<F: Future<Output = Result<T, E>>, T, E> LoadableSignal<F> {
@@ -35,10 +24,7 @@ impl<F: Future<Output = Result<T, E>>, T, E> LoadableSignal<F> {
 	#[track_caller]
 	pub fn new(fut: F) -> Self {
 		Self {
-			inner: Rc::new(Inner {
-				signal:       AsyncSignal::new(fut),
-				is_suspended: AtomicBool::new(false),
-			}),
+			inner: AsyncSignal::new(fut),
 		}
 	}
 
@@ -48,22 +34,19 @@ impl<F: Future<Output = Result<T, E>>, T, E> LoadableSignal<F> {
 	#[track_caller]
 	pub fn new_suspended(fut: F) -> Self {
 		Self {
-			inner: Rc::new(Inner {
-				signal:       AsyncSignal::new(fut),
-				is_suspended: AtomicBool::new(true),
-			}),
+			inner: AsyncSignal::new_suspended(fut),
 		}
 	}
 
 	/// Sets whether this future should be suspended
 	pub fn set_suspended(&self, is_suspended: bool) {
-		self.inner.is_suspended.store(is_suspended, atomic::Ordering::Release);
+		self.inner.set_suspended(is_suspended);
 	}
 
 	/// Gets whether this future should is suspended
 	#[must_use]
 	pub fn is_suspended(&self) -> bool {
-		self.inner.is_suspended.load(atomic::Ordering::Acquire)
+		self.inner.is_suspended()
 	}
 
 	/// Loads this value asynchronously and returns the value
@@ -73,7 +56,7 @@ impl<F: Future<Output = Result<T, E>>, T, E> LoadableSignal<F> {
 		T: 'static,
 		E: Clone + 'static,
 	{
-		let value = self.inner.signal.load().await;
+		let value = self.inner.load().await;
 		match &*value {
 			Ok(_) => Ok(BorrowRef(value)),
 			Err(err) => Err(err.clone()),
@@ -86,7 +69,7 @@ impl<F: Future<Output = Result<T, E>>, T, E> LoadableSignal<F> {
 	where
 		E: Clone,
 	{
-		let borrow = self.inner.signal.borrow_inner();
+		let borrow = self.inner.borrow_suspended();
 		match borrow {
 			Some(borrow) => match &*borrow {
 				Ok(_) => Loadable::Loaded(BorrowRef(borrow)),
@@ -110,7 +93,7 @@ impl<F: Future<Output = Result<T, E>>, T, E> LoadableSignal<F> {
 impl<F: Future> Clone for LoadableSignal<F> {
 	fn clone(&self) -> Self {
 		Self {
-			inner: Rc::clone(&self.inner),
+			inner: self.inner.clone(),
 		}
 	}
 }
@@ -148,12 +131,7 @@ impl<F: Future<Output = Result<T, E>> + 'static, T: 'static, E: Clone + 'static>
 
 	#[track_caller]
 	fn borrow(&self) -> Self::Ref<'_> {
-		// If we're suspended, borrow without polling
-		if self.is_suspended() {
-			return self.borrow_suspended();
-		}
-
-		let borrow = self.inner.signal.borrow();
+		let borrow = self.inner.borrow();
 		match borrow {
 			Some(borrow) => match &*borrow {
 				Ok(_) => Loadable::Loaded(BorrowRef(borrow)),
@@ -172,11 +150,6 @@ impl<F: Future<Output = Result<T, E>> + 'static, T: 'static, E: Clone + 'static>
 	where
 		F2: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
-		// If we're suspended, use without polling
-		if self.is_suspended() {
-			return self.with_suspended(f);
-		}
-
 		let value = self.borrow();
 		f(value.as_deref())
 	}
@@ -212,8 +185,7 @@ impl<F: Future<Output = Result<T, E>>, T: 'static, E: Clone + 'static> SignalBor
 
 	#[track_caller]
 	fn borrow_mut(&self) -> Self::RefMut<'_> {
-		// Note: No need to check if we're suspended, `borrow_mut` doesn't poll
-		let borrow = self.inner.signal.borrow_mut();
+		let borrow = self.inner.borrow_mut();
 		match borrow {
 			Some(borrow) => match &*borrow {
 				Ok(_) => Loadable::Loaded(BorrowRefMut(borrow)),

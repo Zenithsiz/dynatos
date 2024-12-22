@@ -13,6 +13,7 @@ use {
 		future::{self, Future},
 		ops::{Deref, DerefMut},
 		pin::Pin,
+		sync::atomic::{self, AtomicBool},
 		task::{self, Poll},
 	},
 	dynatos_reactive_sync::{IMut, IMutExt, IMutRef, IMutRefMut, Rc},
@@ -68,6 +69,9 @@ struct Inner<F: Future> {
 	/// Waker
 	waker: Arc<Waker>,
 
+	/// Whether we're suspended
+	is_suspended: AtomicBool,
+
 	/// Value
 	value: IMut<Option<F::Output>>,
 }
@@ -86,16 +90,40 @@ impl<F: Future> AsyncSignal<F> {
 	/// Creates a new async signal from a future
 	#[track_caller]
 	pub fn new(fut: F) -> Self {
+		Self::new_inner(fut, false)
+	}
+
+	/// Creates a new suspended async signal from a future
+	#[track_caller]
+	pub fn new_suspended(fut: F) -> Self {
+		Self::new_inner(fut, true)
+	}
+
+	/// Creates a new async signal from a future
+	#[track_caller]
+	fn new_inner(fut: F, is_suspended: bool) -> Self {
 		let inner = Rc::pin(Inner {
-			fut:   IMut::new(fut),
-			waker: Arc::new(Waker {
+			fut:          IMut::new(fut),
+			waker:        Arc::new(Waker {
 				#[cfg(not(feature = "sync"))]
 				thread: thread::current().id(),
 				trigger: Trigger::new(),
 			}),
-			value: IMut::new(None),
+			is_suspended: AtomicBool::new(is_suspended),
+			value:        IMut::new(None),
 		});
 		Self { inner }
+	}
+
+	/// Sets whether this future should be suspended
+	pub fn set_suspended(&self, is_suspended: bool) {
+		self.inner.is_suspended.store(is_suspended, atomic::Ordering::Release);
+	}
+
+	/// Gets whether this future should is suspended
+	#[must_use]
+	pub fn is_suspended(&self) -> bool {
+		self.inner.is_suspended.load(atomic::Ordering::Acquire)
 	}
 
 	/// Loads this value asynchronously and returns the value
@@ -123,10 +151,9 @@ impl<F: Future> AsyncSignal<F> {
 	}
 
 	/// Borrows the inner value, without polling the future.
-	// TODO: Better name that indicates that we don't poll?
 	#[must_use]
 	#[track_caller]
-	pub fn borrow_inner(&self) -> Option<BorrowRef<'_, F::Output>> {
+	pub fn borrow_suspended(&self) -> Option<BorrowRef<'_, F::Output>> {
 		self.inner.waker.trigger.gather_subscribers();
 
 		let borrow = self.inner.value.imut_read();
@@ -134,13 +161,12 @@ impl<F: Future> AsyncSignal<F> {
 	}
 
 	/// Uses the inner value, without polling the future.
-	// TODO: Better name that indicates that we don't poll?
 	#[track_caller]
-	pub fn with_inner<F2, O>(&self, f: F2) -> O
+	pub fn with_suspended<F2, O>(&self, f: F2) -> O
 	where
 		F2: for<'a> FnOnce(Option<&'a F::Output>) -> O,
 	{
-		let borrow = self.borrow_inner();
+		let borrow = self.borrow_suspended();
 		f(borrow.as_deref())
 	}
 }
@@ -183,9 +209,9 @@ impl<F: Future> SignalBorrow for AsyncSignal<F> {
 
 	#[track_caller]
 	fn borrow(&self) -> Self::Ref<'_> {
-		// Try to poll the future, if we don't have a value yet
+		// Try to poll the future, if we're not suspended and don't have a value yet
 		// TODO: Is it fine to not keep the value locked throughout the poll?
-		if self.inner.value.imut_read().is_none() {
+		if !self.is_suspended() && self.inner.value.imut_read().is_none() {
 			// Get the inner future through pin projection.
 			let mut fut = self.inner.fut.imut_write();
 
@@ -200,7 +226,7 @@ impl<F: Future> SignalBorrow for AsyncSignal<F> {
 			}
 		}
 
-		self.borrow_inner()
+		self.borrow_suspended()
 	}
 }
 
@@ -215,6 +241,11 @@ where
 	where
 		F2: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
+		// If we're suspended, use without polling
+		if self.is_suspended() {
+			return self.with_suspended(f);
+		}
+
 		let value = self.borrow();
 		f(value.as_deref())
 	}
@@ -253,6 +284,8 @@ impl<F: Future> SignalBorrowMut for AsyncSignal<F> {
 
 	#[track_caller]
 	fn borrow_mut(&self) -> Self::RefMut<'_> {
+		// Note: No need to check if we're suspended, since we doesn't poll here
+
 		let value = self.inner.value.imut_write();
 		value.is_some().then(|| BorrowRefMut {
 			value,
