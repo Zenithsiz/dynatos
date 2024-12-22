@@ -66,6 +66,20 @@ impl<F: Future<Output = Result<T, E>>, T, E> LoadableSignal<F> {
 		self.inner.is_suspended.load(atomic::Ordering::Acquire)
 	}
 
+	/// Loads this value asynchronously and returns the value
+	pub async fn load(&self) -> Result<BorrowRef<'_, T, E>, E>
+	where
+		F: Future<Output = Result<T, E>> + 'static,
+		T: 'static,
+		E: Clone + 'static,
+	{
+		let value = self.inner.signal.load().await;
+		match &*value {
+			Ok(_) => Ok(BorrowRef(value)),
+			Err(err) => Err(err.clone()),
+		}
+	}
+
 	/// Borrows the inner value, without polling the future.
 	#[must_use]
 	pub fn borrow_suspended(&self) -> Loadable<BorrowRef<'_, T, E>, E>

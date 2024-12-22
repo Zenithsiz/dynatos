@@ -10,7 +10,7 @@ use {
 	crate::{signal, SignalBorrow, SignalBorrowMut, SignalUpdate, SignalWith, Trigger},
 	core::{
 		fmt,
-		future::Future,
+		future::{self, Future},
 		ops::{Deref, DerefMut},
 		pin::Pin,
 		task::{self, Poll},
@@ -96,6 +96,30 @@ impl<F: Future> AsyncSignal<F> {
 			value: IMut::new(None),
 		});
 		Self { inner }
+	}
+
+	/// Loads this value asynchronously and returns the value
+	pub async fn load(&self) -> BorrowRef<'_, F::Output> {
+		// Poll until we're loaded
+		future::poll_fn(|cx| {
+			// Get the inner future through pin projection.
+			let mut fut = self.inner.fut.imut_write();
+
+			// SAFETY: We guarantee that the future is not moved until it's dropped.
+			let mut fut = unsafe { Pin::new_unchecked(&mut *fut) };
+
+			// Then poll it, and store the value if finished.
+			let new_value = task::ready!(fut.as_mut().poll(cx));
+			*self.inner.value.imut_write() = Some(new_value);
+
+			Poll::Ready(())
+		})
+		.await;
+
+		// Then borrow
+		self.inner.waker.trigger.gather_subscribers();
+		let borrow = self.inner.value.imut_read();
+		BorrowRef(borrow)
 	}
 
 	/// Borrows the inner value, without polling the future.
