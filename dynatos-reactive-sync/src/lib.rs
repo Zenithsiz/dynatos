@@ -2,6 +2,8 @@
 //!
 //! Helps select single-threaded vs multi-threaded primitives.
 
+// TODO: Also include `Cell<T>` vs `Atomic<T>`.
+
 // Features
 #![feature(
 	unsize,

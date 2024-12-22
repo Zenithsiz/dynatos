@@ -6,6 +6,7 @@ edition = "2021"
 [dependencies]
 
 dynatos-reactive = { workspace = true }
+dynatos-reactive-sync = { workspace = true }
 dynatos-util = { workspace = true }
 
 anyhow = { workspace = true }
@@ -15,3 +16,6 @@ tracing = { workspace = true }
 
 [lints]
 workspace = true
+
+[features]
+sync = ["dynatos-reactive-sync/sync"]
