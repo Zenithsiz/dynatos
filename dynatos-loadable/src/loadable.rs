@@ -143,6 +143,16 @@ impl<T, E> Loadable<T, E> {
 }
 
 impl<T, E> Loadable<&T, E> {
+	/// Copied the inner value
+	pub fn copied(self) -> Loadable<T, E>
+	where
+		T: Copy,
+	{
+		self.map(|value| *value)
+	}
+}
+
+impl<T, E> Loadable<&T, E> {
 	/// Clones the inner value
 	pub fn cloned(self) -> Loadable<T, E>
 	where
