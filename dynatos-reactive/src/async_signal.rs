@@ -4,6 +4,8 @@
 //       by using some runtime and a channel.
 
 // Imports
+#[cfg(not(feature = "sync"))]
+use std::thread::{self, ThreadId};
 use {
 	crate::{signal, SignalBorrow, SignalBorrowMut, SignalUpdate, SignalWith, Trigger},
 	core::{
@@ -14,17 +16,13 @@ use {
 		task::{self, Poll},
 	},
 	dynatos_reactive_sync::{IMut, IMutExt, IMutRef, IMutRefMut, Rc},
-	pin_cell::PinCell,
-	std::{
-		sync::Arc,
-		task::Wake,
-		thread::{self, ThreadId},
-	},
+	std::{sync::Arc, task::Wake},
 };
 
 /// Waker
 struct Waker {
 	/// Active thread
+	#[cfg(not(feature = "sync"))]
 	thread: ThreadId,
 
 	/// Trigger
@@ -37,7 +35,9 @@ impl Wake for Waker {
 	}
 
 	fn wake_by_ref(self: &Arc<Self>) {
-		// Ensure we're on the same thread as we were created
+		// Ensure we're on the same thread as we were created, if `sync`
+		// isn't enabled.
+		#[cfg(not(feature = "sync"))]
 		assert_eq!(
 			thread::current().id(),
 			self.thread,
@@ -58,11 +58,12 @@ const _: () = {
 };
 
 /// Inner
-#[pin_project::pin_project]
 struct Inner<F: Future> {
 	/// Future
-	#[pin]
-	fut: PinCell<F>,
+	///
+	/// SAFETY:
+	/// Must not be moved out until we're dropped.
+	fut: IMut<F>,
 
 	/// Waker
 	waker: Arc<Waker>,
@@ -86,9 +87,10 @@ impl<F: Future> AsyncSignal<F> {
 	#[track_caller]
 	pub fn new(fut: F) -> Self {
 		let inner = Rc::pin(Inner {
-			fut:   PinCell::new(fut),
+			fut:   IMut::new(fut),
 			waker: Arc::new(Waker {
-				thread:  thread::current().id(),
+				#[cfg(not(feature = "sync"))]
+				thread: thread::current().id(),
 				trigger: Trigger::new(),
 			}),
 			value: IMut::new(None),
@@ -160,15 +162,16 @@ impl<F: Future> SignalBorrow for AsyncSignal<F> {
 		// Try to poll the future, if we don't have a value yet
 		// TODO: Is it fine to not keep the value locked throughout the poll?
 		if self.inner.value.imut_read().is_none() {
-			// Get the inner future through pin-project + pin-cell.
-			let inner = self.inner.as_ref().project_ref();
-			let mut fut = inner.fut.borrow_mut();
-			let fut = pin_cell::PinMut::as_mut(&mut fut);
+			// Get the inner future through pin projection.
+			let mut fut = self.inner.fut.imut_write();
+
+			// SAFETY: We guarantee that the future is not moved until it's dropped.
+			let mut fut = unsafe { Pin::new_unchecked(&mut *fut) };
 
 			// Then poll it, and store the value if finished.
 			let waker = task::Waker::from(Arc::clone(&self.inner.waker));
 			let mut cx = task::Context::from_waker(&waker);
-			if let Poll::Ready(new_value) = fut.poll(&mut cx) {
+			if let Poll::Ready(new_value) = fut.as_mut().poll(&mut cx) {
 				*self.inner.value.imut_write() = Some(new_value);
 			}
 		}
