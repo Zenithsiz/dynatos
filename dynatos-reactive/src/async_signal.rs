@@ -74,6 +74,9 @@ struct Inner<F: Future> {
 	/// Whether we're suspended
 	is_suspended: AtomicBool,
 
+	/// Whether we've been polled.
+	has_polled: AtomicBool,
+
 	/// Value
 	value: OnceLock<F::Output>,
 }
@@ -112,6 +115,7 @@ impl<F: Future> AsyncSignal<F> {
 				trigger: Trigger::new(),
 			}),
 			is_suspended: AtomicBool::new(is_suspended),
+			has_polled:   AtomicBool::new(false),
 			value:        OnceLock::new(),
 		});
 		Self { inner }
@@ -126,6 +130,12 @@ impl<F: Future> AsyncSignal<F> {
 	#[must_use]
 	pub fn is_suspended(&self) -> bool {
 		self.inner.is_suspended.load(atomic::Ordering::Acquire)
+	}
+
+	/// Gets whether this future has been polled
+	#[must_use]
+	pub fn has_polled(&self) -> bool {
+		self.inner.has_polled.load(atomic::Ordering::Acquire)
 	}
 
 	/// Loads this value asynchronously and returns the value
@@ -160,7 +170,7 @@ impl<F: Future> AsyncSignal<F> {
 				let mut fut = unsafe { Pin::new_unchecked(&mut *fut) };
 
 				// Then poll it
-				match fut.as_mut().poll(cx) {
+				let output = match fut.as_mut().poll(cx) {
 					Poll::Ready(value) => {
 						// Drop the future once we load it
 						let _: Option<F> = inner_fut.take();
@@ -168,7 +178,12 @@ impl<F: Future> AsyncSignal<F> {
 						Ok(value)
 					},
 					Poll::Pending => Err(()),
-				}
+				};
+
+				// And set that we've polled
+				self.inner.has_polled.store(true, atomic::Ordering::Release);
+
+				output
 			})
 			.ok()?;
 

@@ -45,6 +45,12 @@ impl<F: Future<Output = Result<T, E>>, T, E> LoadableSignal<F> {
 		self.inner.is_suspended()
 	}
 
+	/// Gets whether this future has been polled
+	#[must_use]
+	pub fn has_polled(&self) -> bool {
+		self.inner.has_polled()
+	}
+
 	/// Loads this value asynchronously and returns the value
 	pub async fn load(&self) -> Result<BorrowRef<'_, T, E>, E>
 	where
