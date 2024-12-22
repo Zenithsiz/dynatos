@@ -2,12 +2,13 @@
 
 // Imports
 use {
-	crate::{Effect, IMut, IMutExt, IMutRef, SignalBorrow, SignalWith, SyncBounds, Trigger},
+	crate::{Effect, SignalBorrow, SignalWith, Trigger},
 	core::{
 		fmt,
 		marker::Unsize,
 		ops::{CoerceUnsized, Deref},
 	},
+	dynatos_reactive_sync::{IMut, IMutExt, IMutRef, SyncBounds},
 };
 
 /// Memo signal.

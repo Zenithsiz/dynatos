@@ -23,13 +23,14 @@ pub use ops::{
 
 // Imports
 use {
-	crate::{IMut, IMutExt, IMutRef, IMutRefMut, Rc, Trigger},
+	crate::Trigger,
 	core::{
 		fmt,
 		marker::Unsize,
 		mem,
 		ops::{CoerceUnsized, Deref, DerefMut},
 	},
+	dynatos_reactive_sync::{IMut, IMutExt, IMutRef, IMutRefMut, Rc},
 };
 
 /// Inner

@@ -10,7 +10,6 @@
 #[cfg(debug_assertions)]
 use core::panic::Location;
 use {
-	crate::{Rc, SyncBounds, Weak},
 	core::{
 		cell::RefCell,
 		fmt,
@@ -19,6 +18,7 @@ use {
 		ops::CoerceUnsized,
 		sync::atomic::{self, AtomicBool},
 	},
+	dynatos_reactive_sync::{Rc, SyncBounds, Weak},
 };
 
 /// Effect stack

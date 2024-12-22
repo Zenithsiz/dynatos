@@ -5,8 +5,9 @@
 
 // Imports
 use {
-	crate::{effect, Effect, IMut, IMutExt, Rc, SyncBounds, Weak, WeakEffect},
+	crate::{effect, Effect, WeakEffect},
 	core::{fmt, marker::Unsize},
+	dynatos_reactive_sync::{IMut, IMutExt, Rc, SyncBounds, Weak},
 	std::collections::{hash_map, HashMap},
 };
 #[cfg(debug_assertions)]

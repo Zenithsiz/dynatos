@@ -6,12 +6,12 @@ edition = "2021"
 [dependencies]
 
 dynatos-context = { workspace = true }
+dynatos-reactive-sync = { workspace = true }
 dynatos-util = { workspace = true }
 
 duplicate = { workspace = true }
 extend = { workspace = true }
 itertools = { workspace = true }
-parking_lot = { workspace = true, optional = true }
 pin-cell = { workspace = true }
 pin-project = { workspace = true }
 tracing = { workspace = true }
@@ -20,4 +20,4 @@ tracing = { workspace = true }
 workspace = true
 
 [features]
-sync = ["dep:parking_lot"]
+sync = ["dynatos-reactive-sync/sync"]

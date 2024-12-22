@@ -5,19 +5,7 @@
 
 // Imports
 use {
-	crate::{
-		signal,
-		IMut,
-		IMutExt,
-		IMutRef,
-		IMutRefMut,
-		Rc,
-		SignalBorrow,
-		SignalBorrowMut,
-		SignalUpdate,
-		SignalWith,
-		Trigger,
-	},
+	crate::{signal, SignalBorrow, SignalBorrowMut, SignalUpdate, SignalWith, Trigger},
 	core::{
 		fmt,
 		future::Future,
@@ -25,6 +13,7 @@ use {
 		pin::Pin,
 		task::{self, Poll},
 	},
+	dynatos_reactive_sync::{IMut, IMutExt, IMutRef, IMutRefMut, Rc},
 	pin_cell::PinCell,
 	std::{
 		sync::Arc,

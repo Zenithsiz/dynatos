@@ -1,0 +1,14 @@
+[package]
+name = "dynatos-reactive-sync"
+version = "0.1.0"
+edition = "2021"
+
+[dependencies]
+
+parking_lot = { workspace = true, optional = true }
+
+[lints]
+workspace = true
+
+[features]
+sync = ["dep:parking_lot"]

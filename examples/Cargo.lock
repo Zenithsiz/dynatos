@@ -151,6 +151,7 @@ version = "0.1.0"
 dependencies = [
  "duplicate",
  "dynatos-context",
+ "dynatos-reactive-sync",
  "dynatos-util",
  "extend",
  "itertools",
@@ -158,6 +159,10 @@ dependencies = [
  "pin-project",
  "tracing",
 ]
+
+[[package]]
+name = "dynatos-reactive-sync"
+version = "0.1.0"
 
 [[package]]
 name = "dynatos-router"
