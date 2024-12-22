@@ -65,7 +65,9 @@ impl<S: SignalBorrow, T> SignalBorrow for WithDefault<S, T> {
 
 impl<S, T> SignalWith for WithDefault<S, T>
 where
-	S: for<'a> SignalWith<Value<'a> = Option<&'a T>>,
+	S: SignalWith,
+	// Note: This allows both `Option<&'_ T>` and `&'_ Option<T>`
+	for<'a> S::Value<'a>: Into<Option<&'a T>>,
 	T: 'static,
 {
 	type Value<'a> = &'a T;
@@ -75,12 +77,14 @@ where
 	where
 		F: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
-		self.inner.with(|value| match value {
+		self.inner.with(|value| match value.into() {
 			Some(value) => f(value),
 			None => f(&self.default),
 		})
 	}
 }
+
+// TODO: Impl `SignalGet<Option<T>>` once we can?
 
 impl<S, T> SignalReplace<T> for WithDefault<S, T>
 where
