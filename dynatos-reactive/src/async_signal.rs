@@ -3,9 +3,6 @@
 // TODO: Support wakers that wake from a separate thread
 //       by using some runtime and a channel.
 
-// TODO: Trigger whenever we finish loading the future, not just when
-//       the waker wakes.
-
 // Imports
 #[cfg(not(feature = "sync"))]
 use std::thread::{self, ThreadId};
@@ -148,7 +145,9 @@ impl<F: Future> AsyncSignal<F> {
 
 	/// Inner function to try to load the future
 	fn try_load(&self, cx: &mut task::Context<'_>) -> Option<&F::Output> {
-		self.inner
+		// Try to load the value
+		let value = self
+			.inner
 			.value
 			.get_or_try_init(|| {
 				// Get the inner future through pin projection.
@@ -171,7 +170,12 @@ impl<F: Future> AsyncSignal<F> {
 					Poll::Pending => Err(()),
 				}
 			})
-			.ok()
+			.ok()?;
+
+		// Once we have, trigger our trigger to ensure subscribers get woken
+		self.inner.waker.trigger.trigger();
+
+		Some(value)
 	}
 
 	/// Borrows the inner value, without polling the future.
@@ -206,7 +210,7 @@ where
 	F::Output: fmt::Debug,
 {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		let value = self.inner.value.get();
+		let value = self.borrow_suspended();
 		f.debug_struct("AsyncSignal").field("value", &value).finish()
 	}
 }
@@ -219,11 +223,9 @@ impl<F: Future> SignalBorrow for AsyncSignal<F> {
 
 	#[track_caller]
 	fn borrow(&self) -> Self::Ref<'_> {
-		self.inner.waker.trigger.gather_subscribers();
-
-		// If we're suspended, don't poll
+		// If we're suspended, borrow suspended
 		if self.is_suspended() {
-			return self.inner.value.get();
+			return self.borrow_suspended();
 		}
 
 		// Otherwise, try to load it
