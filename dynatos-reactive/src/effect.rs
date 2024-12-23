@@ -296,7 +296,7 @@ impl<F: ?Sized> Clone for WeakEffect<F> {
 
 impl<F: ?Sized> Hash for WeakEffect<F> {
 	fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
-		self.inner.as_ptr().hash(state);
+		self.inner_ptr().hash(state);
 	}
 }
 
