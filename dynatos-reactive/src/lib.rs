@@ -11,7 +11,8 @@
 	cfg_match,
 	trait_alias,
 	once_cell_try,
-	async_fn_traits
+	async_fn_traits,
+	local_waker
 )]
 
 // Modules

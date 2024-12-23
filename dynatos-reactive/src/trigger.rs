@@ -6,7 +6,12 @@
 // Imports
 use {
 	crate::{effect, Effect, WeakEffect},
-	core::{fmt, marker::Unsize},
+	core::{
+		fmt,
+		marker::Unsize,
+		mem::{self, ManuallyDrop},
+		task,
+	},
 	dynatos_reactive_sync::{IMut, IMutExt, Rc, SyncBounds, Weak},
 	std::collections::{hash_map, HashMap},
 };
@@ -148,8 +153,14 @@ impl Trigger {
 	///
 	/// Returns if the subscriber existed
 	#[track_caller]
-	fn remove_subscriber<S: IntoSubscriber>(&self, subscriber: S) -> bool {
-		let mut subscribers = self.inner.subscribers.imut_write();
+	fn _remove_subscriber<S: IntoSubscriber>(&self, subscriber: S) -> bool {
+		Self::remove_subscriber_inner(&self.inner, subscriber)
+	}
+
+	/// Inner function for [`Self::remove_subscriber`]
+	#[track_caller]
+	fn remove_subscriber_inner<S: IntoSubscriber>(inner: &Inner, subscriber: S) -> bool {
+		let mut subscribers = inner.subscribers.imut_write();
 		subscribers.remove(&subscriber.into_subscriber()).is_some()
 	}
 
@@ -157,6 +168,11 @@ impl Trigger {
 	///
 	/// Re-runs all subscribers.
 	pub fn trigger(&self) {
+		Self::trigger_inner(&self.inner);
+	}
+
+	/// Inner function for [`Self::trigger`]
+	fn trigger_inner(inner: &Inner) {
 		// Run all subscribers, and remove any empty ones
 		// Note: Since running the subscriber might add subscribers, we can't keep
 		//       the inner borrow active, so we gather all dependencies before-hand.
@@ -165,8 +181,7 @@ impl Trigger {
 		// TODO: Have a 2nd field `to_add_subscribers` where subscribers are added if
 		//       the main field is locked, and after this loop move any subscribers from
 		//       it to the main field?
-		let subscribers = self
-			.inner
+		let subscribers = inner
 			.subscribers
 			.imut_write()
 			.iter()
@@ -174,7 +189,7 @@ impl Trigger {
 			.collect::<Vec<_>>();
 		for (subscriber, info) in subscribers {
 			let Some(effect) = subscriber.effect.upgrade() else {
-				self.remove_subscriber(subscriber);
+				Self::remove_subscriber_inner(inner, subscriber);
 				continue;
 			};
 
@@ -184,7 +199,7 @@ impl Trigger {
 				tracing::trace!(
 					effect_loc=%effect.defined_loc(),
 					subscriber_locs=%info.defined_locs.iter().copied().map(Location::to_string).join(";"),
-					trigger_loc=%self.inner.defined_loc,
+					trigger_loc=%inner.defined_loc,
 					"Running effect due to trigger"
 				);
 			};
@@ -193,6 +208,53 @@ impl Trigger {
 
 			effect.run();
 		}
+	}
+
+	/// Creates a `RawWaker`.
+	///
+	/// By default, this can only be passed to [`task::LocalWaker`],
+	/// however, if the `sync` feature is enabled, this can be passed
+	/// to [`task::Waker`] as well.
+	#[must_use]
+	pub fn into_raw_waker(self) -> task::RawWaker {
+		fn into_inner(ptr: *const ()) -> Rc<Inner> {
+			// SAFETY: All callers of this function pass in the correct arguments.
+			unsafe { Rc::from_raw(ptr.cast()) }
+		}
+
+		fn with_inner<F, O>(ptr: *const (), f: F) -> O
+		where
+			F: FnOnce(&Rc<Inner>) -> O,
+		{
+			// Note: The inner Rc is never dropped, so this won't double drop
+			let rc = ManuallyDrop::new(into_inner(ptr));
+			f(&rc)
+		}
+
+		fn from_inner(inner: Rc<Inner>) -> task::RawWaker {
+			task::RawWaker::new(Rc::into_raw(inner).cast(), &VTABLE)
+		}
+
+		fn clone(ptr: *const ()) -> task::RawWaker {
+			from_inner(with_inner(ptr, Rc::clone))
+		}
+
+		fn wake(ptr: *const ()) {
+			wake_by_ref(ptr);
+			drop(ptr);
+		}
+
+		fn wake_by_ref(ptr: *const ()) {
+			with_inner(ptr, |inner| Trigger::trigger_inner(inner));
+		}
+
+		fn drop(ptr: *const ()) {
+			mem::drop(into_inner(ptr));
+		}
+
+		const VTABLE: task::RawWakerVTable = task::RawWakerVTable::new(clone, wake, wake_by_ref, drop);
+
+		from_inner(self.inner)
 	}
 }
 

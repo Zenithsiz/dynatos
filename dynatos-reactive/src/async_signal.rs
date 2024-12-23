@@ -4,8 +4,6 @@
 //       by using some runtime and a channel.
 
 // Imports
-#[cfg(not(feature = "sync"))]
-use std::thread::{self, ThreadId};
 use {
 	crate::{SignalBorrow, SignalWith, Trigger},
 	core::{
@@ -17,48 +15,7 @@ use {
 		task::{self, Poll},
 	},
 	dynatos_reactive_sync::{IMut, IMutExt, Rc},
-	std::{
-		sync::{Arc, OnceLock},
-		task::Wake,
-	},
-};
-
-/// Waker
-struct Waker {
-	/// Active thread
-	#[cfg(not(feature = "sync"))]
-	thread: ThreadId,
-
-	/// Trigger
-	trigger: Trigger,
-}
-
-impl Wake for Waker {
-	fn wake(self: Arc<Self>) {
-		self.wake_by_ref();
-	}
-
-	fn wake_by_ref(self: &Arc<Self>) {
-		// Ensure we're on the same thread as we were created, if `sync`
-		// isn't enabled.
-		#[cfg(not(feature = "sync"))]
-		assert_eq!(
-			thread::current().id(),
-			self.thread,
-			"`AsyncSignal` may only be used with futures that wake in the same thread."
-		);
-
-		self.trigger.trigger();
-	}
-}
-
-// SAFETY: We ensure that the inner trigger is only accessed
-//         in the same thread as it was created on.
-#[expect(clippy::non_send_fields_in_send_ty, reason = "See SAFETY")]
-#[cfg(not(feature = "sync"))]
-const _: () = {
-	unsafe impl Send for Waker {}
-	unsafe impl Sync for Waker {}
+	std::sync::OnceLock,
 };
 
 /// Inner
@@ -66,8 +23,8 @@ struct Inner<F: AsyncFnMut<()> + 'static> {
 	/// Loader
 	loader: IMut<InnerLoader<F>>,
 
-	/// Waker
-	waker: Arc<Waker>,
+	/// Trigger
+	trigger: Trigger,
 
 	/// Load waker
 	///
@@ -120,11 +77,7 @@ impl<F: AsyncFnMut<()> + 'static> AsyncSignal<F> {
 
 		let inner = Rc::pin(Inner {
 			loader:     IMut::new(fut),
-			waker:      Arc::new(Waker {
-				#[cfg(not(feature = "sync"))]
-				thread: thread::current().id(),
-				trigger: Trigger::new(),
-			}),
+			trigger:    Trigger::new(),
 			load_waker: IMut::new(None),
 			value:      OnceLock::new(),
 		});
@@ -280,7 +233,7 @@ impl<F: AsyncFnMut<()> + 'static> AsyncSignal<F> {
 
 		// If we initialized it, trigger our trigger to ensure subscribers get woken
 		if initialized {
-			self.inner.waker.trigger.trigger();
+			self.inner.trigger.trigger();
 		}
 
 		Some(value)
@@ -290,7 +243,7 @@ impl<F: AsyncFnMut<()> + 'static> AsyncSignal<F> {
 	#[must_use]
 	#[track_caller]
 	pub fn borrow_suspended(&self) -> Option<&'_ F::Output> {
-		self.inner.waker.trigger.gather_subscribers();
+		self.inner.trigger.gather_subscribers();
 		self.inner.value.get()
 	}
 
@@ -332,8 +285,24 @@ impl<F: AsyncFnMut<()> + 'static> SignalBorrow for AsyncSignal<F> {
 	#[track_caller]
 	fn borrow(&self) -> Self::Ref<'_> {
 		// Try to load it
-		self.inner.waker.trigger.gather_subscribers();
-		let waker = task::Waker::from(Arc::clone(&self.inner.waker));
+		self.inner.trigger.gather_subscribers();
+
+		#[cfg(feature = "sync")]
+		// SAFETY: `Trigger` ensures we can create a `Waker` from it, if
+		//         `sync` is active.
+		let waker = {
+			let raw_waker = self.inner.trigger.clone().into_raw_waker();
+			unsafe { task::Waker::from_raw(raw_waker) }
+		};
+
+		// TODO: Here we could still use the trigger as a local waker.
+		#[cfg(not(feature = "sync"))]
+		let waker = {
+			let waker = no_sync_waker::NoSyncWaker::new(self.inner.trigger.clone());
+			let waker = std::sync::Arc::new(waker);
+			task::Waker::from(waker)
+		};
+
 		let mut cx = task::Context::from_waker(&waker);
 		self.try_load(&mut cx)
 	}
@@ -444,4 +413,73 @@ mod inner_loader {
 			unsafe { Pin::new_unchecked(&mut self.fut) }
 		}
 	}
+}
+
+/// Waker for when `sync` is disabled.
+#[cfg(not(feature = "sync"))]
+mod no_sync_waker {
+	use {
+		self::mem::ManuallyDrop,
+		super::*,
+		std::{
+			sync::Arc,
+			task::Wake,
+			thread::{self, ThreadId},
+		},
+	};
+
+	/// Waker.
+	pub struct NoSyncWaker {
+		/// Active thread
+		thread: ThreadId,
+
+		/// Trigger
+		trigger: Trigger,
+	}
+
+	impl NoSyncWaker {
+		/// Creates a new waker
+		pub fn new(trigger: Trigger) -> Self {
+			Self {
+				thread: thread::current().id(),
+				trigger,
+			}
+		}
+	}
+
+	impl Wake for NoSyncWaker {
+		fn wake(self: Arc<Self>) {
+			// Note: We need to wrap the rc in a manually drop, else
+			//       by dropping we'll be updating the reference count
+			//       from possibly another thread (if `wake_by_ref` panics).
+			//       This does leak memory if this panics, but that should be
+			//       acceptable behavior, since this isn't intended behavior.
+			let this = ManuallyDrop::new(self);
+			this.wake_by_ref();
+
+			ManuallyDrop::into_inner(this);
+		}
+
+		fn wake_by_ref(self: &Arc<Self>) {
+			// Ensure we're on the same thread as we were created
+			// TODO: Could accessing `self.thread` be UB?
+			assert_eq!(
+				thread::current().id(),
+				self.thread,
+				"`AsyncSignal` may only be used with futures that wake in the same thread. You may enable the `sync` \
+				 feature to allow this behavior."
+			);
+
+			// Then trigger
+			self.trigger.trigger();
+		}
+	}
+
+	// SAFETY: We ensure that the inner trigger is only accessed
+	//         in the same thread as it was created on.
+	#[expect(clippy::non_send_fields_in_send_ty, reason = "See SAFETY")]
+	const _: () = {
+		unsafe impl Send for NoSyncWaker {}
+		unsafe impl Sync for NoSyncWaker {}
+	};
 }
