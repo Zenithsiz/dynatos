@@ -1,4 +1,14 @@
 {
-	"cSpell.words": ["Dynatos", "imut", "itertools", "loadables", "popstate", "qself", "unsize", "zutil"],
+	"cSpell.words": [
+		"Dynatos",
+		"imut",
+		"itertools",
+		"loadables",
+		"popstate",
+		"qself",
+		"scopeguard",
+		"unsize",
+		"zutil"
+	],
 	"rust-analyzer.linkedProjects": ["Cargo.toml", "examples/Cargo.toml"]
 }

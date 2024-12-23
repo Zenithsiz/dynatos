@@ -3,104 +3,148 @@
 // Imports
 use {
 	crate::Loadable,
-	core::{fmt, future::Future, ops::Deref},
+	core::fmt,
 	dynatos_reactive::{AsyncSignal, SignalBorrow, SignalWith},
 };
 
 /// Loadable signal.
 ///
 /// Wrapper around an [`AsyncSignal`].
-pub struct LoadableSignal<F: Future> {
+pub struct LoadableSignal<F: AsyncFnMut<()> + 'static> {
 	/// Inner
 	inner: AsyncSignal<F>,
 }
 
-impl<F: Future<Output = Result<T, E>>, T, E> LoadableSignal<F> {
-	/// Creates a new loadable signal from a future
+impl<F> LoadableSignal<F>
+where
+	F: AsyncFnMut<()> + 'static,
+{
+	/// Creates a new async signal with a loader
 	#[track_caller]
-	pub fn new(fut: F) -> Self {
+	#[must_use]
+	pub fn new(loader: F) -> Self {
 		Self {
-			inner: AsyncSignal::new(fut),
+			inner: AsyncSignal::new(loader),
 		}
 	}
 
-	/// Creates a new suspended loadable signal from a future
-	///
-	/// Using this signal will not advance the inner future.
+	/// Creates a new async signal with a loader and starts loading it
 	#[track_caller]
-	pub fn new_suspended(fut: F) -> Self {
+	#[must_use]
+	pub fn new_loading(loader: F) -> Self {
 		Self {
-			inner: AsyncSignal::new_suspended(fut),
+			inner: AsyncSignal::new_loading(loader),
 		}
 	}
 
-	/// Sets whether this future should be suspended
-	pub fn set_suspended(&self, is_suspended: bool) {
-		self.inner.set_suspended(is_suspended);
-	}
-
-	/// Gets whether this future should is suspended
-	#[must_use]
-	pub fn is_suspended(&self) -> bool {
-		self.inner.is_suspended()
-	}
-
-	/// Gets whether this future has been polled
-	#[must_use]
-	pub fn has_polled(&self) -> bool {
-		self.inner.has_polled()
-	}
-
-	/// Gets whether this future should is loading.
+	/// Stops loading the value.
 	///
-	/// Returns `true` is [`Self::load`] is currently loading.
+	/// Returns if the loader had a future.
+	#[expect(clippy::must_use_candidate, reason = "It's fine to ignore")]
+	pub fn stop_loading(&self) -> bool {
+		self.inner.stop_loading()
+	}
+
+	/// Starts loading the value.
+	///
+	/// If the loader already has a future, this does nothing.
+	///
+	/// Returns whether this created the loader's future.
+	#[expect(clippy::must_use_candidate, reason = "It's fine to ignore")]
+	pub fn start_loading(&self) -> bool {
+		self.inner.start_loading()
+	}
+
+	/// Restarts the loading.
+	///
+	/// If the loader already has a future, it will be dropped
+	/// and re-created.
+	///
+	/// Returns whether a future existed before
+	#[expect(clippy::must_use_candidate, reason = "It's fine to ignore")]
+	pub fn restart_loading(&self) -> bool {
+		self.inner.restart_loading()
+	}
+
+	/// Returns if loading.
+	///
+	/// This is considered loading if the loader has a future active.
 	#[must_use]
 	pub fn is_loading(&self) -> bool {
 		self.inner.is_loading()
 	}
+}
 
-	/// Loads this value asynchronously and returns the value
-	pub async fn load(&self) -> Result<BorrowRef<'_, T, E>, E>
+impl<F, T, E> LoadableSignal<F>
+where
+	F: AsyncFnMut() -> Result<T, E> + 'static,
+{
+	/// Waits for the value to be loaded.
+	///
+	/// If not loading, waits until the loading starts, but does not start it.
+	pub async fn wait(&self) -> Result<&'_ T, E>
 	where
-		F: Future<Output = Result<T, E>> + 'static,
+		T: 'static,
+		E: Clone + 'static,
+	{
+		let value = self.inner.wait().await;
+		match value {
+			Ok(value) => Ok(value),
+			Err(err) => Err(err.clone()),
+		}
+	}
+
+	/// Loads the inner value.
+	///
+	/// If already loaded, returns it without loading.
+	///
+	/// Otherwise, this will start loading.
+	///
+	/// If this future is dropped before completion, the loading
+	/// will be cancelled.
+	pub async fn load(&self) -> Result<&'_ T, E>
+	where
 		T: 'static,
 		E: Clone + 'static,
 	{
 		let value = self.inner.load().await;
 		match value {
-			Ok(_) => Ok(BorrowRef(value)),
+			Ok(value) => Ok(value),
 			Err(err) => Err(err.clone()),
 		}
 	}
 
-	/// Borrows the inner value, without polling the future.
+	/// Borrows the inner value, without polling the loader's future.
 	#[must_use]
-	pub fn borrow_suspended(&self) -> Loadable<BorrowRef<'_, T, E>, E>
+	pub fn borrow_suspended(&self) -> Loadable<&'_ T, E>
 	where
-		E: Clone,
+		E: Clone + 'static,
 	{
 		let borrow = self.inner.borrow_suspended();
 		match borrow {
 			Some(borrow) => match borrow {
-				Ok(_) => Loadable::Loaded(BorrowRef(borrow)),
+				Ok(value) => Loadable::Loaded(value),
 				Err(err) => Loadable::Err(err.clone()),
 			},
 			None => Loadable::Empty,
 		}
 	}
 
-	/// Uses the inner value, without polling the future.
+	/// Uses the inner value, without polling the loader's future.
 	pub fn with_suspended<F2, O>(&self, f: F2) -> O
 	where
 		F2: for<'a> FnOnce(Loadable<&'a T, E>) -> O,
-		E: Clone,
+		E: Clone + 'static,
 	{
 		let borrow = self.borrow_suspended();
 		f(borrow.as_deref())
 	}
 }
 
-impl<F: Future> Clone for LoadableSignal<F> {
+impl<F> Clone for LoadableSignal<F>
+where
+	F: AsyncFnMut<()>,
+{
 	fn clone(&self) -> Self {
 		Self {
 			inner: self.inner.clone(),
@@ -108,10 +152,11 @@ impl<F: Future> Clone for LoadableSignal<F> {
 	}
 }
 
-impl<F: Future<Output = Result<T, E>>, T, E> fmt::Debug for LoadableSignal<F>
+impl<F, T, E> fmt::Debug for LoadableSignal<F>
 where
+	F: AsyncFnMut() -> Result<T, E>,
 	T: fmt::Debug,
-	E: Clone + fmt::Debug,
+	E: Clone + fmt::Debug + 'static,
 {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		let loadable = self.borrow_suspended();
@@ -119,23 +164,14 @@ where
 	}
 }
 
-/// Reference type for [`SignalBorrow`] impl
-#[derive(Debug)]
-pub struct BorrowRef<'a, T, E>(&'a Result<T, E>);
-
-impl<T, E> Deref for BorrowRef<'_, T, E> {
-	type Target = T;
-
-	fn deref(&self) -> &Self::Target {
-		self.0
-			.as_ref()
-			.unwrap_or_else(|_| panic!("Loadable should not be an error"))
-	}
-}
-
-impl<F: Future<Output = Result<T, E>> + 'static, T: 'static, E: Clone + 'static> SignalBorrow for LoadableSignal<F> {
+impl<F, T, E> SignalBorrow for LoadableSignal<F>
+where
+	F: AsyncFnMut() -> Result<T, E>,
+	T: 'static,
+	E: Clone + 'static,
+{
 	type Ref<'a>
-		= Loadable<BorrowRef<'a, T, E>, E>
+		= Loadable<&'a T, E>
 	where
 		Self: 'a;
 
@@ -144,7 +180,7 @@ impl<F: Future<Output = Result<T, E>> + 'static, T: 'static, E: Clone + 'static>
 		let borrow = self.inner.borrow();
 		match borrow {
 			Some(borrow) => match borrow {
-				Ok(_) => Loadable::Loaded(BorrowRef(borrow)),
+				Ok(value) => Loadable::Loaded(value),
 				Err(err) => Loadable::Err(err.clone()),
 			},
 			None => Loadable::Empty,
@@ -152,7 +188,12 @@ impl<F: Future<Output = Result<T, E>> + 'static, T: 'static, E: Clone + 'static>
 	}
 }
 
-impl<F: Future<Output = Result<T, E>> + 'static, T: 'static, E: Clone + 'static> SignalWith for LoadableSignal<F> {
+impl<F, T, E> SignalWith for LoadableSignal<F>
+where
+	F: AsyncFnMut() -> Result<T, E>,
+	T: 'static,
+	E: Clone + 'static,
+{
 	type Value<'a> = Loadable<&'a T, E>;
 
 	#[track_caller]

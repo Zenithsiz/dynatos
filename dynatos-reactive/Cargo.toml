@@ -16,6 +16,9 @@ pin-project = { workspace = true }
 scopeguard = { workspace = true }
 tracing = { workspace = true }
 
+[dev-dependencies]
+zutil-cloned = { workspace = true }
+
 [lints]
 workspace = true
 

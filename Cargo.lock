@@ -161,6 +161,7 @@ dependencies = [
  "pin-project",
  "scopeguard",
  "tracing",
+ "zutil-cloned",
 ]
 
 [[package]]

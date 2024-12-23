@@ -11,8 +11,9 @@ use {
 	core::{
 		fmt,
 		future::{self, Future},
+		marker::PhantomPinned,
+		mem,
 		pin::Pin,
-		sync::atomic::{self, AtomicBool},
 		task::{self, Poll},
 	},
 	dynatos_reactive_sync::{IMut, IMutExt, Rc},
@@ -61,24 +62,24 @@ const _: () = {
 };
 
 /// Inner
-struct Inner<F: Future> {
-	/// Future
-	///
-	/// SAFETY:
-	/// Must not be moved out until it's finished.
-	fut: IMut<Option<F>>,
+struct Inner<F: AsyncFnMut<()> + 'static> {
+	/// Loader
+	loader: IMut<InnerLoader<F>>,
 
 	/// Waker
 	waker: Arc<Waker>,
 
-	/// Whether we're suspended
-	is_suspended: AtomicBool,
-
-	/// Whether we've been polled.
-	has_polled: AtomicBool,
-
-	/// Whether we're currently loading
-	is_loading: AtomicBool,
+	/// Load waker
+	///
+	/// Used by [`AsyncSignal::try_load`] for notifications
+	/// on the future itself changing.
+	///
+	/// This is a separate field from `waker`, since it might
+	/// be an external waker, since [`AsyncSignal::load`] is
+	/// an `async fn`, which accepts any task context.
+	// TODO: This is a bit of a weird solution, should we just not store
+	//       `waker` and only store this?
+	load_waker: IMut<Option<task::Waker>>,
 
 	/// Value
 	value: OnceLock<F::Output>,
@@ -89,80 +90,117 @@ struct Inner<F: Future> {
 /// # Waker
 /// Currently this signal panics if the waker passed
 /// into the future is woken from a different thread.
-pub struct AsyncSignal<F: Future> {
+pub struct AsyncSignal<F: AsyncFnMut<()> + 'static> {
 	/// Inner
 	inner: Pin<Rc<Inner<F>>>,
 }
 
-impl<F: Future> AsyncSignal<F> {
-	/// Creates a new async signal from a future
+impl<F: AsyncFnMut<()> + 'static> AsyncSignal<F> {
+	/// Creates a new async signal with a loader
 	#[track_caller]
-	pub fn new(fut: F) -> Self {
-		Self::new_inner(fut, false)
+	#[must_use]
+	pub fn new(loader: F) -> Self {
+		Self::new_inner(loader, false)
 	}
 
-	/// Creates a new suspended async signal from a future
+	/// Creates a new async signal with a loader and starts loading it
 	#[track_caller]
-	pub fn new_suspended(fut: F) -> Self {
-		Self::new_inner(fut, true)
+	#[must_use]
+	pub fn new_loading(loader: F) -> Self {
+		Self::new_inner(loader, true)
 	}
 
 	/// Inner constructor
 	#[track_caller]
-	fn new_inner(fut: F, is_suspended: bool) -> Self {
+	fn new_inner(loader: F, loading: bool) -> Self {
+		let fut = match loading {
+			true => InnerLoader::new_loading(loader),
+			false => InnerLoader::new(loader),
+		};
+
 		let inner = Rc::pin(Inner {
-			fut:          IMut::new(Some(fut)),
-			waker:        Arc::new(Waker {
+			loader:     IMut::new(fut),
+			waker:      Arc::new(Waker {
 				#[cfg(not(feature = "sync"))]
 				thread: thread::current().id(),
 				trigger: Trigger::new(),
 			}),
-			is_suspended: AtomicBool::new(is_suspended),
-			has_polled:   AtomicBool::new(false),
-			is_loading:   AtomicBool::new(false),
-			value:        OnceLock::new(),
+			load_waker: IMut::new(None),
+			value:      OnceLock::new(),
 		});
 		Self { inner }
 	}
 
-	/// Sets whether this future should be suspended
-	pub fn set_suspended(&self, is_suspended: bool) {
-		self.inner.is_suspended.store(is_suspended, atomic::Ordering::Release);
-	}
-
-	/// Gets whether this future should is suspended
-	#[must_use]
-	pub fn is_suspended(&self) -> bool {
-		self.inner.is_suspended.load(atomic::Ordering::Acquire)
-	}
-
-	/// Gets whether this future has been polled
-	#[must_use]
-	pub fn has_polled(&self) -> bool {
-		self.inner.has_polled.load(atomic::Ordering::Acquire)
-	}
-
-	/// Gets whether this future should is loading.
+	/// Stops loading the value.
 	///
-	/// Returns `true` is [`Self::load`] is currently loading.
+	/// Returns if the loader had a future.
+	#[expect(clippy::must_use_candidate, reason = "It's fine to ignore")]
+	pub fn stop_loading(&self) -> bool {
+		self.inner.loader.imut_write().clear_fut()
+	}
+
+	/// Starts loading the value.
+	///
+	/// If the loader already has a future, this does nothing.
+	///
+	/// Returns whether this created the loader's future.
+	#[expect(clippy::must_use_candidate, reason = "It's fine to ignore")]
+	pub fn start_loading(&self) -> bool
+	where
+		F: AsyncFnMut<()>,
+	{
+		// Reset the future if it's `None`
+		{
+			let mut fut = self.inner.loader.imut_write();
+			if fut.fut().is_none() {
+				fut.reset_fut();
+			}
+		}
+
+		// If we have a load waker, wake it
+		let load_waker = self.inner.load_waker.imut_write().take();
+		if let Some(load_waker) = load_waker {
+			load_waker.wake();
+		}
+
+		true
+	}
+
+	/// Restarts the loading.
+	///
+	/// If the loader already has a future, it will be dropped
+	/// and re-created.
+	///
+	/// Returns whether a future existed before
+	#[expect(clippy::must_use_candidate, reason = "It's fine to ignore")]
+	pub fn restart_loading(&self) -> bool
+	where
+		F: AsyncFnMut<()>,
+	{
+		// Reset the future
+		let had_fut = self.inner.loader.imut_write().reset_fut();
+
+		// If we have a load waker, wake it
+		let load_waker = self.inner.load_waker.imut_write().take();
+		if let Some(load_waker) = load_waker {
+			load_waker.wake();
+		}
+
+		had_fut
+	}
+
+	/// Returns if loading.
+	///
+	/// This is considered loading if the loader has a future active.
 	#[must_use]
 	pub fn is_loading(&self) -> bool {
-		self.inner.is_loading.load(atomic::Ordering::Acquire)
+		self.inner.loader.imut_read().fut().is_some()
 	}
 
-	/// Loads this value asynchronously and returns the value
-	pub async fn load(&self) -> &'_ F::Output {
-		// Gather subcribers before polling
-		// TODO: Is this correct? We should probably be gathering by task,
-		//       instead of by thread.
-		self.inner.waker.trigger.gather_subscribers();
-
-		// Signal that we're loading, and defer setting otherwise at the end
-		self.inner.is_loading.store(true, atomic::Ordering::Release);
-		scopeguard::defer! {
-			self.inner.is_loading.store(false, atomic::Ordering::Release);
-		};
-
+	/// Waits for the value to be loaded.
+	///
+	/// If not loading, waits until the loading starts, but does not start it.
+	pub async fn wait(&self) -> &'_ F::Output {
 		// Poll until we're loaded
 		future::poll_fn(|cx| match self.try_load(cx) {
 			Some(value) => Poll::Ready(value),
@@ -171,47 +209,84 @@ impl<F: Future> AsyncSignal<F> {
 		.await
 	}
 
+	/// Loads the inner value.
+	///
+	/// If already loaded, returns it without loading.
+	///
+	/// Otherwise, this will start loading.
+	///
+	/// If this future is dropped before completion, the loading
+	/// will be cancelled.
+	pub async fn load(&self) -> &'_ F::Output
+	where
+		F: AsyncFnMut<()>,
+	{
+		if let Some(value) = self.inner.value.get() {
+			return value;
+		}
+
+		// Create the loader, and the guard that drops it if we created it.
+		// Note: The clear is a no-op if `wait` successfully returns, we only
+		//       care if we're dropped early.
+		let created_loader = self.start_loading();
+		scopeguard::defer! {
+			if created_loader {
+				self.stop_loading();
+			}
+		}
+
+		self.wait().await
+	}
+
 	/// Inner function to try to load the future
-	fn try_load(&self, cx: &mut task::Context<'_>) -> Option<&F::Output> {
+	fn try_load<'a>(&'a self, cx: &mut task::Context<'_>) -> Option<&'a F::Output> {
 		// Try to load the value
+		let mut initialized = false;
 		let value = self
 			.inner
 			.value
 			.get_or_try_init(|| {
-				// Get the inner future through pin projection.
-				let mut inner_fut = self.inner.fut.imut_write();
-				let fut = inner_fut
-					.as_mut()
-					.expect("Future was missing without value being initialized");
+				// Store this waker so we can react to it whenever the future changes.
+				*self.inner.load_waker.imut_write() = Some(cx.waker().clone());
 
-				// SAFETY: We guarantee that the future is not moved until it's finished.
-				let mut fut = unsafe { Pin::new_unchecked(&mut *fut) };
+				// Get the inner future through pin projection.
+				// Note: If there is none, we return unsuccessfully, but since we
+				//       saved the waker, we'll eventually be awaken when a future
+				//       is set again.
+				let mut inner_fut = self.inner.loader.imut_write();
+				let mut inner_fut = inner_fut.fut_mut();
+				let Some(mut fut) = inner_fut.as_mut().as_pin_mut() else {
+					return Err(());
+				};
 
 				// Then poll it
-				let output = match fut.as_mut().poll(cx) {
+				// TODO: Is it safe to call `poll` with the `'static` lifetime?
+				//       You can't specialize on lifetimes, and we're not handing out
+				//       the value to user code.
+				match fut.as_mut().poll(cx) {
 					Poll::Ready(value) => {
 						// Drop the future once we load it
-						let _: Option<F> = inner_fut.take();
+						// Note: Assignment drops the previous value in-place, so this
+						//       is fine even if it was pinned.
+						Pin::set(&mut inner_fut, None);
 
+						initialized = true;
 						Ok(value)
 					},
 					Poll::Pending => Err(()),
-				};
-
-				// And set that we've polled
-				self.inner.has_polled.store(true, atomic::Ordering::Release);
-
-				output
+				}
 			})
 			.ok()?;
 
-		// Once we have, trigger our trigger to ensure subscribers get woken
-		self.inner.waker.trigger.trigger();
+		// If we initialized it, trigger our trigger to ensure subscribers get woken
+		if initialized {
+			self.inner.waker.trigger.trigger();
+		}
 
 		Some(value)
 	}
 
-	/// Borrows the inner value, without polling the future.
+	/// Borrows the inner value, without polling the loader's future.
 	#[must_use]
 	#[track_caller]
 	pub fn borrow_suspended(&self) -> Option<&'_ F::Output> {
@@ -219,7 +294,7 @@ impl<F: Future> AsyncSignal<F> {
 		self.inner.value.get()
 	}
 
-	/// Uses the inner value, without polling the future.
+	/// Uses the inner value, without polling the loader's future.
 	#[track_caller]
 	pub fn with_suspended<F2, O>(&self, f: F2) -> O
 	where
@@ -230,7 +305,7 @@ impl<F: Future> AsyncSignal<F> {
 	}
 }
 
-impl<F: Future> Clone for AsyncSignal<F> {
+impl<F: AsyncFnMut<()> + 'static> Clone for AsyncSignal<F> {
 	fn clone(&self) -> Self {
 		Self {
 			inner: Pin::clone(&self.inner),
@@ -238,7 +313,7 @@ impl<F: Future> Clone for AsyncSignal<F> {
 	}
 }
 
-impl<F: Future> fmt::Debug for AsyncSignal<F>
+impl<F: AsyncFnMut<()> + 'static> fmt::Debug for AsyncSignal<F>
 where
 	F::Output: fmt::Debug,
 {
@@ -248,7 +323,7 @@ where
 	}
 }
 
-impl<F: Future> SignalBorrow for AsyncSignal<F> {
+impl<F: AsyncFnMut<()> + 'static> SignalBorrow for AsyncSignal<F> {
 	type Ref<'a>
 		= Option<&'a F::Output>
 	where
@@ -256,12 +331,7 @@ impl<F: Future> SignalBorrow for AsyncSignal<F> {
 
 	#[track_caller]
 	fn borrow(&self) -> Self::Ref<'_> {
-		// If we're suspended, borrow suspended
-		if self.is_suspended() {
-			return self.borrow_suspended();
-		}
-
-		// Otherwise, try to load it
+		// Try to load it
 		self.inner.waker.trigger.gather_subscribers();
 		let waker = task::Waker::from(Arc::clone(&self.inner.waker));
 		let mut cx = task::Context::from_waker(&waker);
@@ -269,7 +339,7 @@ impl<F: Future> SignalBorrow for AsyncSignal<F> {
 	}
 }
 
-impl<F: Future> SignalWith for AsyncSignal<F>
+impl<F: AsyncFnMut<()> + 'static> SignalWith for AsyncSignal<F>
 where
 	F::Output: 'static,
 {
@@ -280,12 +350,98 @@ where
 	where
 		F2: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
-		// If we're suspended, use without polling
-		if self.is_suspended() {
-			return self.with_suspended(f);
-		}
-
 		let value = self.borrow();
 		f(value)
+	}
+}
+
+/// Inner loader.
+///
+/// This is a separate module to ensure we can't access the fields of [`InnerLoader`]
+/// directly, as that would be easy to cause U.B. with.
+use inner_loader::*;
+mod inner_loader {
+	use super::*;
+
+	/// Inner loader
+	pub struct InnerLoader<F: AsyncFnMut<()> + 'static> {
+		/// Loading future
+		///
+		/// SAFETY:
+		/// - Must not be moved out until it's finished.
+		/// - Must be cast to `F::CallRefFuture<'loader>` when accessing.
+		/// - Must be dropped *before* the loader
+		fut: Option<F::CallRefFuture<'static>>,
+
+		/// Loader
+		loader: F,
+
+		/// Phantom marker
+		_pinned: PhantomPinned,
+	}
+
+	impl<F: AsyncFnMut<()> + 'static> InnerLoader<F> {
+		/// Creates a new loader
+		pub const fn new(loader: F) -> Self {
+			Self {
+				fut: None,
+				loader,
+				_pinned: PhantomPinned,
+			}
+		}
+
+		/// Creates a new loader, and starts the future
+		pub fn new_loading(mut loader: F) -> Self {
+			let fut = loader();
+			// SAFETY: We ensure the future is dropped before the loader
+			let fut = unsafe { mem::transmute::<F::CallRefFuture<'_>, F::CallRefFuture<'static>>(fut) };
+
+			Self {
+				fut: Some(fut),
+				loader,
+				_pinned: PhantomPinned,
+			}
+		}
+
+		/// Clears this loader's future.
+		///
+		/// Returns if the future existed.
+		pub fn clear_fut(&mut self) -> bool {
+			let mut fut = self.fut_mut();
+			let has_fut = fut.is_some();
+			Pin::set(&mut fut, None);
+
+			has_fut
+		}
+
+		/// Resets this loader's future.
+		///
+		/// Drops the existing future, if it exists
+		///
+		/// Returns whether a future existed before
+		pub fn reset_fut(&mut self) -> bool {
+			// Drop the existing fut, if any
+			// Note: This must be done because calling `self.loader` will invalidate it.
+			let had_fut = self.clear_fut();
+
+			let fut = (self.loader)();
+			// SAFETY: We ensure the future is dropped before the loader
+			let fut = unsafe { mem::transmute::<F::CallRefFuture<'_>, F::CallRefFuture<'static>>(fut) };
+			self.fut = Some(fut);
+
+			had_fut
+		}
+
+		/// Returns this loader's future
+		pub const fn fut(&self) -> &Option<F::CallRefFuture<'static>> {
+			&self.fut
+		}
+
+		/// Returns this loader's future mutably pinned.
+		pub fn fut_mut(&mut self) -> Pin<&mut Option<F::CallRefFuture<'static>>> {
+			// SAFETY: We do not hand out `&mut` references to this field, so this is
+			//         just projection after locking.
+			unsafe { Pin::new_unchecked(&mut self.fut) }
+		}
 	}
 }
