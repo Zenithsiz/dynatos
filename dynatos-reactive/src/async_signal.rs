@@ -26,18 +26,6 @@ struct Inner<F: AsyncFnMut<()> + 'static> {
 	/// Trigger
 	trigger: Trigger,
 
-	/// Load waker
-	///
-	/// Used by [`AsyncSignal::try_load`] for notifications
-	/// on the future itself changing.
-	///
-	/// This is a separate field from `waker`, since it might
-	/// be an external waker, since [`AsyncSignal::load`] is
-	/// an `async fn`, which accepts any task context.
-	// TODO: This is a bit of a weird solution, should we just not store
-	//       `waker` and only store this?
-	load_waker: IMut<Option<task::Waker>>,
-
 	/// Value
 	value: OnceLock<F::Output>,
 }
@@ -76,10 +64,9 @@ impl<F: AsyncFnMut<()> + 'static> AsyncSignal<F> {
 		};
 
 		let inner = Rc::pin(Inner {
-			loader:     IMut::new(fut),
-			trigger:    Trigger::new(),
-			load_waker: IMut::new(None),
-			value:      OnceLock::new(),
+			loader:  IMut::new(fut),
+			trigger: Trigger::new(),
+			value:   OnceLock::new(),
 		});
 		Self { inner }
 	}
@@ -103,16 +90,17 @@ impl<F: AsyncFnMut<()> + 'static> AsyncSignal<F> {
 		F: AsyncFnMut<()>,
 	{
 		// Reset the future if it's `None`
-		{
-			let mut fut = self.inner.loader.imut_write();
-			if fut.fut().is_none() {
-				fut.reset_fut();
-			}
+		let mut loader = self.inner.loader.imut_write();
+		if loader.fut().is_none() {
+			loader.reset_fut();
 		}
 
+
 		// If we have a load waker, wake it
-		let load_waker = self.inner.load_waker.imut_write().take();
+		let load_waker = loader.take_waker();
 		if let Some(load_waker) = load_waker {
+			// Note: Before waking, drop the lock, or we might deadlock
+			drop(loader);
 			load_waker.wake();
 		}
 
@@ -131,11 +119,14 @@ impl<F: AsyncFnMut<()> + 'static> AsyncSignal<F> {
 		F: AsyncFnMut<()>,
 	{
 		// Reset the future
-		let had_fut = self.inner.loader.imut_write().reset_fut();
+		let mut loader = self.inner.loader.imut_write();
+		let had_fut = loader.reset_fut();
 
 		// If we have a load waker, wake it
-		let load_waker = self.inner.load_waker.imut_write().take();
+		let load_waker = loader.take_waker();
 		if let Some(load_waker) = load_waker {
+			// Note: Before waking, drop the lock, or we might deadlock
+			drop(loader);
 			load_waker.wake();
 		}
 
@@ -200,14 +191,16 @@ impl<F: AsyncFnMut<()> + 'static> AsyncSignal<F> {
 			.value
 			.get_or_try_init(|| {
 				// Store this waker so we can react to it whenever the future changes.
-				*self.inner.load_waker.imut_write() = Some(cx.waker().clone());
+				// Note: This must be done under the lock of
+				let mut loader = self.inner.loader.imut_write();
+				loader.set_waker(cx.waker().clone());
+
 
 				// Get the inner future through pin projection.
 				// Note: If there is none, we return unsuccessfully, but since we
 				//       saved the waker, we'll eventually be awaken when a future
 				//       is set again.
-				let mut inner_fut = self.inner.loader.imut_write();
-				let mut inner_fut = inner_fut.fut_mut();
+				let mut inner_fut = loader.fut_mut();
 				let Some(mut fut) = inner_fut.as_mut().as_pin_mut() else {
 					return Err(());
 				};
@@ -345,6 +338,16 @@ mod inner_loader {
 		/// Loader
 		loader: F,
 
+		/// Waker
+		///
+		/// Used for waking external runtimes from [`AsyncSignal::wait`] and [`AsyncSignal::load`].
+		///
+		/// In particular, this is only used when replacing the future, since for
+		/// progressing the future, the waker already gets passed into it.
+		// TODO: Should we only be storing the latest one? We can have multiple waiters/
+		//       loaders (that are waiting), and they might be using different wakers.
+		waker: Option<task::Waker>,
+
 		/// Phantom marker
 		_pinned: PhantomPinned,
 	}
@@ -355,6 +358,7 @@ mod inner_loader {
 			Self {
 				fut: None,
 				loader,
+				waker: None,
 				_pinned: PhantomPinned,
 			}
 		}
@@ -368,6 +372,7 @@ mod inner_loader {
 			Self {
 				fut: Some(fut),
 				loader,
+				waker: None,
 				_pinned: PhantomPinned,
 			}
 		}
@@ -411,6 +416,16 @@ mod inner_loader {
 			// SAFETY: We do not hand out `&mut` references to this field, so this is
 			//         just projection after locking.
 			unsafe { Pin::new_unchecked(&mut self.fut) }
+		}
+
+		/// Takes this loader's waker
+		pub const fn take_waker(&mut self) -> Option<task::Waker> {
+			self.waker.take()
+		}
+
+		/// Sets the waker
+		pub fn set_waker(&mut self, waker: task::Waker) {
+			self.waker = Some(waker);
 		}
 	}
 }
