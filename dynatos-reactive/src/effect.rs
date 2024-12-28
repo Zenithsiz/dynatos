@@ -420,12 +420,9 @@ mod test {
 
 	#[bench]
 	fn get_running_100_some(bencher: &mut Bencher) {
-		let bencher = bencher as *mut Bencher;
+		let effect = Effect::new_raw(move || ());
 
-		Effect::new(move || {
-			// SAFETY: This closure gets dropped before the bencher does,
-			//         so the bencher pointer is valid for all calls.
-			let bencher = unsafe { &mut *bencher };
+		effect.gather_dependencies(|| {
 			bencher.iter(|| {
 				for _ in 0..100 {
 					let effect = effect::running();
