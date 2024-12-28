@@ -39,6 +39,7 @@ zutil-cloned = { git = "https://github.com/Zenithsiz/zutil", rev = "978fa5df733d
 
 anyhow = "1.0.94"
 convert_case = "0.6.0"
+derive_more = "1.0.0"
 duplicate = "2.0.0"
 extend = "1.2.0"
 itertools = "0.13.0"

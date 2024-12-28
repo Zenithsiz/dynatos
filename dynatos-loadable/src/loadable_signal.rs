@@ -3,8 +3,8 @@
 // Imports
 use {
 	crate::Loadable,
-	core::fmt,
-	dynatos_reactive::{AsyncSignal, SignalBorrow, SignalWith},
+	core::{fmt, ops::Deref},
+	dynatos_reactive::{async_signal, AsyncSignal, SignalBorrow, SignalWith},
 };
 
 /// Loadable signal.
@@ -82,14 +82,14 @@ where
 	/// Waits for the value to be loaded.
 	///
 	/// If not loading, waits until the loading starts, but does not start it.
-	pub async fn wait(&self) -> Result<&'_ T, E>
+	pub async fn wait(&self) -> Result<BorrowRef<'_, T, E>, E>
 	where
 		T: 'static,
 		E: Clone + 'static,
 	{
-		let value = self.inner.wait().await;
-		match value {
-			Ok(value) => Ok(value),
+		let res = self.inner.wait().await;
+		match &*res {
+			Ok(_) => Ok(BorrowRef(res)),
 			Err(err) => Err(err.clone()),
 		}
 	}
@@ -102,28 +102,28 @@ where
 	///
 	/// If this future is dropped before completion, the loading
 	/// will be cancelled.
-	pub async fn load(&self) -> Result<&'_ T, E>
+	pub async fn load(&self) -> Result<BorrowRef<'_, T, E>, E>
 	where
 		T: 'static,
 		E: Clone + 'static,
 	{
-		let value = self.inner.load().await;
-		match value {
-			Ok(value) => Ok(value),
+		let res = self.inner.load().await;
+		match &*res {
+			Ok(_) => Ok(BorrowRef(res)),
 			Err(err) => Err(err.clone()),
 		}
 	}
 
 	/// Borrows the inner value, without polling the loader's future.
 	#[must_use]
-	pub fn borrow_suspended(&self) -> Loadable<&'_ T, E>
+	pub fn borrow_suspended(&self) -> Loadable<BorrowRef<'_, T, E>, E>
 	where
 		E: Clone + 'static,
 	{
-		let borrow = self.inner.borrow_suspended();
-		match borrow {
-			Some(borrow) => match borrow {
-				Ok(value) => Loadable::Loaded(value),
+		let res = self.inner.borrow_suspended();
+		match res {
+			Some(res) => match &*res {
+				Ok(_) => Loadable::Loaded(BorrowRef(res)),
 				Err(err) => Loadable::Err(err.clone()),
 			},
 			None => Loadable::Empty,
@@ -133,11 +133,11 @@ where
 	/// Uses the inner value, without polling the loader's future.
 	pub fn with_suspended<F2, O>(&self, f: F2) -> O
 	where
-		F2: for<'a> FnOnce(Loadable<&'a T, E>) -> O,
+		F2: for<'a> FnOnce(Loadable<BorrowRef<'a, T, E>, E>) -> O,
 		E: Clone + 'static,
 	{
-		let borrow = self.borrow_suspended();
-		f(borrow.as_deref())
+		let res = self.borrow_suspended();
+		f(res)
 	}
 }
 
@@ -164,6 +164,20 @@ where
 	}
 }
 
+/// Reference type for [`SignalBorrow`] impl
+#[derive(Debug)]
+pub struct BorrowRef<'a, T, E>(async_signal::BorrowRef<'a, Result<T, E>>);
+
+impl<T, E> Deref for BorrowRef<'_, T, E> {
+	type Target = T;
+
+	fn deref(&self) -> &Self::Target {
+		self.0
+			.as_ref()
+			.unwrap_or_else(|_| panic!("Loadable should not be an error"))
+	}
+}
+
 impl<F, T, E> SignalBorrow for LoadableSignal<F>
 where
 	F: AsyncFnMut() -> Result<T, E>,
@@ -171,16 +185,16 @@ where
 	E: Clone + 'static,
 {
 	type Ref<'a>
-		= Loadable<&'a T, E>
+		= Loadable<BorrowRef<'a, T, E>, E>
 	where
 		Self: 'a;
 
 	#[track_caller]
 	fn borrow(&self) -> Self::Ref<'_> {
-		let borrow = self.inner.borrow();
-		match borrow {
-			Some(borrow) => match borrow {
-				Ok(value) => Loadable::Loaded(value),
+		let res = self.inner.borrow();
+		match res {
+			Some(res) => match &*res {
+				Ok(_) => Loadable::Loaded(BorrowRef(res)),
 				Err(err) => Loadable::Err(err.clone()),
 			},
 			None => Loadable::Empty,
@@ -194,7 +208,7 @@ where
 	T: 'static,
 	E: Clone + 'static,
 {
-	type Value<'a> = Loadable<&'a T, E>;
+	type Value<'a> = Loadable<BorrowRef<'a, T, E>, E>;
 
 	#[track_caller]
 	fn with<F2, O>(&self, f: F2) -> O
@@ -202,6 +216,6 @@ where
 		F2: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
 		let value = self.borrow();
-		f(value.as_deref())
+		f(value)
 	}
 }

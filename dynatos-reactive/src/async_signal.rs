@@ -11,11 +11,11 @@ use {
 		future::{self, Future},
 		marker::PhantomPinned,
 		mem,
+		ops::Deref,
 		pin::Pin,
 		task::{self, Poll},
 	},
-	dynatos_reactive_sync::{IMut, IMutExt, Rc},
-	std::sync::OnceLock,
+	dynatos_reactive_sync::{IMut, IMutExt, IMutRef, IMutRefMut, IMutRefMutExt, Rc},
 };
 
 /// Inner
@@ -27,7 +27,7 @@ struct Inner<F: AsyncFnMut<()> + 'static> {
 	trigger: Trigger,
 
 	/// Value
-	value: OnceLock<F::Output>,
+	value: IMut<Option<F::Output>>,
 }
 
 /// Async signal.
@@ -66,7 +66,7 @@ impl<F: AsyncFnMut<()> + 'static> AsyncSignal<F> {
 		let inner = Rc::pin(Inner {
 			loader:  IMut::new(fut),
 			trigger: Trigger::new(),
-			value:   OnceLock::new(),
+			value:   IMut::new(None),
 		});
 		Self { inner }
 	}
@@ -144,7 +144,7 @@ impl<F: AsyncFnMut<()> + 'static> AsyncSignal<F> {
 	/// Waits for the value to be loaded.
 	///
 	/// If not loading, waits until the loading starts, but does not start it.
-	pub async fn wait(&self) -> &'_ F::Output {
+	pub async fn wait(&self) -> BorrowRef<'_, F::Output> {
 		// Poll until we're loaded
 		future::poll_fn(|cx| match self.try_load(cx) {
 			Some(value) => Poll::Ready(value),
@@ -161,12 +161,15 @@ impl<F: AsyncFnMut<()> + 'static> AsyncSignal<F> {
 	///
 	/// If this future is dropped before completion, the loading
 	/// will be cancelled.
-	pub async fn load(&self) -> &'_ F::Output
+	pub async fn load(&self) -> BorrowRef<'_, F::Output>
 	where
 		F: AsyncFnMut<()>,
 	{
-		if let Some(value) = self.inner.value.get() {
-			return value;
+		{
+			let value = self.inner.value.imut_read();
+			if value.is_some() {
+				return BorrowRef(value);
+			}
 		}
 
 		// Create the loader, and the guard that drops it if we created it.
@@ -183,68 +186,68 @@ impl<F: AsyncFnMut<()> + 'static> AsyncSignal<F> {
 	}
 
 	/// Inner function to try to load the future
-	fn try_load<'a>(&'a self, cx: &mut task::Context<'_>) -> Option<&'a F::Output> {
-		// Try to load the value
-		let mut initialized = false;
-		let value = self
-			.inner
-			.value
-			.get_or_try_init(|| {
-				// Store this waker so we can react to it whenever the future changes.
-				// Note: This must be done under the lock of
-				let mut loader = self.inner.loader.imut_write();
-				loader.set_waker(cx.waker().clone());
-
-
-				// Get the inner future through pin projection.
-				// Note: If there is none, we return unsuccessfully, but since we
-				//       saved the waker, we'll eventually be awaken when a future
-				//       is set again.
-				let mut inner_fut = loader.fut_mut();
-				let Some(mut fut) = inner_fut.as_mut().as_pin_mut() else {
-					return Err(());
-				};
-
-				// Then poll it
-				// TODO: Is it safe to call `poll` with the `'static` lifetime?
-				//       You can't specialize on lifetimes, and we're not handing out
-				//       the value to user code.
-				match fut.as_mut().poll(cx) {
-					Poll::Ready(value) => {
-						// Drop the future once we load it
-						// Note: Assignment drops the previous value in-place, so this
-						//       is fine even if it was pinned.
-						Pin::set(&mut inner_fut, None);
-
-						initialized = true;
-						Ok(value)
-					},
-					Poll::Pending => Err(()),
-				}
-			})
-			.ok()?;
-
-		// If we initialized it, trigger our trigger to ensure subscribers get woken
-		if initialized {
-			self.inner.trigger.trigger();
+	fn try_load<'a>(&'a self, cx: &mut task::Context<'_>) -> Option<BorrowRef<'a, F::Output>> {
+		// If the value is loaded, return it
+		let mut value = self.inner.value.imut_write();
+		if value.is_some() {
+			return Some(BorrowRef(IMutRefMut::imut_downgrade(value)));
 		}
 
-		Some(value)
+		// Store this waker so we can react to it whenever the future changes.
+		// Note: This must be done under the lock of
+		let mut loader = self.inner.loader.imut_write();
+		loader.set_waker(cx.waker().clone());
+
+
+		// Get the inner future through pin projection.
+		// Note: If there is none, we return unsuccessfully, but since we
+		//       saved the waker, we'll eventually be awaken when a future
+		//       is set again.
+		let mut inner_fut = loader.fut_mut();
+		let mut fut = inner_fut.as_mut().as_pin_mut()?;
+
+		// Then poll it
+		// TODO: Is it safe to call `poll` with the `'static` lifetime?
+		//       You can't specialize on lifetimes, and we're not handing out
+		//       the value to user code.
+		let value = match fut.as_mut().poll(cx) {
+			Poll::Ready(new_value) => {
+				// Drop the future once we load it
+				// Note: Assignment drops the previous value in-place, so this
+				//       is fine even if it was pinned.
+				Pin::set(&mut inner_fut, None);
+
+				// Assign the new value
+				*value = Some(new_value);
+
+				// Then downgrade the lock
+				let value = IMutRefMut::imut_downgrade(value);
+
+				// And trigger all dependencies before returning
+				self.inner.trigger.trigger();
+
+				value
+			},
+			Poll::Pending => return None,
+		};
+
+		Some(BorrowRef(value))
 	}
 
 	/// Borrows the inner value, without polling the loader's future.
 	#[must_use]
 	#[track_caller]
-	pub fn borrow_suspended(&self) -> Option<&'_ F::Output> {
+	pub fn borrow_suspended(&self) -> Option<BorrowRef<'_, F::Output>> {
 		self.inner.trigger.gather_subscribers();
-		self.inner.value.get()
+		let value = self.inner.value.imut_read();
+		value.is_some().then(|| BorrowRef(value))
 	}
 
 	/// Uses the inner value, without polling the loader's future.
 	#[track_caller]
 	pub fn with_suspended<F2, O>(&self, f: F2) -> O
 	where
-		F2: for<'a> FnOnce(Option<&'a F::Output>) -> O,
+		F2: for<'a> FnOnce(Option<BorrowRef<'a, F::Output>>) -> O,
 	{
 		let borrow = self.borrow_suspended();
 		f(borrow)
@@ -269,9 +272,21 @@ where
 	}
 }
 
+/// Reference type for [`SignalBorrow`] impl
+#[derive(Debug)]
+pub struct BorrowRef<'a, T>(IMutRef<'a, Option<T>>);
+
+impl<T> Deref for BorrowRef<'_, T> {
+	type Target = T;
+
+	fn deref(&self) -> &Self::Target {
+		self.0.as_ref().expect("Borrow was `None`")
+	}
+}
+
 impl<F: AsyncFnMut<()> + 'static> SignalBorrow for AsyncSignal<F> {
 	type Ref<'a>
-		= Option<&'a F::Output>
+		= Option<BorrowRef<'a, F::Output>>
 	where
 		Self: 'a;
 
@@ -305,7 +320,7 @@ impl<F: AsyncFnMut<()> + 'static> SignalWith for AsyncSignal<F>
 where
 	F::Output: 'static,
 {
-	type Value<'a> = Option<&'a F::Output>;
+	type Value<'a> = Option<BorrowRef<'a, F::Output>>;
 
 	#[track_caller]
 	fn with<F2, O>(&self, f: F2) -> O

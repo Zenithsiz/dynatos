@@ -23,6 +23,7 @@ mod private {
 	pub type Weak<T> = std::sync::Weak<T>;
 	pub type IMut<T> = parking_lot::RwLock<T>;
 	pub type IMutRef<'a, T> = parking_lot::RwLockReadGuard<'a, T>;
+	pub type IMutRefMapped<'a, T> = parking_lot::MappedRwLockReadGuard<'a, T>;
 	pub type IMutRefMut<'a, T> = parking_lot::RwLockWriteGuard<'a, T>;
 
 	impl<T: ?Sized> crate::IMutExt<T> for IMut<T> {
@@ -34,6 +35,12 @@ mod private {
 			self.write()
 		}
 	}
+
+	impl<'a, T: ?Sized> crate::IMutRefMutExt<'a, T> for IMutRefMut<'a, T> {
+		fn imut_downgrade(this: Self) -> IMutRef<'a, T> {
+			IMutRefMut::downgrade(this)
+		}
+	}
 }
 
 #[cfg(not(feature = "sync"))]
@@ -43,7 +50,20 @@ mod private {
 	pub type Weak<T> = std::rc::Weak<T>;
 	pub type IMut<T> = core::cell::RefCell<T>;
 	pub type IMutRef<'a, T> = core::cell::Ref<'a, T>;
-	pub type IMutRefMut<'a, T> = core::cell::RefMut<'a, T>;
+	pub type IMutRefMapped<'a, T> = core::cell::Ref<'a, T>;
+
+	#[derive(derive_more::Deref, derive_more::DerefMut, derive_more::Debug)]
+	#[debug("{borrow:?}")]
+	pub struct IMutRefMut<'a, T: ?Sized> {
+		/// Borrow
+		#[deref(forward)]
+		#[deref_mut]
+		borrow: core::cell::RefMut<'a, T>,
+
+		/// Original refcell
+		// Note: TheThis field is necessary for downgrading.
+		refcell: &'a IMut<T>,
+	}
 
 	impl<T: ?Sized> crate::IMutExt<T> for IMut<T> {
 		fn imut_read(&self) -> IMutRef<'_, T> {
@@ -51,7 +71,18 @@ mod private {
 		}
 
 		fn imut_write(&self) -> IMutRefMut<'_, T> {
-			self.borrow_mut()
+			IMutRefMut {
+				borrow:  self.borrow_mut(),
+				refcell: self,
+			}
+		}
+	}
+
+	impl<'a, T: ?Sized> crate::IMutRefMutExt<'a, T> for IMutRefMut<'a, T> {
+		fn imut_downgrade(this: Self) -> IMutRef<'a, T> {
+			// Note: RefCell is single threaded, so there are no races here
+			drop(this.borrow);
+			this.refcell.borrow()
 		}
 	}
 }
@@ -62,4 +93,9 @@ pub use private::*;
 pub trait IMutExt<T: ?Sized> {
 	fn imut_read(&self) -> IMutRef<'_, T>;
 	fn imut_write(&self) -> IMutRefMut<'_, T>;
+}
+
+/// Extension methods for the inner-mutability mutable references
+pub trait IMutRefMutExt<'a, T: ?Sized> {
+	fn imut_downgrade(this: Self) -> IMutRef<'a, T>;
 }
