@@ -23,7 +23,7 @@ use {
 		sync::atomic::{self, AtomicUsize},
 		task::{self, Poll},
 	},
-	dynatos_reactive::AsyncSignal,
+	dynatos_reactive_async::AsyncSignal,
 	zutil_cloned::cloned,
 };
 

@@ -4,7 +4,8 @@
 use {
 	crate::Loadable,
 	core::{fmt, ops::Deref},
-	dynatos_reactive::{async_signal, AsyncSignal, SignalBorrow, SignalWith},
+	dynatos_reactive::{SignalBorrow, SignalWith},
+	dynatos_reactive_async::{async_signal, AsyncSignal},
 };
 
 /// Loadable signal.

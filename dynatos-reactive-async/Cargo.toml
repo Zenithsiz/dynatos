@@ -1,26 +1,27 @@
 [package]
-name = "dynatos-loadable"
+name = "dynatos-reactive-async"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 
+dynatos-context = { workspace = true }
 dynatos-reactive = { workspace = true }
-dynatos-reactive-async = { workspace = true }
 dynatos-reactive-sync = { workspace = true }
 dynatos-util = { workspace = true }
 
-anyhow = { workspace = true }
 duplicate = { workspace = true }
 extend = { workspace = true }
+itertools = { workspace = true }
+pin-project = { workspace = true }
+scopeguard = { workspace = true }
 tracing = { workspace = true }
+
+[dev-dependencies]
+zutil-cloned = { workspace = true }
 
 [lints]
 workspace = true
 
 [features]
-sync = [
-	"dynatos-reactive/sync",
-	"dynatos-reactive-async/sync",
-	"dynatos-reactive-sync/sync",
-]
+sync = ["dynatos-reactive/sync", "dynatos-reactive-sync/sync"]
