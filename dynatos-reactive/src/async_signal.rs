@@ -281,10 +281,10 @@ impl<F: AsyncFnMut<()> + 'static> SignalBorrow for AsyncSignal<F> {
 		self.inner.trigger.gather_subscribers();
 
 		#[cfg(feature = "sync")]
-		// SAFETY: `Trigger` ensures we can create a `Waker` from it, if
-		//         `sync` is active.
 		let waker = {
 			let raw_waker = self.inner.trigger.clone().into_raw_waker();
+			// SAFETY: `Trigger` ensures we can create a `Waker` from it, if
+			//         `sync` is active.
 			unsafe { task::Waker::from_raw(raw_waker) }
 		};
 
