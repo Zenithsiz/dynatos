@@ -73,6 +73,7 @@ impl<F> Effect<F> {
 	///
 	/// The effect won't be run, and instead you must gather
 	/// dependencies manually.
+	#[track_caller]
 	pub fn new_raw(run: F) -> Self {
 		let inner = Inner {
 			suppressed: AtomicBool::new(false),
