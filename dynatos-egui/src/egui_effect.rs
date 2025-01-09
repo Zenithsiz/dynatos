@@ -12,6 +12,7 @@ pub struct EguiEffect {
 impl EguiEffect {
 	/// Creates a new egui effect from an egui context
 	#[must_use]
+	#[track_caller]
 	pub fn new(ctx: egui::Context) -> Self {
 		Self {
 			effect: Effect::new_raw(effect_fn(ctx)),
