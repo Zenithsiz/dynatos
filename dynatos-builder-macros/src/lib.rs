@@ -32,6 +32,13 @@ pub fn builder(_attr: TokenStream, input: TokenStream) -> TokenStream {
 	// Return type
 	let ret_ty = &input.sig.output;
 
+	// Async
+	let asyncness = &input.sig.asyncness;
+	let await_expr = match asyncness {
+		Some(_) => quote! { .await },
+		None => quote! {},
+	};
+
 	// All props
 	let props = Prop::parse_all(&input);
 
@@ -100,11 +107,12 @@ pub fn builder(_attr: TokenStream, input: TokenStream) -> TokenStream {
 	// Component `new` method
 	let cmpt_new_method: Option<syn::ImplItemFn> = props.iter().all(|prop| prop.default_value.is_some()).then(|| {
 		syn::parse_quote! {
-			pub fn new< #builder_build_ty_params >() #ret_ty
+			pub #asyncness fn new< #builder_build_ty_params >() #ret_ty
 				#build_where_bounds
 			{
 				Self::builder()
 					.build()
+					#await_expr
 			}
 		}
 	});
@@ -119,7 +127,7 @@ pub fn builder(_attr: TokenStream, input: TokenStream) -> TokenStream {
 			let fn_name = quote::format_ident!("from_{}", prop.ident);
 			let prop_ty = &prop.ty;
 			syn::parse_quote! {
-				pub fn #fn_name< #builder_build_ty_params >(
+				pub #asyncness fn #fn_name< #builder_build_ty_params >(
 					#prop_ident: #prop_ty,
 				) #ret_ty
 					#build_where_bounds
@@ -127,6 +135,7 @@ pub fn builder(_attr: TokenStream, input: TokenStream) -> TokenStream {
 					Self::builder()
 						.#prop_ident(#prop_ident)
 						.build()
+						#await_expr
 				}
 			}
 		})
@@ -251,7 +260,7 @@ pub fn builder(_attr: TokenStream, input: TokenStream) -> TokenStream {
 		impl< #builder_build_ty_params > #builder < #builder_build_type_args >
 			#build_where_bounds
 		{
-			pub fn build(self) #ret_ty {
+			pub #asyncness fn build(self) #ret_ty {
 				let Self {
 					#builder_props_deconstruct
 				} = self;
