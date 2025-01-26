@@ -104,12 +104,14 @@ impl<F> Effect<F> {
 impl<F: ?Sized> Effect<F> {
 	/// Accesses the inner function
 	#[must_use]
+	#[expect(clippy::missing_const_for_fn, reason = "False positive")]
 	pub fn inner_fn(&self) -> &F {
 		&self.inner.run
 	}
 
 	/// Returns where this effect was defined
 	#[cfg(debug_assertions)]
+	#[expect(clippy::missing_const_for_fn, reason = "False positive")]
 	pub(crate) fn defined_loc(&self) -> &'static Location<'static> {
 		self.inner.defined_loc
 	}
