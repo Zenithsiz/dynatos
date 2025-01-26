@@ -5,20 +5,23 @@ use {
 	crate::Loadable,
 	core::{fmt, ops::Deref},
 	dynatos_reactive::{SignalBorrow, SignalWith},
-	dynatos_reactive_async::{async_signal, AsyncSignal},
+	dynatos_reactive_async::{
+		async_signal::{self, Loader},
+		AsyncSignal,
+	},
 };
 
 /// Loadable signal.
 ///
 /// Wrapper around an [`AsyncSignal`].
-pub struct LoadableSignal<F: AsyncFnMut<()> + 'static> {
+pub struct LoadableSignal<F: Loader> {
 	/// Inner
 	inner: AsyncSignal<F>,
 }
 
 impl<F> LoadableSignal<F>
 where
-	F: AsyncFnMut<()> + 'static,
+	F: Loader,
 {
 	/// Creates a new async signal with a loader
 	#[track_caller]
@@ -26,15 +29,6 @@ where
 	pub fn new(loader: F) -> Self {
 		Self {
 			inner: AsyncSignal::new(loader),
-		}
-	}
-
-	/// Creates a new async signal with a loader and starts loading it
-	#[track_caller]
-	#[must_use]
-	pub fn new_loading(loader: F) -> Self {
-		Self {
-			inner: AsyncSignal::new_loading(loader),
 		}
 	}
 
@@ -63,7 +57,8 @@ where
 	///
 	/// Returns whether a future existed before
 	#[expect(clippy::must_use_candidate, reason = "It's fine to ignore")]
-	pub fn restart_loading(&self) -> bool {
+	pub fn restart_loading(&self) -> bool
+where {
 		self.inner.restart_loading()
 	}
 
@@ -76,75 +71,9 @@ where
 	}
 }
 
-impl<F, T, E> LoadableSignal<F>
-where
-	F: AsyncFnMut() -> Result<T, E> + 'static,
-{
-	/// Waits for the value to be loaded.
-	///
-	/// If not loading, waits until the loading starts, but does not start it.
-	pub async fn wait(&self) -> Result<BorrowRef<'_, T, E>, E>
-	where
-		T: 'static,
-		E: Clone + 'static,
-	{
-		let res = self.inner.wait().await;
-		match &*res {
-			Ok(_) => Ok(BorrowRef(res)),
-			Err(err) => Err(err.clone()),
-		}
-	}
-
-	/// Loads the inner value.
-	///
-	/// If already loaded, returns it without loading.
-	///
-	/// Otherwise, this will start loading.
-	///
-	/// If this future is dropped before completion, the loading
-	/// will be cancelled.
-	pub async fn load(&self) -> Result<BorrowRef<'_, T, E>, E>
-	where
-		T: 'static,
-		E: Clone + 'static,
-	{
-		let res = self.inner.load().await;
-		match &*res {
-			Ok(_) => Ok(BorrowRef(res)),
-			Err(err) => Err(err.clone()),
-		}
-	}
-
-	/// Borrows the inner value, without polling the loader's future.
-	#[must_use]
-	pub fn borrow_suspended(&self) -> Loadable<BorrowRef<'_, T, E>, E>
-	where
-		E: Clone + 'static,
-	{
-		let res = self.inner.borrow_suspended();
-		match res {
-			Some(res) => match &*res {
-				Ok(_) => Loadable::Loaded(BorrowRef(res)),
-				Err(err) => Loadable::Err(err.clone()),
-			},
-			None => Loadable::Empty,
-		}
-	}
-
-	/// Uses the inner value, without polling the loader's future.
-	pub fn with_suspended<F2, O>(&self, f: F2) -> O
-	where
-		F2: for<'a> FnOnce(Loadable<BorrowRef<'a, T, E>, E>) -> O,
-		E: Clone + 'static,
-	{
-		let res = self.borrow_suspended();
-		f(res)
-	}
-}
-
 impl<F> Clone for LoadableSignal<F>
 where
-	F: AsyncFnMut<()>,
+	F: Loader,
 {
 	fn clone(&self) -> Self {
 		Self {
@@ -155,21 +84,36 @@ where
 
 impl<F, T, E> fmt::Debug for LoadableSignal<F>
 where
-	F: AsyncFnMut() -> Result<T, E>,
-	T: fmt::Debug,
+	F: Loader<Output = Result<T, E>>,
+	T: fmt::Debug + 'static,
 	E: Clone + fmt::Debug + 'static,
 {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		let loadable = self.borrow_suspended();
+		let loadable = self.borrow();
 		f.debug_struct("LoadableSignal").field("loadable", &loadable).finish()
 	}
 }
 
 /// Reference type for [`SignalBorrow`] impl
-#[derive(Debug)]
-pub struct BorrowRef<'a, T, E>(async_signal::BorrowRef<'a, Result<T, E>>);
+pub struct BorrowRef<'a, F: Loader>(async_signal::BorrowRef<'a, F>);
 
-impl<T, E> Deref for BorrowRef<'_, T, E> {
+impl<F, T, E> fmt::Debug for BorrowRef<'_, F>
+where
+	F: Loader<Output = Result<T, E>>,
+	T: 'static + fmt::Debug,
+	E: 'static,
+{
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		(**self).fmt(f)
+	}
+}
+
+impl<F, T, E> Deref for BorrowRef<'_, F>
+where
+	F: Loader<Output = Result<T, E>>,
+	T: 'static,
+	E: 'static,
+{
 	type Target = T;
 
 	fn deref(&self) -> &Self::Target {
@@ -181,12 +125,12 @@ impl<T, E> Deref for BorrowRef<'_, T, E> {
 
 impl<F, T, E> SignalBorrow for LoadableSignal<F>
 where
-	F: AsyncFnMut() -> Result<T, E>,
+	F: Loader<Output = Result<T, E>>,
 	T: 'static,
 	E: Clone + 'static,
 {
 	type Ref<'a>
-		= Loadable<BorrowRef<'a, T, E>, E>
+		= Loadable<BorrowRef<'a, F>, E>
 	where
 		Self: 'a;
 
@@ -205,11 +149,11 @@ where
 
 impl<F, T, E> SignalWith for LoadableSignal<F>
 where
-	F: AsyncFnMut() -> Result<T, E>,
+	F: Loader<Output = Result<T, E>>,
 	T: 'static,
 	E: Clone + 'static,
 {
-	type Value<'a> = Loadable<BorrowRef<'a, T, E>, E>;
+	type Value<'a> = Loadable<BorrowRef<'a, F>, E>;
 
 	#[track_caller]
 	fn with<F2, O>(&self, f: F2) -> O

@@ -12,10 +12,13 @@ dynatos-util = { workspace = true }
 
 duplicate = { workspace = true }
 extend = { workspace = true }
+futures = { workspace = true }
 itertools = { workspace = true }
 pin-project = { workspace = true }
 scopeguard = { workspace = true }
+tokio = { workspace = true, features = ["sync"] }
 tracing = { workspace = true }
+wasm-bindgen-futures = { workspace = true }
 
 [dev-dependencies]
 zutil-cloned = { workspace = true }
