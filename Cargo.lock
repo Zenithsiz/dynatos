@@ -231,7 +231,6 @@ dependencies = [
  "anyhow",
  "duplicate",
  "dynatos-reactive",
- "dynatos-reactive-async",
  "dynatos-util",
  "extend",
  "tracing",
@@ -243,23 +242,6 @@ version = "0.1.0"
 dependencies = [
  "duplicate",
  "dynatos-context",
- "dynatos-reactive-sync",
- "dynatos-util",
- "extend",
- "itertools",
- "pin-project",
- "scopeguard",
- "tracing",
- "zutil-cloned",
-]
-
-[[package]]
-name = "dynatos-reactive-async"
-version = "0.1.0"
-dependencies = [
- "duplicate",
- "dynatos-context",
- "dynatos-reactive",
  "dynatos-reactive-sync",
  "dynatos-util",
  "extend",

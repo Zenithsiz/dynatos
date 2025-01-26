@@ -2,8 +2,8 @@
 
 // Imports
 use {
+	crate::{SignalBorrow, SignalWith, Trigger},
 	core::{fmt, future::Future, ops::Deref},
-	dynatos_reactive::{SignalBorrow, SignalWith, Trigger},
 	dynatos_reactive_sync::{IMut, IMutExt, IMutRef, IMutRefMut, IMutRefMutExt, Rc},
 	futures::stream::AbortHandle,
 	tokio::sync::Notify,
