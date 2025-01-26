@@ -175,7 +175,7 @@ impl<F: ?Sized> Effect<F> {
 	where
 		F: Fn() + Unsize<dyn Fn() + SyncBounds> + 'static,
 	{
-		// If we're supressed, don't do anything
+		// If we're suppressed, don't do anything
 		if self.inner.suppressed.load(atomic::Ordering::Acquire) {
 			return;
 		}
