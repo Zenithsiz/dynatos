@@ -13,9 +13,13 @@ impl EguiEffect {
 	/// Creates a new egui effect from an egui context
 	#[must_use]
 	#[track_caller]
+	#[define_opaque(EffectFn)]
 	pub fn new(ctx: egui::Context) -> Self {
 		Self {
-			effect: Effect::new_raw(effect_fn(ctx)),
+			effect: Effect::new_raw(move || {
+				tracing::debug!("Request redraw");
+				ctx.request_repaint();
+			}),
 		}
 	}
 
@@ -28,13 +32,4 @@ impl EguiEffect {
 	}
 }
 
-use effect_fn::*;
-mod effect_fn {
-	pub type EffectFn = impl Fn();
-	pub fn effect_fn(ctx: egui::Context) -> EffectFn {
-		move || {
-			tracing::debug!("Request redraw");
-			ctx.request_repaint();
-		}
-	}
-}
+pub type EffectFn = impl Fn();

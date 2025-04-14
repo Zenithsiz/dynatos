@@ -104,14 +104,12 @@ impl<F> Effect<F> {
 impl<F: ?Sized> Effect<F> {
 	/// Accesses the inner function
 	#[must_use]
-	#[expect(clippy::missing_const_for_fn, reason = "False positive")]
 	pub fn inner_fn(&self) -> &F {
 		&self.inner.run
 	}
 
 	/// Returns where this effect was defined
 	#[cfg(debug_assertions)]
-	#[expect(clippy::missing_const_for_fn, reason = "False positive")]
 	pub(crate) fn defined_loc(&self) -> &'static Location<'static> {
 		self.inner.defined_loc
 	}
@@ -202,7 +200,7 @@ impl<F: ?Sized> Effect<F> {
 
 impl<F1: ?Sized, F2: ?Sized> PartialEq<Effect<F2>> for Effect<F1> {
 	fn eq(&self, other: &Effect<F2>) -> bool {
-		self.inner_ptr() == other.inner_ptr()
+		core::ptr::eq(self.inner_ptr(), other.inner_ptr())
 	}
 }
 
@@ -282,7 +280,7 @@ impl<F: ?Sized> WeakEffect<F> {
 
 impl<F1: ?Sized, F2: ?Sized> PartialEq<WeakEffect<F2>> for WeakEffect<F1> {
 	fn eq(&self, other: &WeakEffect<F2>) -> bool {
-		self.inner_ptr() == other.inner_ptr()
+		core::ptr::eq(self.inner_ptr(), other.inner_ptr())
 	}
 }
 
