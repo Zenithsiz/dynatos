@@ -20,3 +20,6 @@ tracing-subscriber = { workspace = true }
 tracing-web = { workspace = true }
 wasm-bindgen = { workspace = true }
 web-sys = { workspace = true }
+
+[lints]
+workspace = true
