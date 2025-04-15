@@ -98,7 +98,7 @@ pub mod ev {
 	// Imports
 	use {
 		super::EventListener,
-		web_sys::{InputEvent, PointerEvent, PopStateEvent},
+		web_sys::{InputEvent, PointerEvent, PopStateEvent, WheelEvent},
 	};
 
 	macro define_events(
@@ -127,6 +127,9 @@ pub mod ev {
 
 		/// `input` Event
 		Input(InputEvent) = "input";
+
+		/// `wheel` Event
+		Wheel(WheelEvent) = "wheel";
 
 		/// `popstate` Event
 		PopState(PopStateEvent) = "popstate";

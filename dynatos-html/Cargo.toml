@@ -25,6 +25,7 @@ web-sys = { workspace = true, features = [
 	"PointerEvent",
 	"PopStateEvent",
 	"Text",
+	"WheelEvent",
 	"Window",
 ] }
 
