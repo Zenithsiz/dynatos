@@ -133,17 +133,26 @@ pub struct AsyncSignal<F: Loader, W: AsyncSignalWorld<F> = WorldDefault> {
 	inner: Rc<IMut<Inner<F, W>, W>, W>,
 }
 
-impl<F: Loader, W: AsyncSignalWorld<F>> AsyncSignal<F, W> {
+impl<F: Loader> AsyncSignal<F, WorldDefault> {
 	/// Creates a new async signal with a loader
 	#[track_caller]
 	#[must_use]
 	pub fn new(loader: F) -> Self {
+		Self::new_in(loader, WorldDefault::default())
+	}
+}
+
+impl<F: Loader, W: AsyncSignalWorld<F>> AsyncSignal<F, W> {
+	/// Creates a new async signal with a loader in a world
+	#[track_caller]
+	#[must_use]
+	pub fn new_in(loader: F, world: W) -> Self {
 		Self {
 			inner: Rc::<_, W>::new(IMut::<_, W>::new(Inner {
 				value: None,
 				loader,
 				handle: None,
-				trigger: Trigger::new(),
+				trigger: Trigger::new_in(world),
 				notify: Rc::<_, W>::new(Notify::new()),
 			})),
 		}

@@ -30,22 +30,37 @@ pub struct Memo<T, F: ?Sized, W: MemoWorld<T, F> = WorldDefault> {
 	effect: Effect<EffectFn<T, F, W>, W>,
 }
 
-impl<T, F, W: MemoWorld<T, F>> Memo<T, F, W> {
+impl<T, F> Memo<T, F, WorldDefault> {
 	/// Creates a new memo'd signal
 	#[track_caller]
-	#[expect(private_bounds, reason = "We can't *not* leak some implementation details currently")]
 	pub fn new(f: F) -> Self
+	where
+		T: PartialEq + 'static,
+		F: Fn() -> T + 'static,
+	{
+		Self::new_in(f, WorldDefault::default())
+	}
+}
+
+impl<T, F, W: MemoWorld<T, F>> Memo<T, F, W> {
+	/// Creates a new memo'd signal in a world
+	#[track_caller]
+	#[expect(private_bounds, reason = "We can't *not* leak some implementation details currently")]
+	pub fn new_in(f: F, world: W) -> Self
 	where
 		T: PartialEq + 'static,
 		F: Fn() -> T + 'static,
 		EffectFn<T, F, W>: UnsizeF<W>,
 	{
 		let value = IMut::<_, W>::new(None);
-		let effect = Effect::new(EffectFn {
-			trigger: Trigger::new(),
-			value,
-			f,
-		});
+		let effect = Effect::new_in(
+			EffectFn {
+				trigger: Trigger::new_in(world.clone()),
+				value,
+				f,
+			},
+			world,
+		);
 
 		Self { effect }
 	}

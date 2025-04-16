@@ -28,7 +28,7 @@ use {
 };
 
 /// World
-pub trait World: Sized + 'static {
+pub trait World: Sized + Clone + 'static {
 	/// Reference-counted pointer family
 	type RC: RcFamily;
 
@@ -40,6 +40,7 @@ pub trait World: Sized + 'static {
 }
 
 /// Thread-local world
+#[derive(Clone, Copy, Default)]
 pub struct WorldThreadLocal;
 
 impl World for WorldThreadLocal {
@@ -49,6 +50,7 @@ impl World for WorldThreadLocal {
 }
 
 /// Global world
+#[derive(Clone, Copy, Default)]
 pub struct WorldGlobal;
 
 impl World for WorldGlobal {

@@ -47,22 +47,16 @@ pub struct Effect<F: ?Sized, W: EffectWorld = WorldDefault> {
 	inner: Rc<Inner<F>, W>,
 }
 
-impl<F, W: EffectWorld> Effect<F, W> {
+impl<F> Effect<F, WorldDefault> {
 	/// Creates a new computed effect.
 	///
 	/// Runs the effect once to gather dependencies.
 	#[track_caller]
 	pub fn new(run: F) -> Self
 	where
-		F: Fn() + UnsizeF<W> + 'static,
+		F: Fn() + 'static,
 	{
-		// Create the effect
-		let effect = Self::new_raw(run);
-
-		// And run it once to gather dependencies.
-		effect.run();
-
-		effect
+		Self::new_in(run, WorldDefault::default())
 	}
 
 	/// Crates a new raw computed effect.
@@ -71,6 +65,45 @@ impl<F, W: EffectWorld> Effect<F, W> {
 	/// dependencies manually.
 	#[track_caller]
 	pub fn new_raw(run: F) -> Self {
+		Self::new_raw_in(run, WorldDefault::default())
+	}
+
+	/// Tries to create a new effect.
+	///
+	/// If the effects ends up being inert, returns `None`
+	#[track_caller]
+	pub fn try_new(run: F) -> Option<Self>
+	where
+		F: Fn() + 'static,
+	{
+		Self::try_new_in(run, WorldDefault::default())
+	}
+}
+
+impl<F, W: EffectWorld> Effect<F, W> {
+	/// Creates a new computed effect within a world.
+	///
+	/// Runs the effect once to gather dependencies.
+	#[track_caller]
+	pub fn new_in(run: F, world: W) -> Self
+	where
+		F: Fn() + UnsizeF<W> + 'static,
+	{
+		// Create the effect
+		let effect = Self::new_raw_in(run, world);
+
+		// And run it once to gather dependencies.
+		effect.run();
+
+		effect
+	}
+
+	/// Crates a new raw computed effect within a world.
+	///
+	/// The effect won't be run, and instead you must gather
+	/// dependencies manually.
+	#[track_caller]
+	pub fn new_raw_in(run: F, _world: W) -> Self {
 		let inner = Inner {
 			suppressed: AtomicBool::new(false),
 			#[cfg(debug_assertions)]
@@ -83,15 +116,15 @@ impl<F, W: EffectWorld> Effect<F, W> {
 		}
 	}
 
-	/// Tries to create a new effect.
+	/// Tries to create a new effect within a world.
 	///
 	/// If the effects ends up being inert, returns `None`
 	#[track_caller]
-	pub fn try_new(run: F) -> Option<Self>
+	pub fn try_new_in(run: F, world: W) -> Option<Self>
 	where
 		F: Fn() + UnsizeF<W> + 'static,
 	{
-		let effect = Self::new(run);
+		let effect = Self::new_in(run, world);
 		match effect.is_inert() {
 			true => None,
 			false => Some(effect),
@@ -353,7 +386,7 @@ mod test {
 		static COUNT: Cell<usize> = Cell::new(0);
 
 		assert_eq!(COUNT.get(), 0);
-		let effect = Effect::<_>::new(|| COUNT.update(|x| x + 1));
+		let effect = Effect::new(|| COUNT.update(|x| x + 1));
 		assert_eq!(COUNT.get(), 1);
 		effect.run();
 		assert_eq!(COUNT.get(), 2);
@@ -438,7 +471,7 @@ mod test {
 
 	#[bench]
 	fn get_running_100_some(bencher: &mut Bencher) {
-		let effect = Effect::<_>::new_raw(move || ());
+		let effect = Effect::new_raw(move || ());
 
 		effect.gather_dependencies(|| {
 			bencher.iter(|| {
@@ -454,7 +487,7 @@ mod test {
 	fn create_10(bencher: &mut Bencher) {
 		bencher.iter(|| {
 			for _ in 0..10 {
-				let effect = Effect::<_>::new(move || ());
+				let effect = Effect::new(move || ());
 				test::black_box(&effect);
 				mem::forget(effect);
 			}

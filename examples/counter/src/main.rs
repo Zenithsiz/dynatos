@@ -42,7 +42,7 @@ fn run() -> Result<(), anyhow::Error> {
 }
 
 fn counter() -> Element {
-	let value = Signal::<_>::new(0);
+	let value = Signal::new(0);
 
 	#[cloned(value)]
 	let clear = move |_ev| value.set(0);

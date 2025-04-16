@@ -22,8 +22,8 @@
 // TODO: Not ignore the test once we find out why it hangs the compiler
 //! ```rust,no_run
 //! use dynatos_reactive::{Derived, SignalGet};
-//! let expensive_operation1 = Derived::<_, _>::new(move || 1);
-//! let expensive_operation2 = Derived::<_, _>::new(move || 2);
+//! let expensive_operation1 = Derived::new(move || 1);
+//! let expensive_operation2 = Derived::new(move || 2);
 //! let my_value = move || expensive_operation1.get() + expensive_operation2.get();
 //! ```
 //!
@@ -61,22 +61,37 @@ pub struct Derived<T, F: ?Sized, W: DerivedWorld<T, F> = WorldDefault> {
 	effect: Effect<EffectFn<T, F, W>, W>,
 }
 
-impl<T, F, W: DerivedWorld<T, F>> Derived<T, F, W> {
+impl<T, F> Derived<T, F, WorldDefault> {
 	/// Creates a new derived signal
 	#[track_caller]
-	#[expect(private_bounds, reason = "We can't *not* leak some implementation details currently")]
 	pub fn new(f: F) -> Self
+	where
+		T: 'static,
+		F: Fn() -> T + 'static,
+	{
+		Self::new_in(f, WorldDefault::default())
+	}
+}
+
+impl<T, F, W: DerivedWorld<T, F>> Derived<T, F, W> {
+	/// Creates a new derived signal in a world
+	#[track_caller]
+	#[expect(private_bounds, reason = "We can't *not* leak some implementation details currently")]
+	pub fn new_in(f: F, world: W) -> Self
 	where
 		T: 'static,
 		F: Fn() -> T + 'static,
 		EffectFn<T, F, W>: UnsizeF<W>,
 	{
 		let value = IMut::<_, W>::new(None);
-		let effect = Effect::new(EffectFn {
-			trigger: Trigger::new(),
-			value,
-			f,
-		});
+		let effect = Effect::new_in(
+			EffectFn {
+				trigger: Trigger::new_in(world.clone()),
+				value,
+				f,
+			},
+			world,
+		);
 
 		Self { effect }
 	}

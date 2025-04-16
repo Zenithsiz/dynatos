@@ -56,16 +56,27 @@ pub struct Signal<T: ?Sized, W: SignalWorld = WorldDefault> {
 	inner: Rc<Inner<T, W>, W>,
 }
 
-impl<T, W: SignalWorld> Signal<T, W> {
+impl<T> Signal<T, WorldDefault> {
 	/// Creates a new signal
 	#[track_caller]
 	pub fn new(value: T) -> Self
+	where
+		IMut<T, WorldDefault>: Sized,
+	{
+		Self::new_in(value, WorldDefault::default())
+	}
+}
+
+impl<T, W: SignalWorld> Signal<T, W> {
+	/// Creates a new signal in a world.
+	#[track_caller]
+	pub fn new_in(value: T, world: W) -> Self
 	where
 		IMut<T, W>: Sized,
 	{
 		let inner = Inner {
 			value:   IMut::<_, W>::new(value),
-			trigger: Trigger::new(),
+			trigger: Trigger::new_in(world),
 		};
 		Self {
 			inner: Rc::<_, W>::new(inner),
@@ -234,7 +245,7 @@ mod test {
 
 	#[bench]
 	fn clone_100(bencher: &mut Bencher) {
-		let signals = core::array::from_fn::<_, 100, _>(|_| Signal::<_>::new(0_i32));
+		let signals = core::array::from_fn::<_, 100, _>(|_| Signal::new(0_i32));
 		bencher.iter(|| {
 			for signal in &signals {
 				let signal = test::black_box(signal.clone());
@@ -256,7 +267,7 @@ mod test {
 
 	#[bench]
 	fn access_100(bencher: &mut Bencher) {
-		let signals = core::array::from_fn::<_, 100, _>(|_| Signal::<_>::new(123_usize));
+		let signals = core::array::from_fn::<_, 100, _>(|_| Signal::new(123_usize));
 		bencher.iter(|| {
 			for signal in &signals {
 				test::black_box(signal.get());
@@ -278,7 +289,7 @@ mod test {
 
 	#[bench]
 	fn update_100_empty(bencher: &mut Bencher) {
-		let signals = core::array::from_fn::<_, 100, _>(|_| Signal::<_>::new(123_usize));
+		let signals = core::array::from_fn::<_, 100, _>(|_| Signal::new(123_usize));
 		bencher.iter(|| {
 			for signal in &signals {
 				signal.update(|value| *value += 1);

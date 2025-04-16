@@ -39,7 +39,7 @@ fn run() -> Result<(), anyhow::Error> {
 }
 
 fn counter() -> Element {
-	let value = Signal::<_>::new(0i32);
+	let value = Signal::new(0i32);
 	html::div().with_children([
 		{
 			let value = value.clone();

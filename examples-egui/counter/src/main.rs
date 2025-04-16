@@ -34,7 +34,7 @@ struct EguiApp {
 impl EguiApp {
 	fn new(cc: &eframe::CreationContext<'_>) -> Self {
 		Self {
-			value:  Signal::new(0),
+			value:  Signal::new_in(0, WorldGlobal),
 			effect: EguiEffect::new(cc.egui_ctx.clone()),
 		}
 	}

@@ -51,7 +51,7 @@ impl<T> QuerySignal<T> {
 	{
 		// Get the query value
 		let key = key.into();
-		let query_value = Memo::<_, _>::new({
+		let query_value = Memo::new({
 			let key = Rc::clone(&key);
 			move || {
 				dynatos_context::with_expect::<Location, _, _>(|location| {

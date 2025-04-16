@@ -119,11 +119,20 @@ pub struct Trigger<W: TriggerWorld = WorldDefault> {
 	inner: Rc<Inner<W>, W>,
 }
 
-impl<W: TriggerWorld> Trigger<W> {
+impl Trigger<WorldDefault> {
 	/// Creates a new trigger
 	#[must_use]
 	#[track_caller]
 	pub fn new() -> Self {
+		Self::new_in(WorldDefault::default())
+	}
+}
+
+impl<W: TriggerWorld> Trigger<W> {
+	/// Creates a new trigger in a world
+	#[must_use]
+	#[track_caller]
+	pub fn new_in(_world: W) -> Self {
 		let inner = Inner {
 			#[cfg_attr(
 				not(debug_assertions),
@@ -244,9 +253,9 @@ impl<W: TriggerWorld> Trigger<W> {
 	}
 }
 
-impl<W: TriggerWorld> Default for Trigger<W> {
+impl<W: TriggerWorld + Default> Default for Trigger<W> {
 	fn default() -> Self {
-		Self::new()
+		Self::new_in(W::default())
 	}
 }
 
@@ -342,7 +351,7 @@ mod test {
 		static TRIGGERS: Cell<usize> = Cell::new(0);
 
 		// Create the effect and reset the flag
-		let effect = Effect::<_>::new(move || TRIGGERS.set(TRIGGERS.get() + 1));
+		let effect = Effect::new(move || TRIGGERS.set(TRIGGERS.get() + 1));
 
 		// Then create the trigger, and ensure it wasn't triggered
 		// by just creating it and adding the subscriber
