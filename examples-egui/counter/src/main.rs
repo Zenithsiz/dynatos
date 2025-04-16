@@ -6,7 +6,7 @@
 // Imports
 use {
 	dynatos_egui::EguiEffect,
-	dynatos_reactive::{Signal, SignalGet, SignalSet, SignalUpdate},
+	dynatos_reactive::{Signal, SignalGet, SignalSet, SignalUpdate, WorldGlobal},
 	eframe::egui,
 	std::time::Duration,
 	zutil_cloned::cloned,
@@ -25,7 +25,7 @@ fn main() -> Result<(), anyhow::Error> {
 
 struct EguiApp {
 	/// Value
-	value: Signal<i32>,
+	value: Signal<i32, WorldGlobal>,
 
 	/// Egui effect
 	effect: EguiEffect,

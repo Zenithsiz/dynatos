@@ -12,7 +12,8 @@
 	trait_alias,
 	once_cell_try,
 	async_fn_traits,
-	local_waker
+	local_waker,
+	cell_update
 )]
 
 // Modules
@@ -23,6 +24,7 @@ pub mod memo;
 pub mod signal;
 pub mod trigger;
 pub mod with_default;
+pub mod world;
 
 // Exports
 pub use self::{
@@ -46,4 +48,5 @@ pub use self::{
 	},
 	trigger::{IntoSubscriber, Subscriber, Trigger, WeakTrigger},
 	with_default::{SignalWithDefault, WithDefault},
+	world::{World, WorldDefault, WorldGlobal, WorldThreadLocal},
 };

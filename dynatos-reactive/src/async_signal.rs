@@ -2,15 +2,26 @@
 
 // Imports
 use {
-	crate::{SignalBorrow, SignalWith, Trigger},
+	crate::{
+		trigger::TriggerWorld,
+		world::{IMut, IMutLike, IMutRef, IMutRefMut, IMutRefMutLike, Rc, RcLike},
+		SignalBorrow,
+		SignalWith,
+		Trigger,
+		World,
+		WorldDefault,
+	},
 	core::{fmt, future::Future, ops::Deref},
-	dynatos_reactive_sync::{IMut, IMutExt, IMutRef, IMutRefMut, IMutRefMutExt, Rc},
 	futures::stream::AbortHandle,
 	tokio::sync::Notify,
 };
 
+/// World for [`AsyncSignal`]
+#[expect(private_bounds, reason = "We can't *not* leak some implementation details currently")]
+pub trait AsyncSignalWorld<F: Loader> = World + TriggerWorld where IMut<Inner<F, Self>, Self>: Sized;
+
 /// Inner
-struct Inner<F: Loader> {
+struct Inner<F: Loader, W: AsyncSignalWorld<F>> {
 	/// Value
 	value: Option<F::Output>,
 
@@ -21,13 +32,13 @@ struct Inner<F: Loader> {
 	handle: Option<AbortHandle>,
 
 	/// Trigger
-	trigger: Trigger,
+	trigger: Trigger<W>,
 
 	/// Notify
-	notify: Rc<Notify>,
+	notify: Rc<Notify, W>,
 }
 
-impl<F: Loader> Inner<F> {
+impl<F: Loader, W: AsyncSignalWorld<F>> Inner<F, W> {
 	/// Stops loading the value.
 	///
 	/// Returns if the loader had a future.
@@ -48,7 +59,7 @@ impl<F: Loader> Inner<F> {
 	///
 	/// Returns whether this created the loader's future.
 	#[track_caller]
-	pub fn start_loading(&mut self, this: Rc<IMut<Self>>) -> bool
+	pub fn start_loading(&mut self, this: Rc<IMut<Self, W>, W>) -> bool
 	where
 		F: Loader,
 	{
@@ -67,16 +78,16 @@ impl<F: Loader> Inner<F> {
 			// Load the value
 			// Note: If we get aborted, just remove the handle
 			let Ok(value) = fut.await else {
-				this.imut_write().handle = None;
+				this.write().handle = None;
 				return;
 			};
 
 			// Then write it and remove the handle
-			let mut inner = this.imut_write();
+			let mut inner = this.write();
 			inner.value = Some(value);
 			inner.handle = None;
 			let trigger = inner.trigger.clone();
-			let notify = Rc::clone(&inner.notify);
+			let notify = Rc::<_, W>::clone(&inner.notify);
 			drop(inner);
 
 			// Finally trigger and awake all waiters.
@@ -96,7 +107,7 @@ impl<F: Loader> Inner<F> {
 	///
 	/// Returns whether a future existed before
 	#[track_caller]
-	pub fn restart_loading(&mut self, this: Rc<IMut<Self>>) -> bool
+	pub fn restart_loading(&mut self, this: Rc<IMut<Self, W>, W>) -> bool
 	where
 		F: Loader,
 	{
@@ -117,23 +128,23 @@ impl<F: Loader> Inner<F> {
 }
 
 /// Async signal
-pub struct AsyncSignal<F: Loader> {
+pub struct AsyncSignal<F: Loader, W: AsyncSignalWorld<F> = WorldDefault> {
 	/// Inner
-	inner: Rc<IMut<Inner<F>>>,
+	inner: Rc<IMut<Inner<F, W>, W>, W>,
 }
 
-impl<F: Loader> AsyncSignal<F> {
+impl<F: Loader, W: AsyncSignalWorld<F>> AsyncSignal<F, W> {
 	/// Creates a new async signal with a loader
 	#[track_caller]
 	#[must_use]
 	pub fn new(loader: F) -> Self {
 		Self {
-			inner: Rc::new(IMut::new(Inner {
+			inner: Rc::<_, W>::new(IMut::<_, W>::new(Inner {
 				value: None,
 				loader,
 				handle: None,
 				trigger: Trigger::new(),
-				notify: Rc::new(Notify::new()),
+				notify: Rc::<_, W>::new(Notify::new()),
 			})),
 		}
 	}
@@ -141,9 +152,8 @@ impl<F: Loader> AsyncSignal<F> {
 	/// Stops loading the value.
 	///
 	/// Returns if the loader had a future.
-	#[expect(clippy::must_use_candidate, reason = "It's fine to ignore")]
 	pub fn stop_loading(&self) -> bool {
-		self.inner.imut_write().stop_loading()
+		self.inner.write().stop_loading()
 	}
 
 	/// Starts loading the value.
@@ -151,13 +161,12 @@ impl<F: Loader> AsyncSignal<F> {
 	/// If the loader already has a future, this does nothing.
 	///
 	/// Returns whether this created the loader's future.
-	#[expect(clippy::must_use_candidate, reason = "It's fine to ignore")]
 	#[track_caller]
 	pub fn start_loading(&self) -> bool
 	where
 		F: Loader,
 	{
-		self.inner.imut_write().start_loading(Rc::clone(&self.inner))
+		self.inner.write().start_loading(Rc::<_, W>::clone(&self.inner))
 	}
 
 	/// Restarts the loading.
@@ -166,13 +175,12 @@ impl<F: Loader> AsyncSignal<F> {
 	/// and re-created.
 	///
 	/// Returns whether a future existed before
-	#[expect(clippy::must_use_candidate, reason = "It's fine to ignore")]
 	#[track_caller]
 	pub fn restart_loading(&self) -> bool
 	where
 		F: Loader,
 	{
-		self.inner.imut_write().restart_loading(Rc::clone(&self.inner))
+		self.inner.write().restart_loading(Rc::<_, W>::clone(&self.inner))
 	}
 
 	/// Returns if loading.
@@ -180,14 +188,14 @@ impl<F: Loader> AsyncSignal<F> {
 	/// This is considered loading if the loader has an active future.
 	#[must_use]
 	pub fn is_loading(&self) -> bool {
-		self.inner.imut_read().is_loading()
+		self.inner.read().is_loading()
 	}
 
 	/// Waits for the value to be loaded.
 	///
 	/// If not loading, waits until the loading starts, but does not start it.
-	pub async fn wait(&self) -> BorrowRef<'_, F> {
-		let inner = self.inner.imut_read();
+	pub async fn wait(&self) -> BorrowRef<'_, F, W> {
+		let inner = self.inner.read();
 		self.wait_inner(inner).await
 	}
 
@@ -199,17 +207,17 @@ impl<F: Loader> AsyncSignal<F> {
 	///
 	/// If this future is dropped before completion, the loading
 	/// will be cancelled.
-	pub async fn load(&self) -> BorrowRef<'_, F> {
+	pub async fn load(&self) -> BorrowRef<'_, F, W> {
 		// If the value is loaded, return it
-		let mut inner = self.inner.imut_write();
+		let mut inner = self.inner.write();
 		if inner.value.is_some() {
-			return BorrowRef(IMutRefMut::imut_downgrade(inner));
+			return BorrowRef(IMutRefMut::<_, W>::downgrade(inner));
 		}
 
 		// Else start loading, and setup a defer to stop loading if we get cancelled.
 		// Note: Stopping loading is a no-op if `wait` successfully returns, we only
 		//       care if we're dropped early.
-		let created_loader = inner.start_loading(Rc::clone(&self.inner));
+		let created_loader = inner.start_loading(Rc::<_, W>::clone(&self.inner));
 		scopeguard::defer! {
 			if created_loader {
 				self.stop_loading();
@@ -217,14 +225,13 @@ impl<F: Loader> AsyncSignal<F> {
 		}
 
 		// Then wait for the value
-		self.wait_inner(IMutRefMut::imut_downgrade(inner)).await
+		self.wait_inner(IMutRefMut::<_, W>::downgrade(inner)).await
 	}
 
-	#[expect(clippy::await_holding_refcell_ref, reason = "We drop it when awaiting it")]
-	async fn wait_inner<'a>(&'a self, mut inner: IMutRef<'a, Inner<F>>) -> BorrowRef<'a, F> {
+	async fn wait_inner<'a>(&'a self, mut inner: IMutRef<'a, Inner<F, W>, W>) -> BorrowRef<'a, F, W> {
 		loop {
 			// Register a handle to be notified
-			let notify = Rc::clone(&inner.notify);
+			let notify = Rc::<_, W>::clone(&inner.notify);
 			let notified = notify.notified();
 			drop(inner);
 
@@ -233,7 +240,7 @@ impl<F: Loader> AsyncSignal<F> {
 
 			// Finally return the value
 			// Note: If in the meantime the value got overwritten, we wait again
-			inner = self.inner.imut_read();
+			inner = self.inner.read();
 			if inner.value.is_some() {
 				break BorrowRef(inner);
 			}
@@ -241,15 +248,15 @@ impl<F: Loader> AsyncSignal<F> {
 	}
 }
 
-impl<F: Loader> Clone for AsyncSignal<F> {
+impl<F: Loader, W: AsyncSignalWorld<F>> Clone for AsyncSignal<F, W> {
 	fn clone(&self) -> Self {
 		Self {
-			inner: Rc::clone(&self.inner),
+			inner: Rc::<_, W>::clone(&self.inner),
 		}
 	}
 }
 
-impl<F: Loader> fmt::Debug for AsyncSignal<F>
+impl<F: Loader, W: AsyncSignalWorld<F>> fmt::Debug for AsyncSignal<F, W>
 where
 	F::Output: fmt::Debug,
 {
@@ -260,9 +267,9 @@ where
 }
 
 /// Reference type for [`SignalBorrow`] impl
-pub struct BorrowRef<'a, F: Loader>(IMutRef<'a, Inner<F>>);
+pub struct BorrowRef<'a, F: Loader, W: AsyncSignalWorld<F> = WorldDefault>(IMutRef<'a, Inner<F, W>, W>);
 
-impl<F: Loader> fmt::Debug for BorrowRef<'_, F>
+impl<F: Loader, W: AsyncSignalWorld<F>> fmt::Debug for BorrowRef<'_, F, W>
 where
 	F::Output: fmt::Debug,
 {
@@ -271,7 +278,7 @@ where
 	}
 }
 
-impl<F: Loader> Deref for BorrowRef<'_, F> {
+impl<F: Loader, W: AsyncSignalWorld<F>> Deref for BorrowRef<'_, F, W> {
 	type Target = F::Output;
 
 	fn deref(&self) -> &Self::Target {
@@ -279,31 +286,31 @@ impl<F: Loader> Deref for BorrowRef<'_, F> {
 	}
 }
 
-impl<F: Loader> SignalBorrow for AsyncSignal<F> {
+impl<F: Loader, W: AsyncSignalWorld<F>> SignalBorrow for AsyncSignal<F, W> {
 	type Ref<'a>
-		= Option<BorrowRef<'a, F>>
+		= Option<BorrowRef<'a, F, W>>
 	where
 		Self: 'a;
 
 	#[track_caller]
 	fn borrow(&self) -> Self::Ref<'_> {
 		// Start loading on borrow
-		let mut inner = self.inner.imut_write();
-		inner.start_loading(Rc::clone(&self.inner));
+		let mut inner = self.inner.write();
+		inner.start_loading(Rc::<_, W>::clone(&self.inner));
 
 		// Then get the value
 		inner
 			.value
 			.is_some()
-			.then(|| BorrowRef(IMutRefMut::imut_downgrade(inner)))
+			.then(|| BorrowRef(IMutRefMut::<_, W>::downgrade(inner)))
 	}
 }
 
-impl<F: Loader> SignalWith for AsyncSignal<F>
+impl<F: Loader, W: AsyncSignalWorld<F>> SignalWith for AsyncSignal<F, W>
 where
 	F::Output: 'static,
 {
-	type Value<'a> = Option<BorrowRef<'a, F>>;
+	type Value<'a> = Option<BorrowRef<'a, F, W>>;
 
 	#[track_caller]
 	fn with<F2, O>(&self, f: F2) -> O

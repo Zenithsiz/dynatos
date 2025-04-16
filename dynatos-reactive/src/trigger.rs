@@ -5,14 +5,19 @@
 
 // Imports
 use {
-	crate::{effect, Effect, WeakEffect},
+	crate::{
+		effect::{self, EffectWorld},
+		world::{self, IMut, IMutLike, Rc, RcLike, Weak, WeakLike},
+		Effect,
+		WeakEffect,
+		World,
+		WorldDefault,
+	},
 	core::{
 		fmt,
-		marker::Unsize,
-		mem::{self, ManuallyDrop},
-		task,
+		hash::{Hash, Hasher},
+		ops::CoerceUnsized,
 	},
-	dynatos_reactive_sync::{IMut, IMutExt, Rc, SyncBounds, Weak},
 	std::collections::{hash_map, HashMap},
 };
 #[cfg(debug_assertions)]
@@ -21,11 +26,37 @@ use {
 	std::collections::HashSet,
 };
 
+/// World for [`Trigger`]
+#[expect(private_bounds, reason = "We can't *not* leak some implementation details currently")]
+pub trait TriggerWorld = World + EffectWorld where IMut<HashMap<Subscriber<Self>, SubscriberInfo>, Self>: Sized;
+
 /// Subscribers
-#[derive(PartialEq, Eq, Clone, Hash, Debug)]
-pub struct Subscriber {
+#[derive(Debug)]
+pub struct Subscriber<W: TriggerWorld> {
 	/// Effect
-	effect: WeakEffect<dyn Fn() + SyncBounds>,
+	effect: WeakEffect<world::F<W>, W>,
+}
+
+impl<W: TriggerWorld> Clone for Subscriber<W> {
+	fn clone(&self) -> Self {
+		Self {
+			effect: self.effect.clone(),
+		}
+	}
+}
+
+impl<W: TriggerWorld> PartialEq for Subscriber<W> {
+	fn eq(&self, other: &Self) -> bool {
+		self.effect == other.effect
+	}
+}
+
+impl<W: TriggerWorld> Eq for Subscriber<W> {}
+
+impl<W: TriggerWorld> Hash for Subscriber<W> {
+	fn hash<H: Hasher>(&self, state: &mut H) {
+		self.effect.hash(state);
+	}
 }
 
 /// Subscriber info
@@ -66,7 +97,7 @@ impl SubscriberInfo {
 }
 
 /// Trigger inner
-struct Inner {
+struct Inner<W: TriggerWorld> {
 	/// Subscribers
 	#[cfg_attr(
 		not(debug_assertions),
@@ -75,7 +106,7 @@ struct Inner {
 			reason = "It isn't zero-sized with `debug_assertions`"
 		)
 	)]
-	subscribers: IMut<HashMap<Subscriber, SubscriberInfo>>,
+	subscribers: IMut<HashMap<Subscriber<W>, SubscriberInfo>, W>,
 
 	#[cfg(debug_assertions)]
 	/// Where this trigger was defined
@@ -83,12 +114,12 @@ struct Inner {
 }
 
 /// Trigger
-pub struct Trigger {
+pub struct Trigger<W: TriggerWorld = WorldDefault> {
 	/// Inner
-	inner: Rc<Inner>,
+	inner: Rc<Inner<W>, W>,
 }
 
-impl Trigger {
+impl<W: TriggerWorld> Trigger<W> {
 	/// Creates a new trigger
 	#[must_use]
 	#[track_caller]
@@ -101,18 +132,20 @@ impl Trigger {
 					reason = "It isn't zero-sized with `debug_assertions`"
 				)
 			)]
-			subscribers: IMut::new(HashMap::new()),
+			subscribers: IMut::<_, W>::new(HashMap::new()),
 			#[cfg(debug_assertions)]
 			defined_loc: Location::caller(),
 		};
-		Self { inner: Rc::new(inner) }
+		Self {
+			inner: Rc::<_, W>::new(inner),
+		}
 	}
 
 	/// Downgrades this trigger
 	#[must_use]
-	pub fn downgrade(&self) -> WeakTrigger {
+	pub fn downgrade(&self) -> WeakTrigger<W> {
 		WeakTrigger {
-			inner: Rc::downgrade(&self.inner),
+			inner: Rc::<_, W>::downgrade(&self.inner),
 		}
 	}
 
@@ -126,7 +159,7 @@ impl Trigger {
 	// TODO: Should we remove all existing subscribers before gathering them?
 	#[track_caller]
 	pub fn gather_subscribers(&self) {
-		if let Some(effect) = effect::running() {
+		if let Some(effect) = effect::running::<W>() {
 			self.add_subscriber(effect);
 		}
 	}
@@ -135,9 +168,9 @@ impl Trigger {
 	///
 	/// Returns if the subscriber already existed.
 	#[track_caller]
-	fn add_subscriber<S: IntoSubscriber>(&self, subscriber: S) -> bool {
-		let mut subscribers = self.inner.subscribers.imut_write();
-		match subscribers.entry(subscriber.into_subscriber()) {
+	fn add_subscriber<S: IntoSubscriber<W>>(&self, subscriber: S) -> bool {
+		let mut subscribers = self.inner.subscribers.write();
+		match (*subscribers).entry(subscriber.into_subscriber()) {
 			hash_map::Entry::Occupied(mut entry) => {
 				entry.get_mut().update();
 				true
@@ -153,14 +186,14 @@ impl Trigger {
 	///
 	/// Returns if the subscriber existed
 	#[track_caller]
-	fn _remove_subscriber<S: IntoSubscriber>(&self, subscriber: S) -> bool {
+	fn _remove_subscriber<S: IntoSubscriber<W>>(&self, subscriber: S) -> bool {
 		Self::remove_subscriber_inner(&self.inner, subscriber)
 	}
 
 	/// Inner function for [`Self::remove_subscriber`]
 	#[track_caller]
-	fn remove_subscriber_inner<S: IntoSubscriber>(inner: &Inner, subscriber: S) -> bool {
-		let mut subscribers = inner.subscribers.imut_write();
+	fn remove_subscriber_inner<S: IntoSubscriber<W>>(inner: &Inner<W>, subscriber: S) -> bool {
+		let mut subscribers = inner.subscribers.write();
 		subscribers.remove(&subscriber.into_subscriber()).is_some()
 	}
 
@@ -172,7 +205,7 @@ impl Trigger {
 	}
 
 	/// Inner function for [`Self::trigger`]
-	fn trigger_inner(inner: &Inner) {
+	fn trigger_inner(inner: &Inner<W>) {
 		// Run all subscribers, and remove any empty ones
 		// Note: Since running the subscriber might add subscribers, we can't keep
 		//       the inner borrow active, so we gather all dependencies before-hand.
@@ -183,13 +216,13 @@ impl Trigger {
 		//       it to the main field?
 		let subscribers = inner
 			.subscribers
-			.imut_write()
+			.write()
 			.iter()
 			.map(|(subscriber, info)| (subscriber.clone(), info.clone()))
 			.collect::<Vec<_>>();
 		for (subscriber, info) in subscribers {
 			let Some(effect) = subscriber.effect.upgrade() else {
-				Self::remove_subscriber_inner(inner, subscriber);
+				Self::remove_subscriber_inner(inner, subscriber.effect);
 				continue;
 			};
 
@@ -209,128 +242,85 @@ impl Trigger {
 			effect.run();
 		}
 	}
-
-	/// Creates a `RawWaker`.
-	///
-	/// By default, this can only be passed to [`task::LocalWaker`],
-	/// however, if the `sync` feature is enabled, this can be passed
-	/// to [`task::Waker`] as well.
-	#[must_use]
-	pub fn into_raw_waker(self) -> task::RawWaker {
-		fn into_inner(ptr: *const ()) -> Rc<Inner> {
-			// SAFETY: All callers of this function pass in the correct arguments.
-			unsafe { Rc::from_raw(ptr.cast()) }
-		}
-
-		fn with_inner<F, O>(ptr: *const (), f: F) -> O
-		where
-			F: FnOnce(&Rc<Inner>) -> O,
-		{
-			// Note: The inner Rc is never dropped, so this won't double drop
-			let rc = ManuallyDrop::new(into_inner(ptr));
-			f(&rc)
-		}
-
-		fn from_inner(inner: Rc<Inner>) -> task::RawWaker {
-			task::RawWaker::new(Rc::into_raw(inner).cast(), &VTABLE)
-		}
-
-		fn clone(ptr: *const ()) -> task::RawWaker {
-			from_inner(with_inner(ptr, Rc::clone))
-		}
-
-		fn wake(ptr: *const ()) {
-			wake_by_ref(ptr);
-			drop(ptr);
-		}
-
-		fn wake_by_ref(ptr: *const ()) {
-			with_inner(ptr, |inner| Trigger::trigger_inner(inner));
-		}
-
-		fn drop(ptr: *const ()) {
-			mem::drop(into_inner(ptr));
-		}
-
-		const VTABLE: task::RawWakerVTable = task::RawWakerVTable::new(clone, wake, wake_by_ref, drop);
-
-		from_inner(self.inner)
-	}
 }
 
-impl Default for Trigger {
+impl<W: TriggerWorld> Default for Trigger<W> {
 	fn default() -> Self {
 		Self::new()
 	}
 }
 
-impl Clone for Trigger {
+impl<W: TriggerWorld> Clone for Trigger<W> {
 	fn clone(&self) -> Self {
 		Self {
-			inner: Rc::clone(&self.inner),
+			inner: Rc::<_, W>::clone(&self.inner),
 		}
 	}
 }
 
-impl fmt::Debug for Trigger {
+impl<W: TriggerWorld> fmt::Debug for Trigger<W> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		f.debug_struct("Trigger").finish_non_exhaustive()
 	}
 }
 
 /// Weak trigger
-pub struct WeakTrigger {
+pub struct WeakTrigger<W: TriggerWorld> {
 	/// Inner
-	inner: Weak<Inner>,
+	inner: Weak<Inner<W>, W>,
 }
 
-impl WeakTrigger {
+impl<W: TriggerWorld> WeakTrigger<W> {
 	/// Upgrades this weak trigger
 	#[must_use]
-	pub fn upgrade(&self) -> Option<Trigger> {
+	pub fn upgrade(&self) -> Option<Trigger<W>> {
 		let inner = self.inner.upgrade()?;
 		Some(Trigger { inner })
 	}
 }
 
-impl Clone for WeakTrigger {
+impl<W: TriggerWorld> Clone for WeakTrigger<W> {
 	fn clone(&self) -> Self {
 		Self {
-			inner: Weak::clone(&self.inner),
+			inner: Weak::<_, W>::clone(&self.inner),
 		}
 	}
 }
 
-impl fmt::Debug for WeakTrigger {
+impl<W: TriggerWorld> fmt::Debug for WeakTrigger<W> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		f.debug_struct("WeakTrigger").finish_non_exhaustive()
 	}
 }
 
 /// Types that may be converted into a subscriber
-pub trait IntoSubscriber {
+pub trait IntoSubscriber<W: TriggerWorld> {
 	/// Converts this type into a weak effect.
-	fn into_subscriber(self) -> Subscriber;
+	fn into_subscriber(self) -> Subscriber<W>;
 }
 
-impl IntoSubscriber for Subscriber {
-	fn into_subscriber(self) -> Subscriber {
+impl<W: TriggerWorld> IntoSubscriber<W> for Subscriber<W> {
+	fn into_subscriber(self) -> Self {
 		self
 	}
 }
 
+#[expect(clippy::allow_attributes, reason = "Only applicable to one of the branches")]
+#[allow(clippy::use_self, reason = "Only applicable in one of the branches")]
 #[duplicate::duplicate_item(
 	T effect_value;
 	[ Effect ] [ self.downgrade() ];
 	[ &'_ Effect ] [ self.downgrade() ];
 	[ WeakEffect ] [ self ];
 )]
-impl<F> IntoSubscriber for T<F>
+impl<F, W> IntoSubscriber<W> for T<F, W>
 where
-	F: ?Sized + Fn() + Unsize<dyn Fn() + SyncBounds> + 'static,
+	F: ?Sized + core::marker::Unsize<world::F<W>>,
+	W: TriggerWorld,
+	WeakEffect<F, W>: CoerceUnsized<WeakEffect<world::F<W>, W>>,
 {
 	#[track_caller]
-	fn into_subscriber(self) -> Subscriber {
+	fn into_subscriber(self) -> Subscriber<W> {
 		Subscriber { effect: effect_value }
 	}
 }
@@ -352,7 +342,7 @@ mod test {
 		static TRIGGERS: Cell<usize> = Cell::new(0);
 
 		// Create the effect and reset the flag
-		let effect = Effect::new(move || TRIGGERS.set(TRIGGERS.get() + 1));
+		let effect = Effect::<_>::new(move || TRIGGERS.set(TRIGGERS.get() + 1));
 
 		// Then create the trigger, and ensure it wasn't triggered
 		// by just creating it and adding the subscriber
@@ -377,7 +367,7 @@ mod test {
 
 	#[bench]
 	fn clone_100(bencher: &mut Bencher) {
-		let triggers = core::array::from_fn::<_, 100, _>(|_| Trigger::new());
+		let triggers = core::array::from_fn::<Trigger, 100, _>(|_| Trigger::new());
 		bencher.iter(|| {
 			for trigger in &triggers {
 				let trigger = test::black_box(trigger.clone());
@@ -388,7 +378,7 @@ mod test {
 
 	/// Benches triggering a trigger with `N` no-op effects.
 	fn trigger_noop_n<const N: usize>(bencher: &mut Bencher) {
-		let trigger = Trigger::new();
+		let trigger: Trigger = Trigger::new();
 		let effects = core::array::from_fn::<_, N, _>(|_| Effect::new(|| ()));
 		for effect in &effects {
 			trigger.add_subscriber(effect);

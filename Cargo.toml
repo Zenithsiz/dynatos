@@ -11,7 +11,6 @@ members = [
 	"dynatos-html-parser",
 	"dynatos-loadable",
 	"dynatos-reactive",
-	"dynatos-reactive-sync",
 	"dynatos-router",
 	"dynatos-title",
 	"dynatos-util",
@@ -31,7 +30,6 @@ dynatos-html-macros = { path = "dynatos-html-macros" }
 dynatos-html-parser = { path = "dynatos-html-parser" }
 dynatos-loadable = { path = "dynatos-loadable" }
 dynatos-reactive = { path = "dynatos-reactive" }
-dynatos-reactive-sync = { path = "dynatos-reactive-sync" }
 dynatos-router = { path = "dynatos-router" }
 dynatos-title = { path = "dynatos-title" }
 dynatos-util = { path = "dynatos-util" }

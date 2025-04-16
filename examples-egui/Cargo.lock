@@ -880,26 +880,19 @@ dependencies = [
 name = "dynatos-reactive"
 version = "0.1.0"
 dependencies = [
+ "derive_more",
  "duplicate",
  "dynatos-context",
- "dynatos-reactive-sync",
  "dynatos-util",
  "extend",
  "futures",
  "itertools",
+ "parking_lot",
  "pin-project",
  "scopeguard",
  "tokio",
  "tracing",
  "wasm-bindgen-futures",
-]
-
-[[package]]
-name = "dynatos-reactive-sync"
-version = "0.1.0"
-dependencies = [
- "derive_more",
- "parking_lot",
 ]
 
 [[package]]

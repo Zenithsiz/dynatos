@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 
 dynatos-egui = { workspace = true }
-dynatos-reactive = { workspace = true, features = ["sync"] }
+dynatos-reactive = { workspace = true }
 dynatos-util = { workspace = true }
 
 anyhow = { workspace = true }
