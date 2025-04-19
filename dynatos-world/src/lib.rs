@@ -37,10 +37,10 @@ pub use self::{
 /// World
 pub trait World: Sized + Clone + 'static {
 	/// Reference-counted pointer family
-	type RC: RcFamily;
+	type Rc: RcFamily;
 
 	/// Inner mutability family
-	type IM: IMutFamily;
+	type IMut: IMutFamily;
 }
 
 /// Thread-local world
@@ -48,8 +48,8 @@ pub trait World: Sized + Clone + 'static {
 pub struct WorldThreadLocal;
 
 impl World for WorldThreadLocal {
-	type IM = StdRefcell;
-	type RC = StdRc;
+	type IMut = StdRefcell;
+	type Rc = StdRc;
 }
 
 /// Global world
@@ -57,18 +57,18 @@ impl World for WorldThreadLocal {
 pub struct WorldGlobal;
 
 impl World for WorldGlobal {
-	type IM = ParkingLotRwLock;
-	type RC = StdArc;
+	type IMut = ParkingLotRwLock;
+	type Rc = StdArc;
 }
 
 /// The `Rc` of the world `W`
-pub type Rc<T: ?Sized, W: World> = <W::RC as RcFamily>::Rc<T>;
+pub type Rc<T: ?Sized, W: World> = <W::Rc as RcFamily>::Rc<T>;
 
 /// The `Weak` of the world `W`
-pub type Weak<T: ?Sized, W: World> = <W::RC as RcFamily>::Weak<T>;
+pub type Weak<T: ?Sized, W: World> = <W::Rc as RcFamily>::Weak<T>;
 
 /// The `IMut` of the world `W`
-pub type IMut<T: ?Sized, W: World> = <W::IM as IMutFamily>::IMut<T>;
+pub type IMut<T: ?Sized, W: World> = <W::IMut as IMutFamily>::IMut<T>;
 
 /// The `IMutRef` of the world `W`
 pub type IMutRef<'a, T: ?Sized + 'a, W: World> = <IMut<T, W> as IMutLike<T>>::Ref<'a>;

@@ -25,18 +25,18 @@ use {
 /// Reactive world
 pub trait ReactiveWorld: World {
 	/// Effect stack
-	type EF: EffectStack<Self>;
+	type EffectStack: EffectStack<Self>;
 }
 
 impl ReactiveWorld for WorldThreadLocal {
-	type EF = EffectStackThreadLocal;
+	type EffectStack = EffectStackThreadLocal;
 }
 impl ReactiveWorld for WorldGlobal {
-	type EF = EffectStackGlobal;
+	type EffectStack = EffectStackGlobal;
 }
 
 /// The effect stack function type of the world `W`
-pub type F<W: ReactiveWorld> = <W::EF as EffectStack<W>>::F;
+pub type F<W: ReactiveWorld> = <W::EffectStack as EffectStack<W>>::F;
 
 /// `Unsize` into the effect stack function of the world `W`
 pub trait UnsizeF<W: ReactiveWorld> = Unsize<F<W>>;
@@ -47,7 +47,7 @@ where
 	W: EffectWorld,
 	F: ?Sized + Unsize<self::F<W>>,
 {
-	W::EF::push_effect(effect);
+	W::EffectStack::push_effect(effect);
 }
 
 /// Pops an effect onto the effect stack of the world `W`
@@ -55,7 +55,7 @@ pub fn pop_effect<W>()
 where
 	W: EffectWorld,
 {
-	W::EF::pop_effect();
+	W::EffectStack::pop_effect();
 }
 
 /// Returns the top of the effect stack of the world `W`
@@ -64,5 +64,5 @@ pub fn top_effect<W>() -> Option<WeakEffect<F<W>, W>>
 where
 	W: EffectWorld,
 {
-	W::EF::top_effect()
+	W::EffectStack::top_effect()
 }
