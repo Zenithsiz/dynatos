@@ -8,6 +8,7 @@ edition = "2021"
 dynatos-egui = { workspace = true }
 dynatos-reactive = { workspace = true }
 dynatos-util = { workspace = true }
+dynatos-world = { workspace = true }
 
 anyhow = { workspace = true }
 eframe = { workspace = true }

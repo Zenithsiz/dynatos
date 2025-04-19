@@ -10,6 +10,7 @@ dynatos-context = { path = "../dynatos-context" }
 dynatos-egui = { path = "../dynatos-egui" }
 dynatos-reactive = { path = "../dynatos-reactive" }
 dynatos-util = { path = "../dynatos-util" }
+dynatos-world = { path = "../dynatos-world" }
 
 anyhow = "1.0.98"
 duplicate = "2.0.0"

@@ -7,17 +7,17 @@
 use {
 	crate::{
 		effect::{self, EffectWorld},
-		world::{self, IMut, IMutLike, Rc, RcLike, Weak, WeakLike},
+		world,
 		Effect,
+		ReactiveWorld,
 		WeakEffect,
-		World,
-		WorldDefault,
 	},
 	core::{
 		fmt,
 		hash::{Hash, Hasher},
 		ops::CoerceUnsized,
 	},
+	dynatos_world::{IMut, IMutLike, Rc, RcLike, Weak, WeakLike, WorldDefault},
 	std::collections::{hash_map, HashMap},
 };
 #[cfg(debug_assertions)]
@@ -28,7 +28,7 @@ use {
 
 /// World for [`Trigger`]
 #[expect(private_bounds, reason = "We can't *not* leak some implementation details currently")]
-pub trait TriggerWorld = World + EffectWorld where IMut<HashMap<Subscriber<Self>, SubscriberInfo>, Self>: Sized;
+pub trait TriggerWorld = ReactiveWorld + EffectWorld where IMut<HashMap<Subscriber<Self>, SubscriberInfo>, Self>: Sized;
 
 /// Subscribers
 #[derive(Debug)]

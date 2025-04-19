@@ -2,23 +2,16 @@
 
 // Imports
 use {
-	crate::{
-		trigger::TriggerWorld,
-		world::{IMut, IMutLike, IMutRef, IMutRefMut, IMutRefMutLike, Rc, RcLike},
-		SignalBorrow,
-		SignalWith,
-		Trigger,
-		World,
-		WorldDefault,
-	},
+	crate::{trigger::TriggerWorld, ReactiveWorld, SignalBorrow, SignalWith, Trigger},
 	core::{fmt, future::Future, ops::Deref},
+	dynatos_world::{IMut, IMutLike, IMutRef, IMutRefMut, IMutRefMutLike, Rc, RcLike, WorldDefault},
 	futures::stream::AbortHandle,
 	tokio::sync::Notify,
 };
 
 /// World for [`AsyncSignal`]
 #[expect(private_bounds, reason = "We can't *not* leak some implementation details currently")]
-pub trait AsyncSignalWorld<F: Loader> = World + TriggerWorld where IMut<Inner<F, Self>, Self>: Sized;
+pub trait AsyncSignalWorld<F: Loader> = ReactiveWorld + TriggerWorld where IMut<Inner<F, Self>, Self>: Sized;
 
 /// Inner
 struct Inner<F: Loader, W: AsyncSignalWorld<F>> {

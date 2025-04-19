@@ -2,13 +2,13 @@
 
 // Imports
 use {
-	super::{IMut, IMutLike, World, WorldGlobal, WorldThreadLocal},
-	crate::{effect::EffectWorld, WeakEffect},
+	crate::{effect::EffectWorld, ReactiveWorld, WeakEffect},
 	core::marker::Unsize,
+	dynatos_world::{IMut, IMutLike, WorldGlobal, WorldThreadLocal},
 };
 
 /// Effect stack
-pub trait EffectStack<W: World>: Sized {
+pub trait EffectStack<W: ReactiveWorld>: Sized {
 	/// Effect function
 	type F: ?Sized + Fn() + Unsize<Self::F> + 'static;
 

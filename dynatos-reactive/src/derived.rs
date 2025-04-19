@@ -33,25 +33,17 @@
 
 // Imports
 use {
-	crate::{
-		trigger::TriggerWorld,
-		world::{IMut, IMutLike, IMutRef, UnsizeF},
-		Effect,
-		SignalBorrow,
-		SignalWith,
-		Trigger,
-		World,
-		WorldDefault,
-	},
+	crate::{trigger::TriggerWorld, world::UnsizeF, Effect, ReactiveWorld, SignalBorrow, SignalWith, Trigger},
 	core::{
 		fmt,
 		marker::{PhantomData, Unsize},
 		ops::{CoerceUnsized, Deref},
 	},
+	dynatos_world::{IMut, IMutLike, IMutRef, WorldDefault},
 };
 
 /// World for [`Derived`]
-pub trait DerivedWorld<T, F: ?Sized> = World + TriggerWorld where IMut<Option<T>, Self>: Sized;
+pub trait DerivedWorld<T, F: ?Sized> = ReactiveWorld + TriggerWorld where IMut<Option<T>, Self>: Sized;
 
 /// Derived signal.
 ///

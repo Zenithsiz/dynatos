@@ -6,7 +6,8 @@
 // Imports
 use {
 	dynatos_egui::EguiEffect,
-	dynatos_reactive::{Signal, SignalGet, SignalSet, SignalUpdate, WorldGlobal},
+	dynatos_reactive::{Signal, SignalGet, SignalSet, SignalUpdate},
+	dynatos_world::WorldGlobal,
 	eframe::egui,
 	std::time::Duration,
 	zutil_cloned::cloned,

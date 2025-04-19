@@ -23,23 +23,18 @@ pub use ops::{
 
 // Imports
 use {
-	crate::{
-		trigger::TriggerWorld,
-		world::{IMut, IMutLike, IMutRef, IMutRefMut, Rc, RcLike},
-		Trigger,
-		World,
-		WorldDefault,
-	},
+	crate::{trigger::TriggerWorld, ReactiveWorld, Trigger},
 	core::{
 		fmt,
 		marker::Unsize,
 		mem,
 		ops::{CoerceUnsized, Deref, DerefMut},
 	},
+	dynatos_world::{IMut, IMutLike, IMutRef, IMutRefMut, Rc, RcLike, WorldDefault},
 };
 
 /// World for [`Signal`]
-pub trait SignalWorld = World + TriggerWorld;
+pub trait SignalWorld = ReactiveWorld + TriggerWorld;
 
 /// Inner
 struct Inner<T: ?Sized, W: SignalWorld> {

@@ -48,5 +48,5 @@ pub use self::{
 	},
 	trigger::{IntoSubscriber, Subscriber, Trigger, WeakTrigger},
 	with_default::{SignalWithDefault, WithDefault},
-	world::{World, WorldDefault, WorldGlobal, WorldThreadLocal},
+	world::ReactiveWorld,
 };

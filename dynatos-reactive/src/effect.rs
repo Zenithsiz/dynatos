@@ -11,9 +11,8 @@
 use core::panic::Location;
 use {
 	crate::{
-		world::{self, Rc, RcLike, UnsizeF, Weak, WeakLike},
-		World,
-		WorldDefault,
+		world::{self, UnsizeF},
+		ReactiveWorld,
 	},
 	core::{
 		fmt,
@@ -22,11 +21,13 @@ use {
 		ops::CoerceUnsized,
 		sync::atomic::{self, AtomicBool},
 	},
+	dynatos_world::{Rc, RcLike, Weak, WeakLike, WorldDefault},
 };
 
 /// World for [`Effect`]
 #[expect(private_bounds, reason = "We can't *not* leak some implementation details currently")]
-pub trait EffectWorld = World where Weak<Inner<world::F<Self>>, Self>: CoerceUnsized<Weak<Inner<world::F<Self>>, Self>>;
+pub trait EffectWorld =
+	ReactiveWorld where Weak<Inner<world::F<Self>>, Self>: CoerceUnsized<Weak<Inner<world::F<Self>>, Self>>;
 
 /// Effect inner
 struct Inner<F: ?Sized> {
