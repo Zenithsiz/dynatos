@@ -29,8 +29,7 @@ pub struct Handle<T: 'static, W: ContextWorld = WorldDefault> {
 	value_idx: usize,
 
 	/// Phantom
-	// TODO: Variance?
-	_phantom: PhantomData<(T, world::HandleBounds<W>)>,
+	_phantom: PhantomData<world::HandleBounds<T, W>>,
 }
 
 impl<T: 'static, W: ContextWorld> Handle<T, W> {
@@ -62,7 +61,7 @@ impl<T: 'static, W: ContextWorld> Handle<T, W> {
 	where
 		F: FnOnce(&T) -> O,
 	{
-		W::ContextStack::with::<T, _, O>(|stack| {
+		W::ContextStack::<T>::with::<_, O>(|stack| {
 			let value = stack
 				.expect("Context stack should exist")
 				.get(self.value_idx)
@@ -87,7 +86,7 @@ impl<T: 'static, W: ContextWorld> Handle<T, W> {
 
 	/// Inner method for [`take`](Self::take), and the [`Drop`] impl.
 	fn take_inner(&self) -> T {
-		W::ContextStack::with_mut::<T, _, T>(|stack| {
+		W::ContextStack::<T>::with_mut::<_, T>(|stack| {
 			// Get the value
 			let value = stack
 				.get_mut(self.value_idx)
@@ -124,7 +123,7 @@ pub struct OpaqueHandle<W: ContextWorld = WorldDefault> {
 	type_id: TypeId,
 
 	/// Phantom
-	_phantom: PhantomData<world::HandleBounds<W>>,
+	_phantom: PhantomData<world::HandleBounds<dyn Any, W>>,
 }
 
 impl<W: ContextWorld> OpaqueHandle<W> {
@@ -133,7 +132,7 @@ impl<W: ContextWorld> OpaqueHandle<W> {
 	where
 		F: FnOnce(&dyn Any) -> O,
 	{
-		W::ContextStack::with_opaque(self.type_id, |stack| {
+		W::ContextStack::<dyn Any>::with_opaque(self.type_id, |stack| {
 			let value = stack
 				.expect("Context stack should exist")
 				.get(self.value_idx)
@@ -157,7 +156,7 @@ impl<W: ContextWorld> OpaqueHandle<W> {
 
 	/// Inner method for [`take`](Self::take), and the [`Drop`] impl.
 	fn take_inner(&self) -> Box<dyn Any> {
-		W::ContextStack::with_mut_opaque(self.type_id, |stack| {
+		W::ContextStack::<dyn Any>::with_mut_opaque(self.type_id, |stack| {
 			// Get the value
 			let value = stack
 				.get_mut(self.value_idx)
@@ -189,13 +188,13 @@ pub fn provide<T>(value: T) -> Handle<T> {
 /// Provides a value of `T` to the current context in world `W`.
 pub fn provide_in<T, W>(value: T) -> Handle<T, W>
 where
-	T: Unsize<world::Any<W>>,
+	T: Unsize<world::Any<T, W>>,
 	W: ContextWorld,
 {
 	// Push the value onto the stack
-	W::ContextStack::with_mut::<T, _, _>(|stack| {
+	W::ContextStack::<T>::with_mut::<_, _>(|stack| {
 		let value_idx = stack.len();
-		stack.push(Some(W::ContextStack::box_any(value)));
+		stack.push(Some(W::ContextStack::<T>::box_any(value)));
 
 		Handle {
 			value_idx,
@@ -217,7 +216,7 @@ where
 #[must_use]
 pub fn get_in<T, W>() -> Option<T>
 where
-	T: Copy + Unsize<world::Any<W>> + 'static,
+	T: Copy + Unsize<world::Any<T, W>> + 'static,
 	W: ContextWorld,
 {
 	self::with_in::<T, _, _, W>(|value| value.copied())
@@ -238,7 +237,7 @@ where
 #[track_caller]
 pub fn expect_in<T, W>() -> T
 where
-	T: Copy + Unsize<world::Any<W>> + 'static,
+	T: Copy + Unsize<world::Any<T, W>> + 'static,
 	W: ContextWorld,
 {
 	self::with_in::<T, _, _, W>(|value| *value.unwrap_or_else(self::on_missing_context::<T, _>))
@@ -257,7 +256,7 @@ where
 #[must_use]
 pub fn get_cloned_in<T, W>() -> Option<T>
 where
-	T: Clone + Unsize<world::Any<W>> + 'static,
+	T: Clone + Unsize<world::Any<T, W>> + 'static,
 	W: ContextWorld,
 {
 	self::with_in::<T, _, _, W>(|value| value.cloned())
@@ -278,7 +277,7 @@ where
 #[track_caller]
 pub fn expect_cloned_in<T, W>() -> T
 where
-	T: Clone + Unsize<world::Any<W>> + 'static,
+	T: Clone + Unsize<world::Any<T, W>> + 'static,
 	W: ContextWorld,
 {
 	self::with_in::<T, _, _, W>(|value| value.unwrap_or_else(self::on_missing_context::<T, _>).clone())
@@ -296,11 +295,11 @@ where
 /// Uses a value of `T` on the current context in world `W`.
 pub fn with_in<T, F, O, W>(f: F) -> O
 where
-	T: Unsize<world::Any<W>> + 'static,
+	T: Unsize<world::Any<T, W>> + 'static,
 	F: FnOnce(Option<&T>) -> O,
 	W: ContextWorld,
 {
-	W::ContextStack::with::<T, _, _>(|stack| {
+	W::ContextStack::<T>::with::<_, _>(|stack| {
 		let value = try {
 			let value = stack?.last()?.as_ref().expect("Value was taken");
 			(&**value as &dyn Any)
@@ -315,7 +314,7 @@ where
 #[track_caller]
 pub fn with_expect<T, F, O>(f: F) -> O
 where
-	T: Unsize<world::Any<WorldDefault>> + 'static,
+	T: 'static,
 	F: FnOnce(&T) -> O,
 {
 	self::with_expect_in::<T, F, O, WorldDefault>(f)
@@ -325,7 +324,7 @@ where
 #[track_caller]
 pub fn with_expect_in<T, F, O, W>(f: F) -> O
 where
-	T: Unsize<world::Any<W>> + 'static,
+	T: Unsize<world::Any<T, W>> + 'static,
 	F: FnOnce(&T) -> O,
 	W: ContextWorld,
 {

@@ -18,18 +18,18 @@ use dynatos_world::{World, WorldGlobal, WorldThreadLocal};
 /// Context world
 pub trait ContextWorld: World {
 	/// Context stack
-	type ContextStack: ContextStack<Self>;
+	type ContextStack<T: ?Sized>: ContextStack<T, Self>;
 }
 
 impl ContextWorld for WorldThreadLocal {
-	type ContextStack = ContextStackThreadLocal;
+	type ContextStack<T: ?Sized> = ContextStackThreadLocal<T>;
 }
 impl ContextWorld for WorldGlobal {
-	type ContextStack = ContextStackGlobal;
+	type ContextStack<T: ?Sized> = ContextStackGlobal<T>;
 }
 
 /// Any type for the world's context stack
-pub type Any<W: ContextWorld> = <W::ContextStack as ContextStack<W>>::Any;
+pub type Any<T: ?Sized, W: ContextWorld> = <W::ContextStack<T> as ContextStack<T, W>>::Any;
 
 /// Handle bounds type for the world's context stack
-pub type HandleBounds<W: ContextWorld> = <W::ContextStack as ContextStack<W>>::HandleBounds;
+pub type HandleBounds<T: ?Sized, W: ContextWorld> = <W::ContextStack<T> as ContextStack<T, W>>::HandleBounds;

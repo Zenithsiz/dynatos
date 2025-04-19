@@ -6,14 +6,14 @@ use {
 	core::{
 		any::{Any, TypeId},
 		hash::BuildHasher,
-		marker::Unsize,
+		marker::{PhantomData, Unsize},
 	},
 	dynatos_world::{IMut, IMutLike, WorldGlobal, WorldThreadLocal},
 	std::{collections::HashMap, hash::DefaultHasher},
 };
 
 /// Context stack
-pub trait ContextStack<W: ContextWorld>: Sized {
+pub trait ContextStack<T: ?Sized, W: ContextWorld>: Sized {
 	/// Any type
 	type Any: ?Sized + Any + Unsize<dyn Any>;
 
@@ -21,12 +21,12 @@ pub trait ContextStack<W: ContextWorld>: Sized {
 	type HandleBounds;
 
 	/// Boxes a value int the any type
-	fn box_any<T>(value: T) -> Box<Self::Any>
+	fn box_any(value: T) -> Box<Self::Any>
 	where
-		T: Unsize<Self::Any>;
+		T: Sized + Unsize<Self::Any>;
 
 	/// Uses the context stack for `T`
-	fn with<T, F, O>(f: F) -> O
+	fn with<F, O>(f: F) -> O
 	where
 		T: 'static,
 		F: FnOnce(Option<&CtxStack<Self::Any>>) -> O,
@@ -41,7 +41,7 @@ pub trait ContextStack<W: ContextWorld>: Sized {
 		F: FnOnce(Option<&CtxStack<Self::Any>>) -> O;
 
 	/// Uses the context stack for `T` mutably
-	fn with_mut<T, F, O>(f: F) -> O
+	fn with_mut<F, O>(f: F) -> O
 	where
 		T: 'static,
 		F: FnOnce(&mut CtxStack<Self::Any>) -> O,
@@ -57,7 +57,7 @@ pub trait ContextStack<W: ContextWorld>: Sized {
 }
 
 /// Thread-local context stack
-pub struct ContextStackThreadLocal;
+pub struct ContextStackThreadLocal<T: ?Sized>(PhantomData<T>);
 
 /// Context stack for `ContextStackThreadLocal`
 // TODO: Use type with less indirections?
@@ -65,13 +65,13 @@ pub struct ContextStackThreadLocal;
 static CTXS_STACK_THREAD_LOCAL: CtxsStack<WorldThreadLocal, dyn Any> =
 	IMut::<_, WorldThreadLocal>::new(HashMap::with_hasher(RandomState));
 
-impl ContextStack<WorldThreadLocal> for ContextStackThreadLocal {
+impl<T: ?Sized> ContextStack<T, WorldThreadLocal> for ContextStackThreadLocal<T> {
 	type Any = dyn Any;
 	type HandleBounds = *mut u8;
 
-	fn box_any<T>(value: T) -> Box<Self::Any>
+	fn box_any(value: T) -> Box<Self::Any>
 	where
-		T: Unsize<Self::Any>,
+		T: Sized + Unsize<Self::Any>,
 	{
 		Box::new(value)
 	}
@@ -100,7 +100,7 @@ impl ContextStack<WorldThreadLocal> for ContextStackThreadLocal {
 }
 
 /// Global context stack
-pub struct ContextStackGlobal;
+pub struct ContextStackGlobal<T: ?Sized>(PhantomData<T>);
 
 /// Context stack for `ContextStackGlobal`
 // TODO: Use type with less indirections?
@@ -108,13 +108,13 @@ static CTXS_STACK_GLOBAL: CtxsStack<WorldGlobal, dyn Any + Send + Sync> =
 	IMut::<_, WorldGlobal>::new(HashMap::with_hasher(RandomState));
 
 #[expect(clippy::significant_drop_tightening, reason = "False positive")]
-impl ContextStack<WorldGlobal> for ContextStackGlobal {
+impl<T: ?Sized> ContextStack<T, WorldGlobal> for ContextStackGlobal<T> {
 	type Any = dyn Any + Send + Sync;
 	type HandleBounds = ();
 
-	fn box_any<T>(value: T) -> Box<Self::Any>
+	fn box_any(value: T) -> Box<Self::Any>
 	where
-		T: Unsize<Self::Any>,
+		T: Sized + Unsize<Self::Any>,
 	{
 		Box::new(value)
 	}
