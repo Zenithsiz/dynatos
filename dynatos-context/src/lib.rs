@@ -1,104 +1,47 @@
 //! Context passing for `dynatos`
 
 // Features
-#![feature(try_blocks, thread_local, test, negative_impls, decl_macro)]
+#![feature(try_blocks, thread_local, test, negative_impls, decl_macro, unsize)]
+
+// Modules
+pub mod world;
+
+// Exports
+pub use self::world::ContextWorld;
 
 // Imports
 use {
+	self::world::ContextStack,
 	core::{
 		any::{self, Any, TypeId},
-		cell::RefCell,
-		hash::BuildHasher,
-		marker::PhantomData,
+		marker::{PhantomData, Unsize},
 		mem,
 	},
-	std::{collections::HashMap, hash::DefaultHasher},
+	dynatos_world::WorldDefault,
 };
-
-type CtxsStack = RefCell<HashMap<TypeId, CtxStack, RandomState>>;
-type CtxStack = Vec<Option<Box<dyn Any>>>;
-
-/// Hash builder for `CTXS_STACK`
-struct RandomState;
-
-impl BuildHasher for RandomState {
-	type Hasher = DefaultHasher;
-
-	fn build_hasher(&self) -> Self::Hasher {
-		DefaultHasher::default()
-	}
-}
-
-/// Context stack
-// TODO: Use type with less indirections?
-#[thread_local]
-static CTXS_STACK: CtxsStack = RefCell::new(HashMap::with_hasher(RandomState));
-
-/// Uses the context stack for `T`
-fn with_ctx_stack<T, F, O>(f: F) -> O
-where
-	T: 'static,
-	F: FnOnce(Option<&CtxStack>) -> O,
-{
-	let type_id = TypeId::of::<T>();
-	self::with_ctx_stack_opaque(type_id, f)
-}
-
-/// Uses the context stack for `T` with a type id
-fn with_ctx_stack_opaque<F, O>(type_id: TypeId, f: F) -> O
-where
-	F: FnOnce(Option<&CtxStack>) -> O,
-{
-	let ctxs = CTXS_STACK
-		.try_borrow()
-		.expect("Cannot access context while modifying it");
-	let stack = ctxs.get(&type_id);
-	f(stack)
-}
-
-/// Uses the context stack for `T` mutably
-fn with_ctx_stack_mut<T, F, O>(f: F) -> O
-where
-	T: 'static,
-	F: FnOnce(&mut CtxStack) -> O,
-{
-	let type_id = TypeId::of::<T>();
-	self::with_ctx_stack_mut_opaque(type_id, f)
-}
-
-/// Uses the context stack for `T` mutably with a type id
-fn with_ctx_stack_mut_opaque<F, O>(type_id: TypeId, f: F) -> O
-where
-	F: FnOnce(&mut CtxStack) -> O,
-{
-	let mut ctxs = CTXS_STACK
-		.try_borrow_mut()
-		.expect("Cannot modify context while accessing it");
-	let stack = ctxs.entry(type_id).or_default();
-	f(stack)
-}
 
 /// A handle to a context value.
 ///
 /// When dropped, the context value is also dropped.
 #[must_use = "The handle object keeps a value in context. If dropped, the context is also dropped"]
-pub struct Handle<T: 'static> {
+pub struct Handle<T: 'static, W: ContextWorld = WorldDefault> {
 	/// Index
 	value_idx: usize,
 
 	/// Phantom
 	// TODO: Variance?
-	_phantom: PhantomData<T>,
+	_phantom: PhantomData<(T, world::HandleBounds<W>)>,
 }
 
-impl<T: 'static> Handle<T> {
+impl<T: 'static, W: ContextWorld> Handle<T, W> {
 	/// Converts this handle to an opaque handle
-	pub fn into_opaque(self) -> OpaqueHandle {
+	pub fn into_opaque(self) -> OpaqueHandle<W> {
 		// Create the opaque handle and forget ourselves
 		// Note: This is to ensure we don't try to take the value in the [`Drop`] impl
 		let handle = OpaqueHandle {
 			value_idx: self.value_idx,
 			type_id:   TypeId::of::<T>(),
+			_phantom:  PhantomData,
 		};
 		mem::forget(self);
 
@@ -119,15 +62,14 @@ impl<T: 'static> Handle<T> {
 	where
 		F: FnOnce(&T) -> O,
 	{
-		self::with_ctx_stack::<T, _, O>(|stack| {
+		W::ContextStack::with::<T, _, O>(|stack| {
 			let value = stack
 				.expect("Context stack should exist")
 				.get(self.value_idx)
 				.expect("Value was already taken")
 				.as_ref()
-				.expect("Value was already taken")
-				.downcast_ref()
-				.expect("Value was the wrong type");
+				.expect("Value was already taken");
+			let value = (&**value as &dyn Any).downcast_ref().expect("Value was the wrong type");
 			f(value)
 		})
 	}
@@ -145,14 +87,13 @@ impl<T: 'static> Handle<T> {
 
 	/// Inner method for [`take`](Self::take), and the [`Drop`] impl.
 	fn take_inner(&self) -> T {
-		self::with_ctx_stack_mut::<T, _, T>(|stack| {
+		W::ContextStack::with_mut::<T, _, T>(|stack| {
 			// Get the value
 			let value = stack
 				.get_mut(self.value_idx)
 				.and_then(Option::take)
-				.expect("Value was already taken")
-				.downcast()
-				.expect("Value was the wrong type");
+				.expect("Value was already taken");
+			let value = (value as Box<dyn Any>).downcast().expect("Value was the wrong type");
 
 			// Then remove any empty entries from the end
 			while stack.last().is_some_and(|value| value.is_none()) {
@@ -164,10 +105,7 @@ impl<T: 'static> Handle<T> {
 	}
 }
 
-impl<T> !Send for Handle<T> {}
-impl<T> !Sync for Handle<T> {}
-
-impl<T: 'static> Drop for Handle<T> {
+impl<T: 'static, W: ContextWorld> Drop for Handle<T, W> {
 	#[track_caller]
 	fn drop(&mut self) {
 		let _: T = self.take_inner();
@@ -178,21 +116,24 @@ impl<T: 'static> Drop for Handle<T> {
 ///
 /// When dropped, the context value is also dropped.
 #[must_use = "The handle object keeps a value in context. If dropped, the context is also dropped"]
-pub struct OpaqueHandle {
+pub struct OpaqueHandle<W: ContextWorld = WorldDefault> {
 	/// Index
 	value_idx: usize,
 
 	/// Type id
 	type_id: TypeId,
+
+	/// Phantom
+	_phantom: PhantomData<world::HandleBounds<W>>,
 }
 
-impl OpaqueHandle {
+impl<W: ContextWorld> OpaqueHandle<W> {
 	/// Uses the value from this handle
 	pub fn with<F, O>(&self, f: F) -> O
 	where
 		F: FnOnce(&dyn Any) -> O,
 	{
-		self::with_ctx_stack_opaque(self.type_id, |stack| {
+		W::ContextStack::with_opaque(self.type_id, |stack| {
 			let value = stack
 				.expect("Context stack should exist")
 				.get(self.value_idx)
@@ -216,7 +157,7 @@ impl OpaqueHandle {
 
 	/// Inner method for [`take`](Self::take), and the [`Drop`] impl.
 	fn take_inner(&self) -> Box<dyn Any> {
-		self::with_ctx_stack_mut_opaque(self.type_id, |stack| {
+		W::ContextStack::with_mut_opaque(self.type_id, |stack| {
 			// Get the value
 			let value = stack
 				.get_mut(self.value_idx)
@@ -233,7 +174,7 @@ impl OpaqueHandle {
 	}
 }
 
-impl Drop for OpaqueHandle {
+impl<W: ContextWorld> Drop for OpaqueHandle<W> {
 	#[track_caller]
 	fn drop(&mut self) {
 		let _: Box<dyn Any> = self.take_inner();
@@ -241,14 +182,20 @@ impl Drop for OpaqueHandle {
 }
 
 /// Provides a value of `T` to the current context.
-pub fn provide<T>(value: T) -> Handle<T>
+pub fn provide<T>(value: T) -> Handle<T> {
+	self::provide_in::<T, WorldDefault>(value)
+}
+
+/// Provides a value of `T` to the current context in world `W`.
+pub fn provide_in<T, W>(value: T) -> Handle<T, W>
 where
-	T: Any,
+	T: Unsize<world::Any<W>>,
+	W: ContextWorld,
 {
 	// Push the value onto the stack
-	self::with_ctx_stack_mut::<T, _, _>(|stack| {
+	W::ContextStack::with_mut::<T, _, _>(|stack| {
 		let value_idx = stack.len();
-		stack.push(Some(Box::new(value)));
+		stack.push(Some(W::ContextStack::box_any(value)));
 
 		Handle {
 			value_idx,
@@ -263,7 +210,17 @@ pub fn get<T>() -> Option<T>
 where
 	T: Copy + 'static,
 {
-	self::with::<T, _, _>(|value| value.copied())
+	self::get_in::<T, WorldDefault>()
+}
+
+/// Gets a value of `T` on the current context in world `W`.
+#[must_use]
+pub fn get_in<T, W>() -> Option<T>
+where
+	T: Copy + Unsize<world::Any<W>> + 'static,
+	W: ContextWorld,
+{
+	self::with_in::<T, _, _, W>(|value| value.copied())
 }
 
 /// Expects a value of `T` on the current context.
@@ -273,7 +230,18 @@ pub fn expect<T>() -> T
 where
 	T: Copy + 'static,
 {
-	self::with::<T, _, _>(|value| *value.unwrap_or_else(self::on_missing_context::<T, _>))
+	self::expect_in::<T, WorldDefault>()
+}
+
+/// Expects a value of `T` on the current context in world `W`.
+#[must_use]
+#[track_caller]
+pub fn expect_in<T, W>() -> T
+where
+	T: Copy + Unsize<world::Any<W>> + 'static,
+	W: ContextWorld,
+{
+	self::with_in::<T, _, _, W>(|value| *value.unwrap_or_else(self::on_missing_context::<T, _>))
 }
 
 /// Gets a cloned value of `T` on the current context.
@@ -282,7 +250,17 @@ pub fn get_cloned<T>() -> Option<T>
 where
 	T: Clone + 'static,
 {
-	self::with::<T, _, _>(|value| value.cloned())
+	self::get_cloned_in::<T, WorldDefault>()
+}
+
+/// Gets a cloned value of `T` on the current context.
+#[must_use]
+pub fn get_cloned_in<T, W>() -> Option<T>
+where
+	T: Clone + Unsize<world::Any<W>> + 'static,
+	W: ContextWorld,
+{
+	self::with_in::<T, _, _, W>(|value| value.cloned())
 }
 
 /// Expects a cloned value of `T` on the current context.
@@ -292,7 +270,18 @@ pub fn expect_cloned<T>() -> T
 where
 	T: Clone + 'static,
 {
-	self::with::<T, _, _>(|value| value.unwrap_or_else(self::on_missing_context::<T, _>).clone())
+	self::expect_cloned_in::<T, WorldDefault>()
+}
+
+/// Expects a cloned value of `T` on the current context in world `W`.
+#[must_use]
+#[track_caller]
+pub fn expect_cloned_in<T, W>() -> T
+where
+	T: Clone + Unsize<world::Any<W>> + 'static,
+	W: ContextWorld,
+{
+	self::with_in::<T, _, _, W>(|value| value.unwrap_or_else(self::on_missing_context::<T, _>).clone())
 }
 
 /// Uses a value of `T` on the current context.
@@ -301,12 +290,20 @@ where
 	T: 'static,
 	F: FnOnce(Option<&T>) -> O,
 {
-	self::with_ctx_stack::<T, _, _>(|stack| {
+	self::with_in::<T, F, O, WorldDefault>(f)
+}
+
+/// Uses a value of `T` on the current context in world `W`.
+pub fn with_in<T, F, O, W>(f: F) -> O
+where
+	T: Unsize<world::Any<W>> + 'static,
+	F: FnOnce(Option<&T>) -> O,
+	W: ContextWorld,
+{
+	W::ContextStack::with::<T, _, _>(|stack| {
 		let value = try {
-			stack?
-				.last()?
-				.as_ref()
-				.expect("Value was taken")
+			let value = stack?.last()?.as_ref().expect("Value was taken");
+			(&**value as &dyn Any)
 				.downcast_ref::<T>()
 				.expect("Value was the wrong type")
 		};
@@ -318,10 +315,21 @@ where
 #[track_caller]
 pub fn with_expect<T, F, O>(f: F) -> O
 where
-	T: 'static,
+	T: Unsize<world::Any<WorldDefault>> + 'static,
 	F: FnOnce(&T) -> O,
 {
-	self::with(|value| value.map(f)).unwrap_or_else(self::on_missing_context::<T, _>)
+	self::with_expect_in::<T, F, O, WorldDefault>(f)
+}
+
+/// Uses a value of `T` on the current context, expecting it in world `W`.
+#[track_caller]
+pub fn with_expect_in<T, F, O, W>(f: F) -> O
+where
+	T: Unsize<world::Any<W>> + 'static,
+	F: FnOnce(&T) -> O,
+	W: ContextWorld,
+{
+	self::with_in::<T, _, _, W>(|value| value.map(f)).unwrap_or_else(self::on_missing_context::<T, _>)
 }
 
 /// Called when context for type `T` was missing.

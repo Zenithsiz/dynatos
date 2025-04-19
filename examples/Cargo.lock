@@ -182,6 +182,9 @@ dependencies = [
 [[package]]
 name = "dynatos-context"
 version = "0.1.0"
+dependencies = [
+ "dynatos-world",
+]
 
 [[package]]
 name = "dynatos-html"
