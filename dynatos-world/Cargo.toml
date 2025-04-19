@@ -5,7 +5,7 @@ edition = "2021"
 
 [dependencies]
 
-derive_more = { workspace = true }
+derive_more = { workspace = true, features = ["full"] }
 parking_lot = { workspace = true }
 
 [lints]
