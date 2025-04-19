@@ -394,6 +394,18 @@ mod test {
 	}
 
 	#[test]
+	fn opaque() {
+		let handle1 = crate::provide::<i32>(5).into_opaque();
+		let handle2 = crate::provide::<i32>(4).into_opaque();
+
+		assert_eq!(crate::get::<i32>(), Some(4));
+		assert_eq!(*handle2.take().downcast::<i32>().expect("Handle had wrong type"), 4);
+		assert_eq!(crate::get::<i32>(), Some(5));
+		assert_eq!(*handle1.take().downcast::<i32>().expect("Handle had wrong type"), 5);
+		assert_eq!(crate::get::<i32>(), None);
+	}
+
+	#[test]
 	fn stress() {
 		let handles_len = 100;
 		let mut handles = (0..handles_len).map(crate::provide::<i32>).collect::<Vec<_>>();
