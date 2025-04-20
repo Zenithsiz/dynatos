@@ -24,12 +24,17 @@ pub trait ContextWorld: World {
 impl ContextWorld for WorldThreadLocal {
 	type ContextStack<T: ?Sized> = ContextStackThreadLocal<T>;
 }
+
 impl ContextWorld for WorldGlobal {
 	type ContextStack<T: ?Sized> = ContextStackGlobal<T>;
 }
 
+/// Handle type for the world's context stack
+pub type Handle<T: ?Sized, W: ContextWorld> = <W::ContextStack<T> as ContextStack<T, W>>::Handle;
+
+/// Opaque handle type for the world's context stack
+pub type OpaqueHandle<W: ContextWorld> =
+	<W::ContextStack<dyn core::any::Any> as ContextStack<dyn core::any::Any, W>>::OpaqueHandle;
+
 /// Any type for the world's context stack
 pub type Any<T: ?Sized, W: ContextWorld> = <W::ContextStack<T> as ContextStack<T, W>>::Any;
-
-/// Handle bounds type for the world's context stack
-pub type HandleBounds<T: ?Sized, W: ContextWorld> = <W::ContextStack<T> as ContextStack<T, W>>::HandleBounds;

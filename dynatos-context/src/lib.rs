@@ -14,7 +14,7 @@ use {
 	self::world::ContextStack,
 	core::{
 		any::{self, Any, TypeId},
-		marker::{PhantomData, Unsize},
+		marker::Unsize,
 		mem,
 	},
 	dynatos_world::WorldDefault,
@@ -25,11 +25,8 @@ use {
 /// When dropped, the context value is also dropped.
 #[must_use = "The handle object keeps a value in context. If dropped, the context is also dropped"]
 pub struct Handle<T: 'static, W: ContextWorld = WorldDefault> {
-	/// Index
-	value_idx: usize,
-
-	/// Phantom
-	_phantom: PhantomData<world::HandleBounds<T, W>>,
+	/// Handle
+	handle: world::Handle<T, W>,
 }
 
 impl<T: 'static, W: ContextWorld> Handle<T, W> {
@@ -38,9 +35,8 @@ impl<T: 'static, W: ContextWorld> Handle<T, W> {
 		// Create the opaque handle and forget ourselves
 		// Note: This is to ensure we don't try to take the value in the [`Drop`] impl
 		let handle = OpaqueHandle {
-			value_idx: self.value_idx,
-			type_id:   TypeId::of::<T>(),
-			_phantom:  PhantomData,
+			handle:  W::ContextStack::to_opaque(self.handle),
+			type_id: TypeId::of::<T>(),
 		};
 		mem::forget(self);
 
@@ -61,16 +57,7 @@ impl<T: 'static, W: ContextWorld> Handle<T, W> {
 	where
 		F: FnOnce(&T) -> O,
 	{
-		W::ContextStack::<T>::with::<_, O>(|stack| {
-			let value = stack
-				.expect("Context stack should exist")
-				.get(self.value_idx)
-				.expect("Value was already taken")
-				.as_ref()
-				.expect("Value was already taken");
-			let value = (&**value as &dyn Any).downcast_ref().expect("Value was the wrong type");
-			f(value)
-		})
+		W::ContextStack::<T>::with::<_, O>(self.handle, f)
 	}
 
 	/// Takes the value this handle is providing a context for.
@@ -86,21 +73,7 @@ impl<T: 'static, W: ContextWorld> Handle<T, W> {
 
 	/// Inner method for [`take`](Self::take), and the [`Drop`] impl.
 	fn take_inner(&self) -> T {
-		W::ContextStack::<T>::with_mut::<_, T>(|stack| {
-			// Get the value
-			let value = stack
-				.get_mut(self.value_idx)
-				.and_then(Option::take)
-				.expect("Value was already taken");
-			let value = (value as Box<dyn Any>).downcast().expect("Value was the wrong type");
-
-			// Then remove any empty entries from the end
-			while stack.last().is_some_and(|value| value.is_none()) {
-				stack.pop().expect("Should have a value at the end");
-			}
-
-			*value
-		})
+		W::ContextStack::<T>::take(self.handle)
 	}
 }
 
@@ -116,31 +89,20 @@ impl<T: 'static, W: ContextWorld> Drop for Handle<T, W> {
 /// When dropped, the context value is also dropped.
 #[must_use = "The handle object keeps a value in context. If dropped, the context is also dropped"]
 pub struct OpaqueHandle<W: ContextWorld = WorldDefault> {
-	/// Index
-	value_idx: usize,
+	/// Handle
+	handle: world::OpaqueHandle<W>,
 
 	/// Type id
 	type_id: TypeId,
-
-	/// Phantom
-	_phantom: PhantomData<world::HandleBounds<dyn Any, W>>,
 }
 
 impl<W: ContextWorld> OpaqueHandle<W> {
 	/// Uses the value from this handle
 	pub fn with<F, O>(&self, f: F) -> O
 	where
-		F: FnOnce(&dyn Any) -> O,
+		F: FnOnce(&world::Any<dyn Any, W>) -> O,
 	{
-		W::ContextStack::<dyn Any>::with_opaque(self.type_id, |stack| {
-			let value = stack
-				.expect("Context stack should exist")
-				.get(self.value_idx)
-				.expect("Value was already taken")
-				.as_ref()
-				.expect("Value was already taken");
-			f(value)
-		})
+		W::ContextStack::<dyn Any>::with_opaque(self.type_id, self.handle, f)
 	}
 
 	/// Takes the value this handle is providing a context for.
@@ -156,20 +118,7 @@ impl<W: ContextWorld> OpaqueHandle<W> {
 
 	/// Inner method for [`take`](Self::take), and the [`Drop`] impl.
 	fn take_inner(&self) -> Box<dyn Any> {
-		W::ContextStack::<dyn Any>::with_mut_opaque(self.type_id, |stack| {
-			// Get the value
-			let value = stack
-				.get_mut(self.value_idx)
-				.and_then(Option::take)
-				.expect("Value was already taken");
-
-			// Then remove any empty entries from the end
-			while stack.last().is_some_and(|value| value.is_none()) {
-				stack.pop().expect("Should have a value at the end");
-			}
-
-			value
-		})
+		W::ContextStack::<dyn Any>::take_opaque(self.type_id, self.handle)
 	}
 }
 
@@ -192,15 +141,9 @@ where
 	W: ContextWorld,
 {
 	// Push the value onto the stack
-	W::ContextStack::<T>::with_mut::<_, _>(|stack| {
-		let value_idx = stack.len();
-		stack.push(Some(W::ContextStack::<T>::box_any(value)));
+	let handle = W::ContextStack::<T>::push(value);
 
-		Handle {
-			value_idx,
-			_phantom: PhantomData,
-		}
-	})
+	Handle { handle }
 }
 
 /// Gets a value of `T` on the current context.
@@ -216,7 +159,7 @@ where
 #[must_use]
 pub fn get_in<T, W>() -> Option<T>
 where
-	T: Copy + Unsize<world::Any<T, W>> + 'static,
+	T: Copy + 'static,
 	W: ContextWorld,
 {
 	self::with_in::<T, _, _, W>(|value| value.copied())
@@ -237,7 +180,7 @@ where
 #[track_caller]
 pub fn expect_in<T, W>() -> T
 where
-	T: Copy + Unsize<world::Any<T, W>> + 'static,
+	T: Copy + 'static,
 	W: ContextWorld,
 {
 	self::with_in::<T, _, _, W>(|value| *value.unwrap_or_else(self::on_missing_context::<T, _>))
@@ -256,7 +199,7 @@ where
 #[must_use]
 pub fn get_cloned_in<T, W>() -> Option<T>
 where
-	T: Clone + Unsize<world::Any<T, W>> + 'static,
+	T: Clone + 'static,
 	W: ContextWorld,
 {
 	self::with_in::<T, _, _, W>(|value| value.cloned())
@@ -277,7 +220,7 @@ where
 #[track_caller]
 pub fn expect_cloned_in<T, W>() -> T
 where
-	T: Clone + Unsize<world::Any<T, W>> + 'static,
+	T: Clone + 'static,
 	W: ContextWorld,
 {
 	self::with_in::<T, _, _, W>(|value| value.unwrap_or_else(self::on_missing_context::<T, _>).clone())
@@ -295,19 +238,11 @@ where
 /// Uses a value of `T` on the current context in world `W`.
 pub fn with_in<T, F, O, W>(f: F) -> O
 where
-	T: Unsize<world::Any<T, W>> + 'static,
+	T: 'static,
 	F: FnOnce(Option<&T>) -> O,
 	W: ContextWorld,
 {
-	W::ContextStack::<T>::with::<_, _>(|stack| {
-		let value = try {
-			let value = stack?.last()?.as_ref().expect("Value was taken");
-			(&**value as &dyn Any)
-				.downcast_ref::<T>()
-				.expect("Value was the wrong type")
-		};
-		f(value)
-	})
+	W::ContextStack::<T>::with_top(f)
 }
 
 /// Uses a value of `T` on the current context, expecting it.
@@ -324,7 +259,7 @@ where
 #[track_caller]
 pub fn with_expect_in<T, F, O, W>(f: F) -> O
 where
-	T: Unsize<world::Any<T, W>> + 'static,
+	T: 'static,
 	F: FnOnce(&T) -> O,
 	W: ContextWorld,
 {
