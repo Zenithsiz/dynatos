@@ -12,11 +12,7 @@ pub use self::world::ContextWorld;
 // Imports
 use {
 	self::world::{ContextStack, ContextStackOpaque},
-	core::{
-		any::{self, Any, TypeId},
-		marker::Unsize,
-		mem,
-	},
+	core::{any, marker::Unsize, mem},
 	dynatos_world::WorldDefault,
 };
 
@@ -38,8 +34,7 @@ impl<T: 'static, W: ContextWorld> Handle<T, W> {
 		// Create the opaque handle and forget ourselves
 		// Note: This is to ensure we don't try to take the value in the [`Drop`] impl
 		let handle = OpaqueHandle {
-			handle:  W::ContextStack::<T>::to_opaque(self.handle),
-			type_id: TypeId::of::<T>(),
+			handle: W::ContextStack::<T>::to_opaque(self.handle),
 		};
 		mem::forget(self);
 
@@ -94,9 +89,6 @@ impl<T: 'static, W: ContextWorld> Drop for Handle<T, W> {
 pub struct OpaqueHandle<W: ContextWorld = WorldDefault> {
 	/// Handle
 	handle: world::OpaqueHandle<W>,
-
-	/// Type id
-	type_id: TypeId,
 }
 
 impl<W: ContextWorld> OpaqueHandle<W> {
@@ -105,12 +97,12 @@ impl<W: ContextWorld> OpaqueHandle<W> {
 	where
 		F: FnOnce(&world::Any<W>) -> O,
 	{
-		W::ContextStackOpaque::with_opaque(self.type_id, self.handle, f)
+		W::ContextStackOpaque::with_opaque(self.handle, f)
 	}
 
 	/// Takes the value this handle is providing a context for.
 	#[must_use = "If you only wish to drop the context, consider dropping the handle"]
-	pub fn take(self) -> Box<dyn Any> {
+	pub fn take(self) -> Box<world::Any<W>> {
 		// Get the value and forget ourselves
 		// Note: This is to ensure we don't try to take the value in the [`Drop`] impl
 		let value = self.take_inner();
@@ -120,15 +112,15 @@ impl<W: ContextWorld> OpaqueHandle<W> {
 	}
 
 	/// Inner method for [`take`](Self::take), and the [`Drop`] impl.
-	fn take_inner(&self) -> Box<dyn Any> {
-		W::ContextStackOpaque::take_opaque(self.type_id, self.handle)
+	fn take_inner(&self) -> Box<world::Any<W>> {
+		W::ContextStackOpaque::take_opaque(self.handle)
 	}
 }
 
 impl<W: ContextWorld> Drop for OpaqueHandle<W> {
 	#[track_caller]
 	fn drop(&mut self) {
-		let _: Box<dyn Any> = self.take_inner();
+		let _: Box<world::Any<W>> = self.take_inner();
 	}
 }
 
