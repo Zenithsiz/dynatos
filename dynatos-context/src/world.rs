@@ -38,7 +38,7 @@ impl ContextWorld for WorldGlobal {
 pub type Handle<T: ?Sized, W: ContextWorld> = <W::ContextStack<T> as ContextStack<T, W>>::Handle;
 
 /// Opaque handle type for the world's context stack
-pub type OpaqueHandle<W: ContextWorld> = <W::ContextStackOpaque as ContextStackOpaque<W>>::Handle;
+pub type OpaqueHandle<W: ContextWorld> = <W::ContextStackOpaque as ContextStackOpaque<W>>::OpaqueHandle;
 
 /// Bounds type for the world's context stack
 pub type Bounds<T: ?Sized, W: ContextWorld> = <W::ContextStack<T> as ContextStack<T, W>>::Bounds;

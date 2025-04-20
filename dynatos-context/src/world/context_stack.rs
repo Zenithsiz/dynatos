@@ -47,16 +47,15 @@ pub trait ContextStack<T: ?Sized, W: ContextWorld>: Sized {
 		T: Sized + 'static;
 
 	/// Converts a handle to an opaque handle
-	fn to_opaque(handle: super::Handle<T, W>) -> super::OpaqueHandle<W>
+	fn to_opaque(handle: Self::Handle) -> super::OpaqueHandle<W>
 	where
-		Self: ContextStackOpaque<W>,
 		T: 'static;
 }
 
 /// Opaque Context stack
 pub trait ContextStackOpaque<W: ContextWorld>: Sized {
 	/// Handle
-	type Handle: Copy;
+	type OpaqueHandle: Copy;
 
 	/// Any type
 	type Any: ?Sized + Any + Unsize<dyn Any>;
@@ -66,12 +65,12 @@ pub trait ContextStackOpaque<W: ContextWorld>: Sized {
 	/// # Panics
 	/// Panics if the context stack doesn't exist, or
 	/// if the value was already taken.
-	fn with_opaque<F, O>(handle: Self::Handle, f: F) -> O
+	fn with_opaque<F, O>(handle: Self::OpaqueHandle, f: F) -> O
 	where
 		F: FnOnce(&Self::Any) -> O;
 
 	/// Takes the value in handle `handle` opaquely
-	fn take_opaque(handle: Self::Handle) -> Box<Self::Any>;
+	fn take_opaque(handle: Self::OpaqueHandle) -> Box<Self::Any>;
 }
 
 /// Thread-local context stack
@@ -148,16 +147,16 @@ impl<T: ?Sized> ContextStack<T, WorldThreadLocal> for ContextStackThreadLocal<T>
 
 impl<T: ?Sized> ContextStackOpaque<WorldThreadLocal> for ContextStackThreadLocal<T> {
 	type Any = dyn Any;
-	type Handle = OpaqueHandleThreadLocal;
+	type OpaqueHandle = OpaqueHandleThreadLocal;
 
-	fn with_opaque<F, O>(handle: Self::Handle, f: F) -> O
+	fn with_opaque<F, O>(handle: Self::OpaqueHandle, f: F) -> O
 	where
 		F: FnOnce(&Self::Any) -> O,
 	{
 		self::with_opaque::<WorldThreadLocal, _, _, _>(&CTXS_STACK_THREAD_LOCAL, handle.type_id, handle.idx, f)
 	}
 
-	fn take_opaque(handle: Self::Handle) -> Box<Self::Any> {
+	fn take_opaque(handle: Self::OpaqueHandle) -> Box<Self::Any> {
 		self::take_opaque::<WorldThreadLocal, _>(&CTXS_STACK_THREAD_LOCAL, handle.type_id, handle.idx)
 	}
 }
@@ -229,16 +228,16 @@ impl<T: ?Sized> ContextStack<T, WorldGlobal> for ContextStackGlobal<T> {
 
 impl<T: ?Sized> ContextStackOpaque<WorldGlobal> for ContextStackGlobal<T> {
 	type Any = dyn Any + Send + Sync;
-	type Handle = OpaqueHandleGlobal;
+	type OpaqueHandle = OpaqueHandleGlobal;
 
-	fn with_opaque<F, O>(handle: Self::Handle, f: F) -> O
+	fn with_opaque<F, O>(handle: Self::OpaqueHandle, f: F) -> O
 	where
 		F: FnOnce(&Self::Any) -> O,
 	{
 		self::with_opaque::<WorldGlobal, _, _, _>(&CTXS_STACK_GLOBAL, handle.type_id, handle.idx, f)
 	}
 
-	fn take_opaque(handle: Self::Handle) -> Box<Self::Any> {
+	fn take_opaque(handle: Self::OpaqueHandle) -> Box<Self::Any> {
 		self::take_opaque::<WorldGlobal, _>(&CTXS_STACK_GLOBAL, handle.type_id, handle.idx)
 	}
 }
