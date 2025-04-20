@@ -11,7 +11,7 @@ pub use self::world::ContextWorld;
 
 // Imports
 use {
-	self::world::ContextStack,
+	self::world::{ContextStack, ContextStackOpaque},
 	core::{
 		any::{self, Any, TypeId},
 		marker::Unsize,
@@ -31,11 +31,14 @@ pub struct Handle<T: 'static, W: ContextWorld = WorldDefault> {
 
 impl<T: 'static, W: ContextWorld> Handle<T, W> {
 	/// Converts this handle to an opaque handle
-	pub fn into_opaque(self) -> OpaqueHandle<W> {
+	pub fn into_opaque(self) -> OpaqueHandle<W>
+	where
+		W::ContextStack<T>: ContextStackOpaque<W>,
+	{
 		// Create the opaque handle and forget ourselves
 		// Note: This is to ensure we don't try to take the value in the [`Drop`] impl
 		let handle = OpaqueHandle {
-			handle:  W::ContextStack::to_opaque(self.handle),
+			handle:  W::ContextStack::<T>::to_opaque(self.handle),
 			type_id: TypeId::of::<T>(),
 		};
 		mem::forget(self);
@@ -100,9 +103,9 @@ impl<W: ContextWorld> OpaqueHandle<W> {
 	/// Uses the value from this handle
 	pub fn with<F, O>(&self, f: F) -> O
 	where
-		F: FnOnce(&world::Any<dyn Any, W>) -> O,
+		F: FnOnce(&world::Any<W>) -> O,
 	{
-		W::ContextStack::<dyn Any>::with_opaque(self.type_id, self.handle, f)
+		W::ContextStackOpaque::with_opaque(self.type_id, self.handle, f)
 	}
 
 	/// Takes the value this handle is providing a context for.
@@ -118,7 +121,7 @@ impl<W: ContextWorld> OpaqueHandle<W> {
 
 	/// Inner method for [`take`](Self::take), and the [`Drop`] impl.
 	fn take_inner(&self) -> Box<dyn Any> {
-		W::ContextStack::<dyn Any>::take_opaque(self.type_id, self.handle)
+		W::ContextStackOpaque::take_opaque(self.type_id, self.handle)
 	}
 }
 
@@ -137,7 +140,7 @@ pub fn provide<T>(value: T) -> Handle<T> {
 /// Provides a value of `T` to the current context in world `W`.
 pub fn provide_in<T, W>(value: T) -> Handle<T, W>
 where
-	T: Unsize<world::Any<T, W>>,
+	T: Unsize<world::Bounds<T, W>>,
 	W: ContextWorld,
 {
 	// Push the value onto the stack
