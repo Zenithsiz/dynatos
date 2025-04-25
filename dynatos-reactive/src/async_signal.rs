@@ -65,9 +65,6 @@ impl<F: Loader, W: AsyncSignalWorld<F>> Inner<F, W> {
 			return false;
 		}
 
-		// Gather subscribers when loading
-		self.trigger.gather_subscribers();
-
 		// Then spawn the future
 		// TODO: Allow using something other than `wasm_bindgen_futures`?
 		let (fut, handle) = futures::future::abortable(self.loader.load());
@@ -259,6 +256,7 @@ impl<F: Loader, W: AsyncSignalWorld<F>> AsyncSignal<F, W> {
 	#[must_use]
 	pub fn borrow_raw(&self) -> Option<BorrowRef<'_, F, W>> {
 		let inner = self.inner.read();
+		inner.trigger.gather_subscribers();
 		inner.value.is_some().then(|| BorrowRef(inner))
 	}
 
@@ -266,6 +264,7 @@ impl<F: Loader, W: AsyncSignalWorld<F>> AsyncSignal<F, W> {
 	#[must_use]
 	pub fn borrow_mut_raw(&self) -> Option<BorrowRefMut<'_, F, W>> {
 		let inner = self.inner.write();
+		inner.trigger.gather_subscribers();
 		inner.value.is_some().then(|| BorrowRefMut(inner))
 	}
 }
@@ -321,6 +320,7 @@ impl<F: Loader, W: AsyncSignalWorld<F>> SignalBorrow for AsyncSignal<F, W> {
 		inner.start_loading(Rc::<_, W>::clone(&self.inner));
 
 		// Then get the value
+		inner.trigger.gather_subscribers();
 		inner
 			.value
 			.is_some()
@@ -383,6 +383,7 @@ impl<F: Loader, W: AsyncSignalWorld<F>> SignalBorrowMut for AsyncSignal<F, W> {
 		inner.start_loading(Rc::<_, W>::clone(&self.inner));
 
 		// Then get the value
+		inner.trigger.gather_subscribers();
 		inner.value.is_some().then(|| BorrowRefMut(inner))
 	}
 }
