@@ -2,8 +2,12 @@
 
 // Imports
 use {
-	crate::{trigger::TriggerWorld, ReactiveWorld, SignalBorrow, SignalWith, Trigger},
-	core::{fmt, future::Future, ops::Deref},
+	crate::{trigger::TriggerWorld, ReactiveWorld, SignalBorrow, SignalBorrowMut, SignalUpdate, SignalWith, Trigger},
+	core::{
+		fmt,
+		future::Future,
+		ops::{Deref, DerefMut},
+	},
 	dynatos_world::{IMut, IMutLike, IMutRef, IMutRefMut, IMutRefMutLike, Rc, RcLike, WorldDefault},
 	futures::stream::AbortHandle,
 	tokio::sync::Notify,
@@ -320,6 +324,65 @@ where
 		F2: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
 		let value = self.borrow();
+		f(value)
+	}
+}
+
+/// Mutable reference type for [`SignalBorrow`] impl
+pub struct BorrowRefMut<'a, F: Loader, W: AsyncSignalWorld<F> = WorldDefault>(IMutRefMut<'a, Inner<F, W>, W>);
+
+impl<F: Loader, W: AsyncSignalWorld<F>> fmt::Debug for BorrowRefMut<'_, F, W>
+where
+	F::Output: fmt::Debug,
+{
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		(**self).fmt(f)
+	}
+}
+
+impl<F: Loader, W: AsyncSignalWorld<F>> Deref for BorrowRefMut<'_, F, W> {
+	type Target = F::Output;
+
+	fn deref(&self) -> &Self::Target {
+		self.0.value.as_ref().expect("Borrow was `None`")
+	}
+}
+
+impl<F: Loader, W: AsyncSignalWorld<F>> DerefMut for BorrowRefMut<'_, F, W> {
+	fn deref_mut(&mut self) -> &mut Self::Target {
+		self.0.value.as_mut().expect("Borrow was `None`")
+	}
+}
+
+impl<F: Loader, W: AsyncSignalWorld<F>> SignalBorrowMut for AsyncSignal<F, W> {
+	type RefMut<'a>
+		= Option<BorrowRefMut<'a, F, W>>
+	where
+		Self: 'a;
+
+	#[track_caller]
+	fn borrow_mut(&self) -> Self::RefMut<'_> {
+		// Start loading on borrow
+		let mut inner = self.inner.write();
+		inner.start_loading(Rc::<_, W>::clone(&self.inner));
+
+		// Then get the value
+		inner.value.is_some().then(|| BorrowRefMut(inner))
+	}
+}
+
+impl<F: Loader, W: AsyncSignalWorld<F>> SignalUpdate for AsyncSignal<F, W>
+where
+	F::Output: 'static,
+{
+	type Value<'a> = Option<BorrowRefMut<'a, F, W>>;
+
+	#[track_caller]
+	fn update<F2, O>(&self, f: F2) -> O
+	where
+		F2: for<'a> FnOnce(Self::Value<'a>) -> O,
+	{
+		let value = self.borrow_mut();
 		f(value)
 	}
 }
