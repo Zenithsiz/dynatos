@@ -77,6 +77,41 @@ where {
 	}
 }
 
+impl<F, T, E> LoadableSignal<F>
+where
+	F: Loader<Output = Result<T, E>>,
+	T: 'static,
+	E: Clone + 'static,
+{
+	// TODO: Replace `_raw` with something else
+
+	/// Borrows the value, without loading it
+	#[must_use]
+	pub fn borrow_raw(&self) -> Loadable<BorrowRef<'_, F>, E> {
+		let res = self.inner.borrow_raw();
+		match res {
+			Some(res) => match &*res {
+				Ok(_) => Loadable::Loaded(BorrowRef(res)),
+				Err(err) => Loadable::Err(err.clone()),
+			},
+			None => Loadable::Empty,
+		}
+	}
+
+	/// Borrows the value mutably, without loading it
+	#[must_use]
+	pub fn borrow_mut_raw(&self) -> Loadable<BorrowRefMut<'_, F>, E> {
+		let res = self.inner.borrow_mut_raw();
+		match res {
+			Some(res) => match &*res {
+				Ok(_) => Loadable::Loaded(BorrowRefMut(res)),
+				Err(err) => Loadable::Err(err.clone()),
+			},
+			None => Loadable::Empty,
+		}
+	}
+}
+
 impl<F> Clone for LoadableSignal<F>
 where
 	F: Loader,
