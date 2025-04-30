@@ -157,8 +157,12 @@ where
 			dynatos_context::with_expect::<Location, _, _>(|location| {
 				let mut location = location.borrow_mut();
 				let mut queries = location.query_pairs().into_owned().collect::<HashMap<_, _>>();
-				match self.0.borrow().as_deref().map(T::to_string) {
-					Some(value) => queries.insert((*self.0.key).to_owned(), value),
+
+				// Note: We can't use a normal `borrow`, because that'd add us as a dependency to any
+				//       running effects, but that might cause loops since updating the location would
+				//       update us as well.
+				match &*self.0.inner.borrow_raw() {
+					Some(value) => queries.insert((*self.0.key).to_owned(), value.to_string()),
 					None => queries.remove(&*self.0.key),
 				};
 

@@ -162,10 +162,15 @@ where
 					.into_owned()
 					.filter(|(key, _)| *key != *self.0.key)
 					.collect::<Vec<_>>();
-				for value in &*self.0.borrow() {
+
+				// Note: We can't use a normal `borrow`, because that'd add us as a dependency to any
+				//       running effects, but that might cause loops since updating the location would
+				//       update us as well.
+				for value in &*self.0.inner.borrow_raw() {
 					let value = value.to_string();
 					queries.push(((*self.0.key).to_owned(), value));
 				}
+
 				location.query_pairs_mut().clear().extend_pairs(queries);
 			});
 		});
