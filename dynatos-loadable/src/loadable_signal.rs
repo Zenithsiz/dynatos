@@ -83,12 +83,10 @@ where
 	T: 'static,
 	E: Clone + 'static,
 {
-	// TODO: Replace `_raw` with something else
-
 	/// Borrows the value, without loading it
 	#[must_use]
-	pub fn borrow_raw(&self) -> Loadable<BorrowRef<'_, F>, E> {
-		let res = self.inner.borrow_raw();
+	pub fn borrow_unloaded(&self) -> Loadable<BorrowRef<'_, F>, E> {
+		let res = self.inner.borrow_unloaded();
 		match res {
 			Some(res) => match &*res {
 				Ok(_) => Loadable::Loaded(BorrowRef(res)),

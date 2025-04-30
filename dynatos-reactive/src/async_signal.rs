@@ -251,11 +251,9 @@ impl<F: Loader, W: AsyncSignalWorld<F>> AsyncSignal<F, W> {
 		}
 	}
 
-	// TODO: Replace `_raw` with something else
-
 	/// Borrows the value, without loading it
 	#[must_use]
-	pub fn borrow_raw(&self) -> Option<BorrowRef<'_, F, W>> {
+	pub fn borrow_unloaded(&self) -> Option<BorrowRef<'_, F, W>> {
 		let inner = self.inner.read();
 		inner.trigger.gather_subscribers();
 		inner.value.is_some().then(|| BorrowRef(inner))
