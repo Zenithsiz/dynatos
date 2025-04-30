@@ -6,6 +6,7 @@ use {
 	core::{
 		fmt,
 		future::Future,
+		marker::PhantomData,
 		ops::{Deref, DerefMut},
 	},
 	dynatos_world::{IMut, IMutLike, IMutRef, IMutRefMut, IMutRefMutLike, Rc, RcLike, WorldDefault},
@@ -29,7 +30,7 @@ struct Inner<F: Loader, W: AsyncSignalWorld<F>> {
 	handle: Option<AbortHandle>,
 
 	/// Trigger
-	trigger: Trigger<W>,
+	trigger: Rc<Trigger<W>, W>,
 
 	/// Notify
 	notify: Rc<Notify, W>,
@@ -146,7 +147,7 @@ impl<F: Loader, W: AsyncSignalWorld<F>> AsyncSignal<F, W> {
 				value: None,
 				loader,
 				handle: None,
-				trigger: Trigger::new_in(world),
+				trigger: Rc::<_, W>::new(Trigger::new_in(world)),
 				notify: Rc::<_, W>::new(Notify::new()),
 			})),
 		}
@@ -259,14 +260,6 @@ impl<F: Loader, W: AsyncSignalWorld<F>> AsyncSignal<F, W> {
 		inner.trigger.gather_subscribers();
 		inner.value.is_some().then(|| BorrowRef(inner))
 	}
-
-	/// Borrows the value mutably, without loading it
-	#[must_use]
-	pub fn borrow_mut_raw(&self) -> Option<BorrowRefMut<'_, F, W>> {
-		let inner = self.inner.write();
-		inner.trigger.gather_subscribers();
-		inner.value.is_some().then(|| BorrowRefMut(inner))
-	}
 }
 
 impl<F: Loader, W: AsyncSignalWorld<F>> Clone for AsyncSignal<F, W> {
@@ -344,8 +337,27 @@ where
 	}
 }
 
-/// Mutable reference type for [`SignalBorrow`] impl
-pub struct BorrowRefMut<'a, F: Loader, W: AsyncSignalWorld<F> = WorldDefault>(IMutRefMut<'a, Inner<F, W>, W>);
+/// Triggers on `Drop`
+// Note: We need this wrapper because `BorrowRefMut::value` must
+//       already be dropped when we run the trigger, which we
+//       can't do if we implement `Drop` on `BorrowRefMut`.
+struct TriggerOnDrop<F: Loader, W: AsyncSignalWorld<F>>(Rc<Trigger<W>, W>, PhantomData<F>);
+
+impl<F: Loader, W: AsyncSignalWorld<F>> Drop for TriggerOnDrop<F, W> {
+	fn drop(&mut self) {
+		self.0.trigger();
+	}
+}
+
+/// Reference type for [`SignalBorrowMut`] impl
+pub struct BorrowRefMut<'a, F: Loader, W: AsyncSignalWorld<F> = WorldDefault> {
+	/// Value
+	value: IMutRefMut<'a, Inner<F, W>, W>,
+
+	/// Trigger on drop
+	// Note: Must be dropped *after* `value`.
+	_trigger_on_drop: Option<TriggerOnDrop<F, W>>,
+}
 
 impl<F: Loader, W: AsyncSignalWorld<F>> fmt::Debug for BorrowRefMut<'_, F, W>
 where
@@ -360,13 +372,13 @@ impl<F: Loader, W: AsyncSignalWorld<F>> Deref for BorrowRefMut<'_, F, W> {
 	type Target = F::Output;
 
 	fn deref(&self) -> &Self::Target {
-		self.0.value.as_ref().expect("Borrow was `None`")
+		self.value.value.as_ref().expect("Borrow was `None`")
 	}
 }
 
 impl<F: Loader, W: AsyncSignalWorld<F>> DerefMut for BorrowRefMut<'_, F, W> {
 	fn deref_mut(&mut self) -> &mut Self::Target {
-		self.0.value.as_mut().expect("Borrow was `None`")
+		self.value.value.as_mut().expect("Borrow was `None`")
 	}
 }
 
@@ -378,13 +390,16 @@ impl<F: Loader, W: AsyncSignalWorld<F>> SignalBorrowMut for AsyncSignal<F, W> {
 
 	#[track_caller]
 	fn borrow_mut(&self) -> Self::RefMut<'_> {
-		// Start loading on borrow
-		let mut inner = self.inner.write();
-		inner.start_loading(Rc::<_, W>::clone(&self.inner));
+		// Note: We don't load when mutably borrowing, since that's probably
+		//       not what the user wants
+		// TODO: Should we even stop loading if the value was set in the meantime?
+		let inner = self.inner.write();
 
 		// Then get the value
-		inner.trigger.gather_subscribers();
-		inner.value.is_some().then(|| BorrowRefMut(inner))
+		inner.value.is_some().then(|| BorrowRefMut {
+			_trigger_on_drop: Some(TriggerOnDrop(Rc::<_, W>::clone(&inner.trigger), PhantomData)),
+			value:            inner,
+		})
 	}
 }
 

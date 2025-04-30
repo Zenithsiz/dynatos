@@ -97,19 +97,6 @@ where
 			None => Loadable::Empty,
 		}
 	}
-
-	/// Borrows the value mutably, without loading it
-	#[must_use]
-	pub fn borrow_mut_raw(&self) -> Loadable<BorrowRefMut<'_, F>, E> {
-		let res = self.inner.borrow_mut_raw();
-		match res {
-			Some(res) => match &*res {
-				Ok(_) => Loadable::Loaded(BorrowRefMut(res)),
-				Err(err) => Loadable::Err(err.clone()),
-			},
-			None => Loadable::Empty,
-		}
-	}
 }
 
 impl<F> Clone for LoadableSignal<F>
