@@ -251,6 +251,14 @@ impl<W: TriggerWorld> Trigger<W> {
 			effect.run();
 		}
 	}
+
+	/// Formats this trigger into `s`
+	fn fmt_debug(&self, mut s: fmt::DebugStruct<'_, '_>) -> Result<(), fmt::Error> {
+		#[cfg(debug_assertions)]
+		s.field_with("defined_loc", |f| fmt::Display::fmt(self.inner.defined_loc, f));
+
+		s.finish_non_exhaustive()
+	}
 }
 
 impl<W: TriggerWorld + Default> Default for Trigger<W> {
@@ -269,7 +277,7 @@ impl<W: TriggerWorld> Clone for Trigger<W> {
 
 impl<W: TriggerWorld> fmt::Debug for Trigger<W> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		f.debug_struct("Trigger").finish_non_exhaustive()
+		self.fmt_debug(f.debug_struct("Trigger"))
 	}
 }
 
@@ -298,7 +306,12 @@ impl<W: TriggerWorld> Clone for WeakTrigger<W> {
 
 impl<W: TriggerWorld> fmt::Debug for WeakTrigger<W> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		f.debug_struct("WeakTrigger").finish_non_exhaustive()
+		let mut s = f.debug_struct("WeakTrigger");
+
+		match self.upgrade() {
+			Some(trigger) => trigger.fmt_debug(s),
+			None => s.finish_non_exhaustive(),
+		}
 	}
 }
 

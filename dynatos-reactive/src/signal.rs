@@ -181,7 +181,7 @@ impl<T: ?Sized, W: SignalWorld> DerefMut for BorrowRefMut<'_, T, W> {
 
 impl<'a, T: fmt::Debug, W: SignalWorld> fmt::Debug for BorrowRefMut<'a, T, W> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		f.debug_tuple("BorrowRef").field(&*self.value).finish()
+		f.debug_tuple("BorrowRefMut").field(&*self.value).finish()
 	}
 }
 

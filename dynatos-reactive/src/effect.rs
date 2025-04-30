@@ -228,6 +228,16 @@ impl<F: ?Sized, W: EffectWorld> Effect<F, W> {
 
 		output
 	}
+
+	/// Formats this effect into `s`
+	fn fmt_debug(&self, mut s: fmt::DebugStruct<'_, '_>) -> Result<(), fmt::Error> {
+		s.field("suppressed", &self.inner.suppressed.load(atomic::Ordering::Acquire));
+
+		#[cfg(debug_assertions)]
+		s.field_with("defined_loc", |f| fmt::Display::fmt(self.inner.defined_loc, f));
+
+		s.finish_non_exhaustive()
+	}
 }
 
 impl<F1: ?Sized, F2: ?Sized, W: EffectWorld> PartialEq<Effect<F2, W>> for Effect<F1, W> {
@@ -254,14 +264,7 @@ impl<F: ?Sized, W: EffectWorld> Hash for Effect<F, W> {
 
 impl<F: ?Sized, W: EffectWorld> fmt::Debug for Effect<F, W> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		let mut s = f.debug_struct("Effect");
-
-		s.field("suppressed", &self.inner.suppressed.load(atomic::Ordering::Acquire));
-
-		#[cfg(debug_assertions)]
-		s.field_with("defined_loc", |f| fmt::Display::fmt(self.inner.defined_loc, f));
-
-		s.finish_non_exhaustive()
+		self.fmt_debug(f.debug_struct("Effect"))
 	}
 }
 
@@ -340,7 +343,12 @@ impl<F: ?Sized, W: EffectWorld> Hash for WeakEffect<F, W> {
 
 impl<F: ?Sized, W: EffectWorld> fmt::Debug for WeakEffect<F, W> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		f.debug_struct("WeakEffect").finish_non_exhaustive()
+		let mut s = f.debug_struct("WeakEffect");
+
+		match self.upgrade() {
+			Some(effect) => effect.fmt_debug(s),
+			None => s.finish_non_exhaustive(),
+		}
 	}
 }
 

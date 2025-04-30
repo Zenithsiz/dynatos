@@ -77,7 +77,7 @@ impl<'a, T, F: ?Sized, W: BorrowRefWorld<'a, T, F>> Deref for BorrowRef<'a, T, F
 
 impl<'a, T: fmt::Debug, F: ?Sized, W: BorrowRefWorld<'a, T, F>> fmt::Debug for BorrowRef<'a, T, F, W> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		f.debug_tuple("BorrowRef").field(&*self.0).finish()
+		(*self.0).fmt(f)
 	}
 }
 
