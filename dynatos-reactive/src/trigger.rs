@@ -267,11 +267,26 @@ impl<W: TriggerWorld + Default> Default for Trigger<W> {
 	}
 }
 
+impl<W: TriggerWorld> PartialEq for Trigger<W> {
+	fn eq(&self, other: &Self) -> bool {
+		core::ptr::eq(Rc::<_, W>::as_ptr(&self.inner), Rc::<_, W>::as_ptr(&other.inner))
+	}
+}
+
+impl<W: TriggerWorld> Eq for Trigger<W> {}
+
+
 impl<W: TriggerWorld> Clone for Trigger<W> {
 	fn clone(&self) -> Self {
 		Self {
 			inner: Rc::<_, W>::clone(&self.inner),
 		}
+	}
+}
+
+impl<W: TriggerWorld> Hash for Trigger<W> {
+	fn hash<H: Hasher>(&self, state: &mut H) {
+		Rc::<_, W>::as_ptr(&self.inner).hash(state);
 	}
 }
 
@@ -296,11 +311,25 @@ impl<W: TriggerWorld> WeakTrigger<W> {
 	}
 }
 
+impl<W: TriggerWorld> PartialEq for WeakTrigger<W> {
+	fn eq(&self, other: &Self) -> bool {
+		core::ptr::eq(Weak::<_, W>::as_ptr(&self.inner), Weak::<_, W>::as_ptr(&other.inner))
+	}
+}
+
+impl<W: TriggerWorld> Eq for WeakTrigger<W> {}
+
 impl<W: TriggerWorld> Clone for WeakTrigger<W> {
 	fn clone(&self) -> Self {
 		Self {
 			inner: Weak::<_, W>::clone(&self.inner),
 		}
+	}
+}
+
+impl<W: TriggerWorld> Hash for WeakTrigger<W> {
+	fn hash<H: Hasher>(&self, state: &mut H) {
+		Weak::<_, W>::as_ptr(&self.inner).hash(state);
 	}
 }
 
