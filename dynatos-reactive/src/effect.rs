@@ -3,7 +3,7 @@
 //! An effect is a function that is re-run whenever
 //! one of it's dependencies changes.
 
-// TODO: Downcasting? It isn't trivial due to the usages of `Rc<Inner<dyn Fn()>>`,
+// TODO: Downcasting? It isn't trivial due to the usages of `Rc<Inner<dyn EffectRun>>`,
 //       which doesn't allow casting to `Rc<dyn Any>`, required by `Rc::downcast`.
 
 // Imports
@@ -69,7 +69,7 @@ impl<F> Effect<F, WorldDefault> {
 	#[track_caller]
 	pub fn new(run: F) -> Self
 	where
-		F: Fn() + 'static,
+		F: EffectRun + 'static,
 	{
 		Self::new_in(run, WorldDefault::default())
 	}
@@ -89,7 +89,7 @@ impl<F> Effect<F, WorldDefault> {
 	#[track_caller]
 	pub fn try_new(run: F) -> Option<Self>
 	where
-		F: Fn() + 'static,
+		F: EffectRun + 'static,
 	{
 		Self::try_new_in(run, WorldDefault::default())
 	}
@@ -102,7 +102,7 @@ impl<F, W: EffectWorld> Effect<F, W> {
 	#[track_caller]
 	pub fn new_in(run: F, world: W) -> Self
 	where
-		F: Fn() + UnsizeF<W> + 'static,
+		F: EffectRun + UnsizeF<W> + 'static,
 	{
 		// Create the effect
 		let effect = Self::new_raw_in(run, world);
@@ -140,7 +140,7 @@ impl<F, W: EffectWorld> Effect<F, W> {
 	#[track_caller]
 	pub fn try_new_in(run: F, world: W) -> Option<Self>
 	where
-		F: Fn() + UnsizeF<W> + 'static,
+		F: EffectRun + UnsizeF<W> + 'static,
 	{
 		let effect = Self::new_in(run, world);
 		match effect.is_inert() {
@@ -220,7 +220,7 @@ impl<F: ?Sized, W: EffectWorld> Effect<F, W> {
 	/// Runs the effect
 	pub fn run(&self)
 	where
-		F: Fn() + UnsizeF<W> + 'static,
+		F: EffectRun + UnsizeF<W> + 'static,
 	{
 		// If we're suppressed, don't do anything
 		if self.inner.suppressed.load(atomic::Ordering::Acquire) {
@@ -228,7 +228,7 @@ impl<F: ?Sized, W: EffectWorld> Effect<F, W> {
 		}
 
 		// Otherwise, run it
-		self.gather_dependencies(move || (self.inner.run)());
+		self.gather_dependencies(move || self.inner.run.run());
 	}
 
 	/// Suppresses this effect from running while calling this function
@@ -342,7 +342,7 @@ impl<F: ?Sized, W: EffectWorld> WeakEffect<F, W> {
 	/// Returns if the effect still existed
 	pub fn try_run(&self) -> bool
 	where
-		F: Fn() + UnsizeF<W> + 'static,
+		F: EffectRun + UnsizeF<W> + 'static,
 	{
 		// Try to upgrade, else return that it was missing
 		let Some(effect) = self.upgrade() else {
@@ -424,6 +424,20 @@ pub fn running<W: EffectWorld>() -> Option<WeakEffect<world::F<W>, W>> {
 	world::top_effect::<W>()
 }
 
+/// Effect run
+pub trait EffectRun {
+	/// Runs the effect
+	fn run(&self);
+}
+
+impl<F> EffectRun for F
+where
+	F: Fn(),
+{
+	fn run(&self) {
+		self();
+	}
+}
 
 #[cfg(test)]
 mod test {
@@ -455,7 +469,7 @@ mod test {
 	#[test]
 	fn running() {
 		#[thread_local]
-		static RUNNING: OnceCell<WeakEffect<dyn Fn(), WorldDefault>> = OnceCell::new();
+		static RUNNING: OnceCell<WeakEffect<dyn EffectRun, WorldDefault>> = OnceCell::new();
 
 		// Create an effect, and save the running effect within it to `RUNNING`.
 		let effect = Effect::new(move || {
@@ -478,10 +492,10 @@ mod test {
 	#[test]
 	fn running_stacked() {
 		#[thread_local]
-		static RUNNING_TOP: OnceCell<WeakEffect<dyn Fn()>> = OnceCell::new();
+		static RUNNING_TOP: OnceCell<WeakEffect<dyn EffectRun>> = OnceCell::new();
 
 		#[thread_local]
-		static RUNNING_BOTTOM: OnceCell<WeakEffect<dyn Fn()>> = OnceCell::new();
+		static RUNNING_BOTTOM: OnceCell<WeakEffect<dyn EffectRun>> = OnceCell::new();
 
 		// Create 2 stacked effects, saving the running within each to `running1` and `running2`.
 		// `running1` contains the top-level effect, while `running2` contains the inner one.

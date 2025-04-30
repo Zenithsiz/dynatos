@@ -31,7 +31,7 @@ pub mod world;
 pub use self::{
 	async_signal::AsyncSignal,
 	derived::Derived,
-	effect::{Effect, WeakEffect},
+	effect::{Effect, EffectRun, WeakEffect},
 	memo::Memo,
 	signal::{
 		Signal,

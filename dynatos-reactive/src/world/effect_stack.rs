@@ -2,7 +2,7 @@
 
 // Imports
 use {
-	crate::{effect::EffectWorld, ReactiveWorld, WeakEffect},
+	crate::{effect::EffectWorld, EffectRun, ReactiveWorld, WeakEffect},
 	core::marker::Unsize,
 	dynatos_world::{IMut, IMutLike, WorldGlobal, WorldThreadLocal},
 };
@@ -10,7 +10,7 @@ use {
 /// Effect stack
 pub trait EffectStack<W: ReactiveWorld>: Sized {
 	/// Effect function
-	type F: ?Sized + Fn() + Unsize<Self::F> + 'static;
+	type F: ?Sized + EffectRun + Unsize<Self::F> + 'static;
 
 	/// Pushes an effect to the stack.
 	fn push_effect<F>(f: WeakEffect<F, W>)
@@ -35,11 +35,11 @@ pub struct EffectStackThreadLocal;
 
 /// Effect stack for `EffectStackThreadLocal`
 #[thread_local]
-static EFFECT_STACK_STD_RC: EffectStackImpl<dyn Fn(), WorldThreadLocal> =
+static EFFECT_STACK_STD_RC: EffectStackImpl<dyn EffectRun, WorldThreadLocal> =
 	EffectStackImpl::<_, WorldThreadLocal>::new(vec![]);
 
 impl EffectStack<WorldThreadLocal> for EffectStackThreadLocal {
-	type F = dyn Fn() + 'static;
+	type F = dyn EffectRun + 'static;
 
 	fn push_effect<F>(f: WeakEffect<F, WorldThreadLocal>)
 	where
@@ -61,12 +61,12 @@ impl EffectStack<WorldThreadLocal> for EffectStackThreadLocal {
 pub struct EffectStackGlobal;
 
 /// Effect stack for `EffectStackGlobal`
-static EFFECT_STACK_STD_ARC: EffectStackImpl<dyn Fn() + Send + Sync, WorldGlobal> =
+static EFFECT_STACK_STD_ARC: EffectStackImpl<dyn EffectRun + Send + Sync, WorldGlobal> =
 	EffectStackImpl::<_, WorldGlobal>::new(vec![]);
 
 
 impl EffectStack<WorldGlobal> for EffectStackGlobal {
-	type F = dyn Fn() + Send + Sync + 'static;
+	type F = dyn EffectRun + Send + Sync + 'static;
 
 	fn push_effect<F>(f: WeakEffect<F, WorldGlobal>)
 	where
