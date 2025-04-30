@@ -7,12 +7,12 @@
 //       which doesn't allow casting to `Rc<dyn Any>`, required by `Rc::downcast`.
 
 // Imports
-#[cfg(debug_assertions)]
-use core::panic::Location;
 use {
 	crate::{
+		trigger,
 		world::{self, UnsizeF},
 		ReactiveWorld,
+		WeakTrigger,
 	},
 	core::{
 		fmt,
@@ -21,22 +21,36 @@ use {
 		ops::CoerceUnsized,
 		sync::atomic::{self, AtomicBool},
 	},
-	dynatos_world::{Rc, RcLike, Weak, WeakLike, WorldDefault},
+	dynatos_world::{IMut, Rc, RcLike, Weak, WeakLike, WorldDefault},
+	std::collections::{HashMap, HashSet},
 };
+#[cfg(debug_assertions)]
+use {core::panic::Location, dynatos_world::IMutLike};
 
 /// World for [`Effect`]
+// TODO: This needs to be kept in sync with `TriggerWorld`, should we just move the common parts somewhere?
 #[expect(private_bounds, reason = "We can't *not* leak some implementation details currently")]
-pub trait EffectWorld =
-	ReactiveWorld where Weak<Inner<world::F<Self>>, Self>: CoerceUnsized<Weak<Inner<world::F<Self>>, Self>>;
+pub trait EffectWorld = ReactiveWorld
+where
+	Weak<Inner<world::F<Self>, Self>, Self>: CoerceUnsized<Weak<Inner<world::F<Self>, Self>, Self>>,
+	IMut<HashMap<crate::Subscriber<Self>, trigger::SubscriberInfo>, Self>: Sized,
+	IMut<HashSet<WeakTrigger<Self>>, Self>: Sized;
 
 /// Effect inner
-struct Inner<F: ?Sized> {
+struct Inner<F: ?Sized, W: EffectWorld> {
 	/// Whether this effect is currently suppressed
 	suppressed: AtomicBool,
 
 	#[cfg(debug_assertions)]
 	/// Where this effect was defined
 	defined_loc: &'static Location<'static>,
+
+	#[cfg(debug_assertions)]
+	/// All dependencies of this effect
+	dependencies: IMut<HashSet<WeakTrigger<W>>, W>,
+
+	/// Phantom for `W` when it's unused
+	_phantom: PhantomData<W>,
 
 	/// Effect runner
 	run: F,
@@ -45,7 +59,7 @@ struct Inner<F: ?Sized> {
 /// Effect
 pub struct Effect<F: ?Sized, W: EffectWorld = WorldDefault> {
 	/// Inner
-	inner: Rc<Inner<F>, W>,
+	inner: Rc<Inner<F, W>, W>,
 }
 
 impl<F> Effect<F, WorldDefault> {
@@ -109,6 +123,9 @@ impl<F, W: EffectWorld> Effect<F, W> {
 			suppressed: AtomicBool::new(false),
 			#[cfg(debug_assertions)]
 			defined_loc: Location::caller(),
+			#[cfg(debug_assertions)]
+			dependencies: IMut::<_, W>::new(HashSet::new()),
+			_phantom: PhantomData,
 			run,
 		};
 
@@ -236,6 +253,25 @@ impl<F: ?Sized, W: EffectWorld> Effect<F, W> {
 		#[cfg(debug_assertions)]
 		s.field_with("defined_loc", |f| fmt::Display::fmt(self.inner.defined_loc, f));
 
+		#[cfg(debug_assertions)]
+		s.field_with("dependencies", |f| {
+			let mut s = f.debug_list();
+
+			let Some(deps) = self.inner.dependencies.try_read() else {
+				return s.finish_non_exhaustive();
+			};
+			#[expect(clippy::iter_over_hash_type, reason = "We don't care about the order")]
+			for dep in &*deps {
+				let Some(trigger) = dep.upgrade() else {
+					s.entry(&"<...>");
+					continue;
+				};
+				s.entry_with(|f| fmt::Display::fmt(trigger.defined_loc(), f));
+			}
+
+			s.finish()
+		});
+
 		s.finish_non_exhaustive()
 	}
 }
@@ -273,7 +309,7 @@ where
 	F1: ?Sized + Unsize<F2>,
 	F2: ?Sized,
 	W: EffectWorld,
-	Rc<Inner<F1>, W>: CoerceUnsized<Rc<Inner<F2>, W>>,
+	Rc<Inner<F1, W>, W>: CoerceUnsized<Rc<Inner<F2, W>, W>>,
 {
 }
 
@@ -283,7 +319,7 @@ where
 /// Used to break ownership between a signal and it's subscribers
 pub struct WeakEffect<F: ?Sized, W: EffectWorld = WorldDefault> {
 	/// Inner
-	inner: Weak<Inner<F>, W>,
+	inner: Weak<Inner<F, W>, W>,
 }
 
 impl<F: ?Sized, W: EffectWorld> WeakEffect<F, W> {
@@ -315,6 +351,13 @@ impl<F: ?Sized, W: EffectWorld> WeakEffect<F, W> {
 
 		effect.run();
 		true
+	}
+
+	/// Adds a dependency to this effect
+	#[cfg(debug_assertions)]
+	pub(crate) fn add_dependency(&self, trigger: WeakTrigger<W>) {
+		let Some(effect) = self.upgrade() else { return };
+		effect.inner.dependencies.write().insert(trigger);
 	}
 }
 
@@ -357,7 +400,7 @@ where
 	F1: ?Sized + Unsize<F2>,
 	F2: ?Sized,
 	W: EffectWorld,
-	Weak<Inner<F1>, W>: CoerceUnsized<Weak<Inner<F2>, W>>,
+	Weak<Inner<F1, W>, W>: CoerceUnsized<Weak<Inner<F2, W>, W>>,
 {
 }
 

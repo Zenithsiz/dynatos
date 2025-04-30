@@ -61,7 +61,7 @@ impl<W: TriggerWorld> Hash for Subscriber<W> {
 
 /// Subscriber info
 #[derive(Clone, Debug)]
-struct SubscriberInfo {
+pub(crate) struct SubscriberInfo {
 	#[cfg(debug_assertions)]
 	/// Where this subscriber was defined
 	defined_locs: HashSet<&'static Location<'static>>,
@@ -150,6 +150,12 @@ impl<W: TriggerWorld> Trigger<W> {
 		}
 	}
 
+	/// Returns where this effect was defined
+	#[cfg(debug_assertions)]
+	pub(crate) fn defined_loc(&self) -> &'static Location<'static> {
+		self.inner.defined_loc
+	}
+
 	/// Downgrades this trigger
 	#[must_use]
 	pub fn downgrade(&self) -> WeakTrigger<W> {
@@ -169,6 +175,8 @@ impl<W: TriggerWorld> Trigger<W> {
 	#[track_caller]
 	pub fn gather_subscribers(&self) {
 		if let Some(effect) = effect::running::<W>() {
+			#[cfg(debug_assertions)]
+			effect.add_dependency(self.downgrade());
 			self.add_subscriber(effect);
 		}
 	}
