@@ -2,7 +2,16 @@
 
 // Imports
 use {
-	crate::{trigger::TriggerWorld, world::UnsizeF, Effect, ReactiveWorld, SignalBorrow, SignalWith, Trigger},
+	crate::{
+		trigger::TriggerWorld,
+		world::UnsizeF,
+		Effect,
+		EffectRun,
+		ReactiveWorld,
+		SignalBorrow,
+		SignalWith,
+		Trigger,
+	},
 	core::{
 		fmt,
 		marker::{PhantomData, Unsize},
@@ -150,35 +159,14 @@ struct EffectFn<T, F: ?Sized, W: MemoWorld<T, F>> {
 	f: F,
 }
 
-impl<T, F, W> FnOnce<()> for EffectFn<T, F, W>
+impl<T, F, W> EffectRun for EffectFn<T, F, W>
 where
 	T: PartialEq + 'static,
 	F: Fn() -> T,
 	W: MemoWorld<T, F>,
 {
-	type Output = ();
-
-	extern "rust-call" fn call_once(mut self, args: ()) -> Self::Output {
-		self.call_mut(args);
-	}
-}
-impl<T, F, W> FnMut<()> for EffectFn<T, F, W>
-where
-	T: PartialEq + 'static,
-	F: Fn() -> T,
-	W: MemoWorld<T, F>,
-{
-	extern "rust-call" fn call_mut(&mut self, args: ()) -> Self::Output {
-		self.call(args);
-	}
-}
-impl<T, F, W> Fn<()> for EffectFn<T, F, W>
-where
-	T: PartialEq + 'static,
-	F: Fn() -> T,
-	W: MemoWorld<T, F>,
-{
-	extern "rust-call" fn call(&self, _args: ()) -> Self::Output {
+	#[track_caller]
+	fn run(&self) {
 		let new_value = (self.f)();
 		let mut value = self.value.write();
 
