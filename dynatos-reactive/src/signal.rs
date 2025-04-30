@@ -79,6 +79,25 @@ impl<T, W: SignalWorld> Signal<T, W> {
 	}
 }
 
+impl<T: ?Sized, W: SignalWorld> Signal<T, W> {
+	/// Borrows this signal without gathering subscribers
+	#[track_caller]
+	pub fn borrow_raw(&self) -> BorrowRef<'_, T, W> {
+		let value = self.inner.value.read();
+		BorrowRef(value)
+	}
+
+	/// Borrows this signal mutably without updating subscribers
+	#[track_caller]
+	pub fn borrow_mut_raw(&self) -> BorrowRefMut<'_, T, W> {
+		let value = self.inner.value.write();
+		BorrowRefMut {
+			value,
+			_trigger_on_drop: None,
+		}
+	}
+}
+
 // TODO: Add `Signal::<dyn Any>::downcast` once we add `{T, U}: ?Sized` to the `CoerceUnsized` impl of `Inner`.
 //       Use `Rc::downcast::<Inner<T>>(self.inner as Rc<dyn Any>)`
 
@@ -117,9 +136,7 @@ impl<T: ?Sized + 'static, W: SignalWorld> SignalBorrow for Signal<T, W> {
 	#[track_caller]
 	fn borrow(&self) -> Self::Ref<'_> {
 		self.inner.trigger.gather_subscribers();
-
-		let borrow = self.inner.value.read();
-		BorrowRef(borrow)
+		self.borrow_raw()
 	}
 }
 
@@ -162,7 +179,7 @@ pub struct BorrowRefMut<'a, T: ?Sized + 'a, W: SignalWorld = WorldDefault> {
 
 	/// Trigger on drop
 	// Note: Must be dropped *after* `value`.
-	_trigger_on_drop: TriggerOnDrop<'a, W>,
+	_trigger_on_drop: Option<TriggerOnDrop<'a, W>>,
 }
 
 impl<T: ?Sized, W: SignalWorld> Deref for BorrowRefMut<'_, T, W> {
@@ -196,7 +213,7 @@ impl<T: ?Sized + 'static, W: SignalWorld> SignalBorrowMut for Signal<T, W> {
 		let value = self.inner.value.write();
 		BorrowRefMut {
 			value,
-			_trigger_on_drop: TriggerOnDrop(&self.inner.trigger),
+			_trigger_on_drop: Some(TriggerOnDrop(&self.inner.trigger)),
 		}
 	}
 }
