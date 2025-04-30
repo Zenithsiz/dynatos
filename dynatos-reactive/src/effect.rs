@@ -254,7 +254,14 @@ impl<F: ?Sized, W: EffectWorld> Hash for Effect<F, W> {
 
 impl<F: ?Sized, W: EffectWorld> fmt::Debug for Effect<F, W> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		f.debug_struct("Effect").finish_non_exhaustive()
+		let mut s = f.debug_struct("Effect");
+
+		s.field("suppressed", &self.inner.suppressed.load(atomic::Ordering::Acquire));
+
+		#[cfg(debug_assertions)]
+		s.field_with("defined_loc", |f| fmt::Display::fmt(self.inner.defined_loc, f));
+
+		s.finish_non_exhaustive()
 	}
 }
 
