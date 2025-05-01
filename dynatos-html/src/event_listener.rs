@@ -98,7 +98,7 @@ pub mod ev {
 	// Imports
 	use {
 		super::EventListener,
-		web_sys::{InputEvent, PointerEvent, PopStateEvent, WheelEvent},
+		web_sys::{ClipboardEvent, DragEvent, Event, InputEvent, PointerEvent, PopStateEvent, WheelEvent},
 	};
 
 	macro define_events(
@@ -122,14 +122,32 @@ pub mod ev {
 	}
 
 	define_events! {
+		/// `load` Event
+		Load(Event) = "load";
+
 		/// `click` Event
 		Click(PointerEvent) = "click";
+
+		/// `change` Event
+		Change(Event) = "change";
 
 		/// `input` Event
 		Input(InputEvent) = "input";
 
 		/// `wheel` Event
 		Wheel(WheelEvent) = "wheel";
+
+		/// `paste` Event
+		Paste(ClipboardEvent) = "paste";
+
+		/// `drop` Event
+		Drop(DragEvent) = "drop";
+
+		/// `dragstart` Event
+		DragStart(DragEvent) = "dragstart";
+
+		/// `dragover` Event
+		DragOver(DragEvent) = "dragover";
 
 		/// `popstate` Event
 		PopState(PopStateEvent) = "popstate";
@@ -142,5 +160,8 @@ pub mod ev {
 
 		/// `pointerup` event
 		PointerUp(PointerEvent) = "pointerup";
+
+		/// `pointerout` event
+		PointerOut(PointerEvent) = "pointerout";
 	}
 }

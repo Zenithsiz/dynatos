@@ -3,7 +3,7 @@
 // Imports
 use {
 	wasm_bindgen::{JsCast, JsValue},
-	web_sys::{Element, HtmlInputElement},
+	web_sys::{Element, HtmlCanvasElement, HtmlImageElement, HtmlInputElement},
 };
 
 /// Html namespace
@@ -72,7 +72,7 @@ decl_elements! {
 	body,
 	br,
 	button,
-	canvas,
+	canvas: HtmlCanvasElement,
 	caption,
 	center,
 	cite,
@@ -115,7 +115,7 @@ decl_elements! {
 	i,
 	iframe,
 	image,
-	img,
+	img: HtmlImageElement,
 	input: HtmlInputElement,
 	ins,
 	kbd,

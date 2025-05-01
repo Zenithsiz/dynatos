@@ -16,10 +16,14 @@ js-sys = { workspace = true }
 tracing = { workspace = true }
 wasm-bindgen = { workspace = true }
 web-sys = { workspace = true, features = [
+	"ClipboardEvent",
 	"Comment",
 	"Document",
+	"DragEvent",
 	"Element",
+	"HtmlCanvasElement",
 	"HtmlElement",
+	"HtmlImageElement",
 	"HtmlInputElement",
 	"InputEvent",
 	"PointerEvent",
