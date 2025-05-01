@@ -79,8 +79,7 @@ impl<T> QueryArraySignal<T> {
 				})
 				.collect();
 
-			// Then set it and the, now old, query value
-			tracing::info!(?key, "Updating inner");
+			// Then set it
 			inner.set(values);
 		});
 
@@ -133,6 +132,7 @@ impl<T> SignalReplace<Vec<T>> for QueryArraySignal<T>
 where
 	T: ToString + 'static,
 {
+	#[track_caller]
 	fn replace(&self, new_value: Vec<T>) -> Vec<T> {
 		mem::replace(&mut self.borrow_mut(), new_value)
 	}
@@ -167,8 +167,7 @@ where
 				//       running effects, but that might cause loops since updating the location would
 				//       update us as well.
 				for value in &*self.0.inner.borrow_raw() {
-					let value = value.to_string();
-					queries.push(((*self.0.key).to_owned(), value));
+					queries.push(((*self.0.key).to_owned(), value.to_string()));
 				}
 
 				location.query_pairs_mut().clear().extend_pairs(queries);
