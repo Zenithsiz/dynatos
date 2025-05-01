@@ -98,7 +98,18 @@ pub mod ev {
 	// Imports
 	use {
 		super::EventListener,
-		web_sys::{ClipboardEvent, DragEvent, Event, InputEvent, PointerEvent, PopStateEvent, WheelEvent},
+		web_sys::{
+			ClipboardEvent,
+			DragEvent,
+			Event,
+			FocusEvent,
+			InputEvent,
+			MouseEvent,
+			PointerEvent,
+			PopStateEvent,
+			SubmitEvent,
+			WheelEvent,
+		},
 	};
 
 	macro define_events(
@@ -133,6 +144,15 @@ pub mod ev {
 
 		/// `input` Event
 		Input(InputEvent) = "input";
+
+		/// `submit` Event
+		Submit(SubmitEvent) = "submit";
+
+		/// `blur` Event
+		Blur(FocusEvent) = "blur";
+
+		/// `dblclick` Event
+		DoubleClick(MouseEvent) = "dblclick";
 
 		/// `wheel` Event
 		Wheel(WheelEvent) = "wheel";
