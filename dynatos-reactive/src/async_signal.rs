@@ -2,7 +2,7 @@
 
 // Imports
 use {
-	crate::{trigger::TriggerWorld, ReactiveWorld, SignalBorrow, SignalBorrowMut, SignalUpdate, SignalWith, Trigger},
+	crate::{ReactiveWorld, SignalBorrow, SignalBorrowMut, SignalUpdate, SignalWith, Trigger},
 	core::{
 		fmt,
 		future::Future,
@@ -16,10 +16,10 @@ use {
 
 /// World for [`AsyncSignal`]
 #[expect(private_bounds, reason = "We can't *not* leak some implementation details currently")]
-pub trait AsyncSignalWorld<F: Loader> = ReactiveWorld + TriggerWorld where IMut<Inner<F, Self>, Self>: Sized;
+pub trait AsyncReactiveWorld<F: Loader> = ReactiveWorld where IMut<Inner<F, Self>, Self>: Sized;
 
 /// Inner
-struct Inner<F: Loader, W: AsyncSignalWorld<F>> {
+struct Inner<F: Loader, W: AsyncReactiveWorld<F>> {
 	/// Value
 	value: Option<F::Output>,
 
@@ -36,7 +36,7 @@ struct Inner<F: Loader, W: AsyncSignalWorld<F>> {
 	notify: Rc<Notify, W>,
 }
 
-impl<F: Loader, W: AsyncSignalWorld<F>> Inner<F, W> {
+impl<F: Loader, W: AsyncReactiveWorld<F>> Inner<F, W> {
 	/// Stops loading the value.
 	///
 	/// Returns if the loader had a future.
@@ -123,7 +123,7 @@ impl<F: Loader, W: AsyncSignalWorld<F>> Inner<F, W> {
 }
 
 /// Async signal
-pub struct AsyncSignal<F: Loader, W: AsyncSignalWorld<F> = WorldDefault> {
+pub struct AsyncSignal<F: Loader, W: AsyncReactiveWorld<F> = WorldDefault> {
 	/// Inner
 	inner: Rc<IMut<Inner<F, W>, W>, W>,
 }
@@ -137,7 +137,7 @@ impl<F: Loader> AsyncSignal<F, WorldDefault> {
 	}
 }
 
-impl<F: Loader, W: AsyncSignalWorld<F>> AsyncSignal<F, W> {
+impl<F: Loader, W: AsyncReactiveWorld<F>> AsyncSignal<F, W> {
 	/// Creates a new async signal with a loader in a world
 	#[track_caller]
 	#[must_use]
@@ -260,7 +260,7 @@ impl<F: Loader, W: AsyncSignalWorld<F>> AsyncSignal<F, W> {
 	}
 }
 
-impl<F: Loader, W: AsyncSignalWorld<F>> Clone for AsyncSignal<F, W> {
+impl<F: Loader, W: AsyncReactiveWorld<F>> Clone for AsyncSignal<F, W> {
 	fn clone(&self) -> Self {
 		Self {
 			inner: Rc::<_, W>::clone(&self.inner),
@@ -268,7 +268,7 @@ impl<F: Loader, W: AsyncSignalWorld<F>> Clone for AsyncSignal<F, W> {
 	}
 }
 
-impl<F: Loader, W: AsyncSignalWorld<F>> fmt::Debug for AsyncSignal<F, W>
+impl<F: Loader, W: AsyncReactiveWorld<F>> fmt::Debug for AsyncSignal<F, W>
 where
 	F::Output: fmt::Debug,
 {
@@ -279,9 +279,9 @@ where
 }
 
 /// Reference type for [`SignalBorrow`] impl
-pub struct BorrowRef<'a, F: Loader, W: AsyncSignalWorld<F> = WorldDefault>(IMutRef<'a, Inner<F, W>, W>);
+pub struct BorrowRef<'a, F: Loader, W: AsyncReactiveWorld<F> = WorldDefault>(IMutRef<'a, Inner<F, W>, W>);
 
-impl<F: Loader, W: AsyncSignalWorld<F>> fmt::Debug for BorrowRef<'_, F, W>
+impl<F: Loader, W: AsyncReactiveWorld<F>> fmt::Debug for BorrowRef<'_, F, W>
 where
 	F::Output: fmt::Debug,
 {
@@ -290,7 +290,7 @@ where
 	}
 }
 
-impl<F: Loader, W: AsyncSignalWorld<F>> Deref for BorrowRef<'_, F, W> {
+impl<F: Loader, W: AsyncReactiveWorld<F>> Deref for BorrowRef<'_, F, W> {
 	type Target = F::Output;
 
 	fn deref(&self) -> &Self::Target {
@@ -298,7 +298,7 @@ impl<F: Loader, W: AsyncSignalWorld<F>> Deref for BorrowRef<'_, F, W> {
 	}
 }
 
-impl<F: Loader, W: AsyncSignalWorld<F>> SignalBorrow for AsyncSignal<F, W> {
+impl<F: Loader, W: AsyncReactiveWorld<F>> SignalBorrow for AsyncSignal<F, W> {
 	type Ref<'a>
 		= Option<BorrowRef<'a, F, W>>
 	where
@@ -319,7 +319,7 @@ impl<F: Loader, W: AsyncSignalWorld<F>> SignalBorrow for AsyncSignal<F, W> {
 	}
 }
 
-impl<F: Loader, W: AsyncSignalWorld<F>> SignalWith for AsyncSignal<F, W>
+impl<F: Loader, W: AsyncReactiveWorld<F>> SignalWith for AsyncSignal<F, W>
 where
 	F::Output: 'static,
 {
@@ -339,16 +339,16 @@ where
 // Note: We need this wrapper because `BorrowRefMut::value` must
 //       already be dropped when we run the trigger, which we
 //       can't do if we implement `Drop` on `BorrowRefMut`.
-struct TriggerOnDrop<F: Loader, W: AsyncSignalWorld<F>>(Rc<Trigger<W>, W>, PhantomData<F>);
+struct TriggerOnDrop<F: Loader, W: AsyncReactiveWorld<F>>(Rc<Trigger<W>, W>, PhantomData<F>);
 
-impl<F: Loader, W: AsyncSignalWorld<F>> Drop for TriggerOnDrop<F, W> {
+impl<F: Loader, W: AsyncReactiveWorld<F>> Drop for TriggerOnDrop<F, W> {
 	fn drop(&mut self) {
 		self.0.trigger();
 	}
 }
 
 /// Reference type for [`SignalBorrowMut`] impl
-pub struct BorrowRefMut<'a, F: Loader, W: AsyncSignalWorld<F> = WorldDefault> {
+pub struct BorrowRefMut<'a, F: Loader, W: AsyncReactiveWorld<F> = WorldDefault> {
 	/// Value
 	value: IMutRefMut<'a, Inner<F, W>, W>,
 
@@ -357,7 +357,7 @@ pub struct BorrowRefMut<'a, F: Loader, W: AsyncSignalWorld<F> = WorldDefault> {
 	_trigger_on_drop: Option<TriggerOnDrop<F, W>>,
 }
 
-impl<F: Loader, W: AsyncSignalWorld<F>> fmt::Debug for BorrowRefMut<'_, F, W>
+impl<F: Loader, W: AsyncReactiveWorld<F>> fmt::Debug for BorrowRefMut<'_, F, W>
 where
 	F::Output: fmt::Debug,
 {
@@ -366,7 +366,7 @@ where
 	}
 }
 
-impl<F: Loader, W: AsyncSignalWorld<F>> Deref for BorrowRefMut<'_, F, W> {
+impl<F: Loader, W: AsyncReactiveWorld<F>> Deref for BorrowRefMut<'_, F, W> {
 	type Target = F::Output;
 
 	fn deref(&self) -> &Self::Target {
@@ -374,13 +374,13 @@ impl<F: Loader, W: AsyncSignalWorld<F>> Deref for BorrowRefMut<'_, F, W> {
 	}
 }
 
-impl<F: Loader, W: AsyncSignalWorld<F>> DerefMut for BorrowRefMut<'_, F, W> {
+impl<F: Loader, W: AsyncReactiveWorld<F>> DerefMut for BorrowRefMut<'_, F, W> {
 	fn deref_mut(&mut self) -> &mut Self::Target {
 		self.value.value.as_mut().expect("Borrow was `None`")
 	}
 }
 
-impl<F: Loader, W: AsyncSignalWorld<F>> SignalBorrowMut for AsyncSignal<F, W> {
+impl<F: Loader, W: AsyncReactiveWorld<F>> SignalBorrowMut for AsyncSignal<F, W> {
 	type RefMut<'a>
 		= Option<BorrowRefMut<'a, F, W>>
 	where
@@ -401,7 +401,7 @@ impl<F: Loader, W: AsyncSignalWorld<F>> SignalBorrowMut for AsyncSignal<F, W> {
 	}
 }
 
-impl<F: Loader, W: AsyncSignalWorld<F>> SignalUpdate for AsyncSignal<F, W>
+impl<F: Loader, W: AsyncReactiveWorld<F>> SignalUpdate for AsyncSignal<F, W>
 where
 	F::Output: 'static,
 {

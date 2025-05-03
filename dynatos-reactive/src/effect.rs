@@ -9,7 +9,6 @@
 // Imports
 use {
 	crate::{
-		trigger,
 		world::{self, UnsizeF},
 		ReactiveWorld,
 		WeakTrigger,
@@ -22,22 +21,13 @@ use {
 		sync::atomic::{self, AtomicBool},
 	},
 	dynatos_world::{IMut, Rc, RcLike, Weak, WeakLike, WorldDefault},
-	std::collections::{HashMap, HashSet},
+	std::collections::HashSet,
 };
 #[cfg(debug_assertions)]
 use {core::panic::Location, dynatos_world::IMutLike};
 
-/// World for [`Effect`]
-// TODO: This needs to be kept in sync with `TriggerWorld`, should we just move the common parts somewhere?
-#[expect(private_bounds, reason = "We can't *not* leak some implementation details currently")]
-pub trait EffectWorld = ReactiveWorld
-where
-	Weak<Inner<world::F<Self>, Self>, Self>: CoerceUnsized<Weak<Inner<world::F<Self>, Self>, Self>>,
-	IMut<HashMap<crate::Subscriber<Self>, trigger::SubscriberInfo>, Self>: Sized,
-	IMut<HashSet<WeakTrigger<Self>>, Self>: Sized;
-
 /// Effect inner
-struct Inner<F: ?Sized, W: EffectWorld> {
+pub(crate) struct Inner<F: ?Sized, W: ReactiveWorld> {
 	/// Whether this effect is currently suppressed
 	suppressed: AtomicBool,
 
@@ -57,7 +47,7 @@ struct Inner<F: ?Sized, W: EffectWorld> {
 }
 
 /// Effect
-pub struct Effect<F: ?Sized, W: EffectWorld = WorldDefault> {
+pub struct Effect<F: ?Sized, W: ReactiveWorld = WorldDefault> {
 	/// Inner
 	inner: Rc<Inner<F, W>, W>,
 }
@@ -95,7 +85,7 @@ impl<F> Effect<F, WorldDefault> {
 	}
 }
 
-impl<F, W: EffectWorld> Effect<F, W> {
+impl<F, W: ReactiveWorld> Effect<F, W> {
 	/// Creates a new computed effect within a world.
 	///
 	/// Runs the effect once to gather dependencies.
@@ -150,7 +140,7 @@ impl<F, W: EffectWorld> Effect<F, W> {
 	}
 }
 
-impl<F: ?Sized, W: EffectWorld> Effect<F, W> {
+impl<F: ?Sized, W: ReactiveWorld> Effect<F, W> {
 	/// Accesses the inner function
 	#[must_use]
 	pub fn inner_fn(&self) -> &F {
@@ -276,15 +266,15 @@ impl<F: ?Sized, W: EffectWorld> Effect<F, W> {
 	}
 }
 
-impl<F1: ?Sized, F2: ?Sized, W: EffectWorld> PartialEq<Effect<F2, W>> for Effect<F1, W> {
+impl<F1: ?Sized, F2: ?Sized, W: ReactiveWorld> PartialEq<Effect<F2, W>> for Effect<F1, W> {
 	fn eq(&self, other: &Effect<F2, W>) -> bool {
 		core::ptr::eq(self.inner_ptr(), other.inner_ptr())
 	}
 }
 
-impl<F: ?Sized, W: EffectWorld> Eq for Effect<F, W> {}
+impl<F: ?Sized, W: ReactiveWorld> Eq for Effect<F, W> {}
 
-impl<F: ?Sized, W: EffectWorld> Clone for Effect<F, W> {
+impl<F: ?Sized, W: ReactiveWorld> Clone for Effect<F, W> {
 	fn clone(&self) -> Self {
 		Self {
 			inner: Rc::<_, W>::clone(&self.inner),
@@ -292,13 +282,13 @@ impl<F: ?Sized, W: EffectWorld> Clone for Effect<F, W> {
 	}
 }
 
-impl<F: ?Sized, W: EffectWorld> Hash for Effect<F, W> {
+impl<F: ?Sized, W: ReactiveWorld> Hash for Effect<F, W> {
 	fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
 		Rc::<_, W>::as_ptr(&self.inner).hash(state);
 	}
 }
 
-impl<F: ?Sized, W: EffectWorld> fmt::Debug for Effect<F, W> {
+impl<F: ?Sized, W: ReactiveWorld> fmt::Debug for Effect<F, W> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		self.fmt_debug(f.debug_struct("Effect"))
 	}
@@ -308,7 +298,7 @@ impl<F1, F2, W> CoerceUnsized<Effect<F2, W>> for Effect<F1, W>
 where
 	F1: ?Sized + Unsize<F2>,
 	F2: ?Sized,
-	W: EffectWorld,
+	W: ReactiveWorld,
 	Rc<Inner<F1, W>, W>: CoerceUnsized<Rc<Inner<F2, W>, W>>,
 {
 }
@@ -317,12 +307,12 @@ where
 /// Weak effect
 ///
 /// Used to break ownership between a signal and it's subscribers
-pub struct WeakEffect<F: ?Sized, W: EffectWorld = WorldDefault> {
+pub struct WeakEffect<F: ?Sized, W: ReactiveWorld = WorldDefault> {
 	/// Inner
 	inner: Weak<Inner<F, W>, W>,
 }
 
-impl<F: ?Sized, W: EffectWorld> WeakEffect<F, W> {
+impl<F: ?Sized, W: ReactiveWorld> WeakEffect<F, W> {
 	/// Upgrades this effect
 	#[must_use]
 	pub fn upgrade(&self) -> Option<Effect<F, W>> {
@@ -361,15 +351,15 @@ impl<F: ?Sized, W: EffectWorld> WeakEffect<F, W> {
 	}
 }
 
-impl<F1: ?Sized, F2: ?Sized, W: EffectWorld> PartialEq<WeakEffect<F2, W>> for WeakEffect<F1, W> {
+impl<F1: ?Sized, F2: ?Sized, W: ReactiveWorld> PartialEq<WeakEffect<F2, W>> for WeakEffect<F1, W> {
 	fn eq(&self, other: &WeakEffect<F2, W>) -> bool {
 		core::ptr::eq(self.inner_ptr(), other.inner_ptr())
 	}
 }
 
-impl<F: ?Sized, W: EffectWorld> Eq for WeakEffect<F, W> {}
+impl<F: ?Sized, W: ReactiveWorld> Eq for WeakEffect<F, W> {}
 
-impl<F: ?Sized, W: EffectWorld> Clone for WeakEffect<F, W> {
+impl<F: ?Sized, W: ReactiveWorld> Clone for WeakEffect<F, W> {
 	fn clone(&self) -> Self {
 		Self {
 			inner: Weak::<_, W>::clone(&self.inner),
@@ -378,13 +368,13 @@ impl<F: ?Sized, W: EffectWorld> Clone for WeakEffect<F, W> {
 }
 
 
-impl<F: ?Sized, W: EffectWorld> Hash for WeakEffect<F, W> {
+impl<F: ?Sized, W: ReactiveWorld> Hash for WeakEffect<F, W> {
 	fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
 		self.inner_ptr().hash(state);
 	}
 }
 
-impl<F: ?Sized, W: EffectWorld> fmt::Debug for WeakEffect<F, W> {
+impl<F: ?Sized, W: ReactiveWorld> fmt::Debug for WeakEffect<F, W> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		let mut s = f.debug_struct("WeakEffect");
 
@@ -399,7 +389,7 @@ impl<F1, F2, W> CoerceUnsized<WeakEffect<F2, W>> for WeakEffect<F1, W>
 where
 	F1: ?Sized + Unsize<F2>,
 	F2: ?Sized,
-	W: EffectWorld,
+	W: ReactiveWorld,
 	Weak<Inner<F1, W>, W>: CoerceUnsized<Weak<Inner<F2, W>, W>>,
 {
 }
@@ -408,9 +398,9 @@ where
 ///
 /// While this type is alive, any signals used will
 /// be added as a dependency.
-pub struct EffectDepsGatherer<W: EffectWorld = WorldDefault>(PhantomData<W>);
+pub struct EffectDepsGatherer<W: ReactiveWorld = WorldDefault>(PhantomData<W>);
 
-impl<W: EffectWorld> Drop for EffectDepsGatherer<W> {
+impl<W: ReactiveWorld> Drop for EffectDepsGatherer<W> {
 	fn drop(&mut self) {
 		// Pop our effect from the stack
 		world::pop_effect::<W>();
@@ -420,7 +410,7 @@ impl<W: EffectWorld> Drop for EffectDepsGatherer<W> {
 /// Returns the current running effect
 // TODO: Move this elsewhere
 #[must_use]
-pub fn running<W: EffectWorld>() -> Option<WeakEffect<world::F<W>, W>> {
+pub fn running<W: ReactiveWorld>() -> Option<WeakEffect<world::F<W>, W>> {
 	world::top_effect::<W>()
 }
 

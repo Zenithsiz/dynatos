@@ -2,16 +2,7 @@
 
 // Imports
 use {
-	crate::{
-		trigger::TriggerWorld,
-		world::UnsizeF,
-		Effect,
-		EffectRun,
-		ReactiveWorld,
-		SignalBorrow,
-		SignalWith,
-		Trigger,
-	},
+	crate::{world::UnsizeF, Effect, EffectRun, ReactiveWorld, SignalBorrow, SignalWith, Trigger},
 	core::{
 		fmt,
 		marker::{PhantomData, Unsize},
@@ -21,7 +12,7 @@ use {
 };
 
 /// World for [`Memo`]
-pub trait MemoWorld<T, F: ?Sized> = ReactiveWorld + TriggerWorld where IMut<Option<T>, Self>: Sized;
+pub trait MemoWorld<T, F: ?Sized> = ReactiveWorld where IMut<Option<T>, Self>: Sized;
 
 /// Memo signal.
 ///

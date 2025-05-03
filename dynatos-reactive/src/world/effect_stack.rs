@@ -2,13 +2,15 @@
 
 // Imports
 use {
-	crate::{effect::EffectWorld, EffectRun, ReactiveWorld, WeakEffect},
+	super::ReactiveWorld,
+	crate::{EffectRun, WeakEffect},
 	core::marker::Unsize,
 	dynatos_world::{IMut, IMutLike, WorldGlobal, WorldThreadLocal},
 };
 
 /// Effect stack
-pub trait EffectStack<W: ReactiveWorld>: Sized {
+// TODO: Require `W: ReactiveWorld` once that doesn't result in a cycle overflow.
+pub trait EffectStack<W>: Sized {
 	/// Effect function
 	type F: ?Sized + EffectRun + Unsize<Self::F> + 'static;
 
@@ -16,7 +18,7 @@ pub trait EffectStack<W: ReactiveWorld>: Sized {
 	fn push_effect<F>(f: WeakEffect<F, W>)
 	where
 		F: ?Sized + Unsize<Self::F>,
-		W: EffectWorld;
+		W: ReactiveWorld;
 
 	/// Pops an effect from the stack
 	fn pop_effect();
@@ -24,7 +26,7 @@ pub trait EffectStack<W: ReactiveWorld>: Sized {
 	/// Returns the top effect of the stack
 	fn top_effect() -> Option<WeakEffect<Self::F, W>>
 	where
-		W: EffectWorld;
+		W: ReactiveWorld;
 }
 
 /// Effect stack impl

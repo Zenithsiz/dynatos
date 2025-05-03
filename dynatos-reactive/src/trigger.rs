@@ -5,13 +5,7 @@
 
 // Imports
 use {
-	crate::{
-		effect::{self, EffectWorld},
-		world,
-		Effect,
-		ReactiveWorld,
-		WeakEffect,
-	},
+	crate::{effect, world, Effect, ReactiveWorld, WeakEffect},
 	core::{
 		fmt,
 		hash::{Hash, Hasher},
@@ -26,18 +20,14 @@ use {
 	std::collections::HashSet,
 };
 
-/// World for [`Trigger`]
-#[expect(private_bounds, reason = "We can't *not* leak some implementation details currently")]
-pub trait TriggerWorld = ReactiveWorld + EffectWorld where IMut<HashMap<Subscriber<Self>, SubscriberInfo>, Self>: Sized;
-
 /// Subscribers
 #[derive(Debug)]
-pub struct Subscriber<W: TriggerWorld> {
+pub struct Subscriber<W: ReactiveWorld> {
 	/// Effect
 	effect: WeakEffect<world::F<W>, W>,
 }
 
-impl<W: TriggerWorld> Clone for Subscriber<W> {
+impl<W: ReactiveWorld> Clone for Subscriber<W> {
 	fn clone(&self) -> Self {
 		Self {
 			effect: self.effect.clone(),
@@ -45,15 +35,15 @@ impl<W: TriggerWorld> Clone for Subscriber<W> {
 	}
 }
 
-impl<W: TriggerWorld> PartialEq for Subscriber<W> {
+impl<W: ReactiveWorld> PartialEq for Subscriber<W> {
 	fn eq(&self, other: &Self) -> bool {
 		self.effect == other.effect
 	}
 }
 
-impl<W: TriggerWorld> Eq for Subscriber<W> {}
+impl<W: ReactiveWorld> Eq for Subscriber<W> {}
 
-impl<W: TriggerWorld> Hash for Subscriber<W> {
+impl<W: ReactiveWorld> Hash for Subscriber<W> {
 	fn hash<H: Hasher>(&self, state: &mut H) {
 		self.effect.hash(state);
 	}
@@ -97,7 +87,7 @@ impl SubscriberInfo {
 }
 
 /// Trigger inner
-struct Inner<W: TriggerWorld> {
+struct Inner<W: ReactiveWorld> {
 	/// Subscribers
 	#[cfg_attr(
 		not(debug_assertions),
@@ -114,7 +104,7 @@ struct Inner<W: TriggerWorld> {
 }
 
 /// Trigger
-pub struct Trigger<W: TriggerWorld = WorldDefault> {
+pub struct Trigger<W: ReactiveWorld = WorldDefault> {
 	/// Inner
 	inner: Rc<Inner<W>, W>,
 }
@@ -128,7 +118,7 @@ impl Trigger<WorldDefault> {
 	}
 }
 
-impl<W: TriggerWorld> Trigger<W> {
+impl<W: ReactiveWorld> Trigger<W> {
 	/// Creates a new trigger in a world
 	#[must_use]
 	#[track_caller]
@@ -269,22 +259,22 @@ impl<W: TriggerWorld> Trigger<W> {
 	}
 }
 
-impl<W: TriggerWorld + Default> Default for Trigger<W> {
+impl<W: ReactiveWorld + Default> Default for Trigger<W> {
 	fn default() -> Self {
 		Self::new_in(W::default())
 	}
 }
 
-impl<W: TriggerWorld> PartialEq for Trigger<W> {
+impl<W: ReactiveWorld> PartialEq for Trigger<W> {
 	fn eq(&self, other: &Self) -> bool {
 		core::ptr::eq(Rc::<_, W>::as_ptr(&self.inner), Rc::<_, W>::as_ptr(&other.inner))
 	}
 }
 
-impl<W: TriggerWorld> Eq for Trigger<W> {}
+impl<W: ReactiveWorld> Eq for Trigger<W> {}
 
 
-impl<W: TriggerWorld> Clone for Trigger<W> {
+impl<W: ReactiveWorld> Clone for Trigger<W> {
 	fn clone(&self) -> Self {
 		Self {
 			inner: Rc::<_, W>::clone(&self.inner),
@@ -292,25 +282,25 @@ impl<W: TriggerWorld> Clone for Trigger<W> {
 	}
 }
 
-impl<W: TriggerWorld> Hash for Trigger<W> {
+impl<W: ReactiveWorld> Hash for Trigger<W> {
 	fn hash<H: Hasher>(&self, state: &mut H) {
 		Rc::<_, W>::as_ptr(&self.inner).hash(state);
 	}
 }
 
-impl<W: TriggerWorld> fmt::Debug for Trigger<W> {
+impl<W: ReactiveWorld> fmt::Debug for Trigger<W> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		self.fmt_debug(f.debug_struct("Trigger"))
 	}
 }
 
 /// Weak trigger
-pub struct WeakTrigger<W: TriggerWorld> {
+pub struct WeakTrigger<W: ReactiveWorld> {
 	/// Inner
 	inner: Weak<Inner<W>, W>,
 }
 
-impl<W: TriggerWorld> WeakTrigger<W> {
+impl<W: ReactiveWorld> WeakTrigger<W> {
 	/// Upgrades this weak trigger
 	#[must_use]
 	pub fn upgrade(&self) -> Option<Trigger<W>> {
@@ -319,15 +309,15 @@ impl<W: TriggerWorld> WeakTrigger<W> {
 	}
 }
 
-impl<W: TriggerWorld> PartialEq for WeakTrigger<W> {
+impl<W: ReactiveWorld> PartialEq for WeakTrigger<W> {
 	fn eq(&self, other: &Self) -> bool {
 		core::ptr::eq(Weak::<_, W>::as_ptr(&self.inner), Weak::<_, W>::as_ptr(&other.inner))
 	}
 }
 
-impl<W: TriggerWorld> Eq for WeakTrigger<W> {}
+impl<W: ReactiveWorld> Eq for WeakTrigger<W> {}
 
-impl<W: TriggerWorld> Clone for WeakTrigger<W> {
+impl<W: ReactiveWorld> Clone for WeakTrigger<W> {
 	fn clone(&self) -> Self {
 		Self {
 			inner: Weak::<_, W>::clone(&self.inner),
@@ -335,13 +325,13 @@ impl<W: TriggerWorld> Clone for WeakTrigger<W> {
 	}
 }
 
-impl<W: TriggerWorld> Hash for WeakTrigger<W> {
+impl<W: ReactiveWorld> Hash for WeakTrigger<W> {
 	fn hash<H: Hasher>(&self, state: &mut H) {
 		Weak::<_, W>::as_ptr(&self.inner).hash(state);
 	}
 }
 
-impl<W: TriggerWorld> fmt::Debug for WeakTrigger<W> {
+impl<W: ReactiveWorld> fmt::Debug for WeakTrigger<W> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		let mut s = f.debug_struct("WeakTrigger");
 
@@ -353,12 +343,12 @@ impl<W: TriggerWorld> fmt::Debug for WeakTrigger<W> {
 }
 
 /// Types that may be converted into a subscriber
-pub trait IntoSubscriber<W: TriggerWorld> {
+pub trait IntoSubscriber<W: ReactiveWorld> {
 	/// Converts this type into a weak effect.
 	fn into_subscriber(self) -> Subscriber<W>;
 }
 
-impl<W: TriggerWorld> IntoSubscriber<W> for Subscriber<W> {
+impl<W: ReactiveWorld> IntoSubscriber<W> for Subscriber<W> {
 	fn into_subscriber(self) -> Self {
 		self
 	}
@@ -375,7 +365,7 @@ impl<W: TriggerWorld> IntoSubscriber<W> for Subscriber<W> {
 impl<F, W> IntoSubscriber<W> for T<F, W>
 where
 	F: ?Sized + core::marker::Unsize<world::F<W>>,
-	W: TriggerWorld,
+	W: ReactiveWorld,
 	WeakEffect<F, W>: CoerceUnsized<WeakEffect<world::F<W>, W>>,
 {
 	#[track_caller]

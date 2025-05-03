@@ -17,21 +17,30 @@ pub use self::effect_stack::{EffectStack, EffectStackGlobal, EffectStackThreadLo
 
 // Imports
 use {
-	crate::{effect::EffectWorld, WeakEffect},
-	core::marker::Unsize,
-	dynatos_world::{World, WorldGlobal, WorldThreadLocal},
+	crate::{effect, trigger, WeakEffect, WeakTrigger},
+	core::{marker::Unsize, ops::CoerceUnsized},
+	dynatos_world::{IMut, Weak, World, WorldGlobal, WorldThreadLocal},
+	std::collections::{HashMap, HashSet},
 };
 
 /// Reactive world
-pub trait ReactiveWorld: World {
+pub trait ReactiveWorldInner: World {
 	/// Effect stack
 	type EffectStack: EffectStack<Self>;
 }
 
-impl ReactiveWorld for WorldThreadLocal {
+// TODO: Remove this once we can assume these bounds, or somehow encode them into `ReactiveWorldInner`
+#[expect(private_bounds, reason = "We can't *not* leak some implementation details currently")]
+pub trait ReactiveWorld = ReactiveWorldInner
+where
+	Weak<effect::Inner<F<Self>, Self>, Self>: CoerceUnsized<Weak<effect::Inner<F<Self>, Self>, Self>>,
+	IMut<HashMap<crate::Subscriber<Self>, trigger::SubscriberInfo>, Self>: Sized,
+	IMut<HashSet<WeakTrigger<Self>>, Self>: Sized;
+
+impl ReactiveWorldInner for WorldThreadLocal {
 	type EffectStack = EffectStackThreadLocal;
 }
-impl ReactiveWorld for WorldGlobal {
+impl ReactiveWorldInner for WorldGlobal {
 	type EffectStack = EffectStackGlobal;
 }
 
@@ -44,8 +53,8 @@ pub trait UnsizeF<W: ReactiveWorld> = Unsize<F<W>>;
 /// Pushes an effect onto the effect stack of the world `W`
 pub fn push_effect<F, W>(effect: WeakEffect<F, W>)
 where
-	W: EffectWorld,
 	F: ?Sized + Unsize<self::F<W>>,
+	W: ReactiveWorld,
 {
 	W::EffectStack::push_effect(effect);
 }
@@ -53,7 +62,7 @@ where
 /// Pops an effect onto the effect stack of the world `W`
 pub fn pop_effect<W>()
 where
-	W: EffectWorld,
+	W: ReactiveWorld,
 {
 	W::EffectStack::pop_effect();
 }
@@ -62,7 +71,7 @@ where
 #[must_use]
 pub fn top_effect<W>() -> Option<WeakEffect<F<W>, W>>
 where
-	W: EffectWorld,
+	W: ReactiveWorld,
 {
 	W::EffectStack::top_effect()
 }
