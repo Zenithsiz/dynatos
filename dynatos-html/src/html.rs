@@ -3,7 +3,7 @@
 // Imports
 use {
 	wasm_bindgen::{JsCast, JsValue},
-	web_sys::{Element, HtmlCanvasElement, HtmlImageElement, HtmlInputElement},
+	web_sys::{Element, HtmlCanvasElement, HtmlImageElement, HtmlInputElement, HtmlTextAreaElement},
 };
 
 /// Html namespace
@@ -175,7 +175,7 @@ decl_elements! {
 	tbody,
 	td,
 	template,
-	textarea,
+	textarea: HtmlTextAreaElement,
 	tfoot,
 	th,
 	thead,
