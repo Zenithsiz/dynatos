@@ -84,8 +84,6 @@ where
 	}
 }
 
-// TODO: Impl `SignalGet<Option<T>>` once we can?
-
 impl<S, T> SignalReplace<T> for WithDefault<S, T>
 where
 	S: SignalReplace<Option<T>>,

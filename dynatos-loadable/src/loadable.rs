@@ -260,13 +260,17 @@ where
 	}
 }
 
-impl<T: Copy, E> SignalGetCopy<Loadable<T, E>> for Loadable<&'_ T, E> {
+impl<T: Copy + 'static, E: 'static> SignalGetCopy for Loadable<&'_ T, E> {
+	type Value = Loadable<T, E>;
+
 	fn copy_value(self) -> Loadable<T, E> {
 		self.map(|value| *value)
 	}
 }
 
-impl<T: Clone, E> SignalGetClone<Loadable<T, E>> for Loadable<&'_ T, E> {
+impl<T: Clone + 'static, E: 'static> SignalGetClone for Loadable<&'_ T, E> {
+	type Value = Loadable<T, E>;
+
 	fn clone_value(self) -> Loadable<T, E> {
 		self.map(|value| value.clone())
 	}
