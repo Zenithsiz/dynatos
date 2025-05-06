@@ -7,11 +7,18 @@
 //       which doesn't allow casting to `Rc<dyn Any>`, required by `Rc::downcast`.
 
 // Imports
+#[cfg(debug_assertions)]
+use {
+	crate::WeakTrigger,
+	core::panic::Location,
+	dynatos_world::IMut,
+	dynatos_world::IMutLike,
+	std::collections::HashSet,
+};
 use {
 	crate::{
 		world::{self, UnsizeF},
 		ReactiveWorld,
-		WeakTrigger,
 	},
 	core::{
 		fmt,
@@ -20,11 +27,8 @@ use {
 		ops::CoerceUnsized,
 		sync::atomic::{self, AtomicBool},
 	},
-	dynatos_world::{IMut, Rc, RcLike, Weak, WeakLike, WorldDefault},
-	std::collections::HashSet,
+	dynatos_world::{Rc, RcLike, Weak, WeakLike, WorldDefault},
 };
-#[cfg(debug_assertions)]
-use {core::panic::Location, dynatos_world::IMutLike};
 
 /// Effect inner
 pub(crate) struct Inner<F: ?Sized, W: ReactiveWorld> {
