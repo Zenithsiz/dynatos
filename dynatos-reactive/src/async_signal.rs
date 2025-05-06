@@ -273,8 +273,8 @@ where
 	F::Output: fmt::Debug,
 {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		let value = self.borrow();
-		f.debug_struct("AsyncSignal").field("value", &value).finish()
+		let value = self.borrow_unloaded();
+		f.debug_struct("AsyncSignal").field("value", &value.as_deref()).finish()
 	}
 }
 
