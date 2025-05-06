@@ -12,7 +12,10 @@ use {
 
 /// Extension trait to add a reactive child to an node
 #[extend::ext(name = NodeDynChild)]
-pub impl web_sys::Node {
+pub impl<N> N
+where
+	N: AsRef<web_sys::Node>,
+{
 	/// Adds a dynamic child to this node
 	#[track_caller]
 	fn add_dyn_child<C>(&self, child: C)
@@ -27,7 +30,7 @@ pub impl web_sys::Node {
 		//       of the node, in case of `f` returning `None`.
 		// TODO: Find a better solution for when `f` returns `None` that doesn't involve
 		//       adding an element to the dom?
-		let node = WeakRef::new(self);
+		let node = WeakRef::new(self.as_ref());
 		let prev_child = RefCell::new(None::<web_sys::Node>);
 		let empty_child = web_sys::Node::from(html::template());
 		let child_effect = Effect::try_new(move || {
@@ -86,7 +89,7 @@ pub impl web_sys::Node {
 		.or_return()?;
 
 		// Then set it
-		self.attach_effect(child_effect);
+		self.as_ref().attach_effect(child_effect);
 	}
 }
 
@@ -104,7 +107,7 @@ where
 	where
 		C: ToDynNode + 'static,
 	{
-		self.as_ref().add_dyn_child(child);
+		self.add_dyn_child(child);
 		self
 	}
 }

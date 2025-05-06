@@ -195,9 +195,17 @@ impl Node {
 					.iter()
 					.filter_map(|child| {
 						let child = Self::from_html(child)?;
-						Some(syn::parse_quote! {
-							dynatos_html::NodeAddChildren::add_child(&#el, #child);
-						})
+
+						let expr = match child.ty {
+							NodeTy::Element | NodeTy::Text | NodeTy::Comment => syn::parse_quote! {
+								dynatos_html::NodeAddChildren::add_child(&#el, #child);
+							},
+							NodeTy::Expr => syn::parse_quote! {
+								dynatos::NodeDynChild::add_dyn_child(&#el, #child);
+							},
+						};
+
+						Some(expr)
 					})
 					.collect::<Vec<syn::Stmt>>();
 
