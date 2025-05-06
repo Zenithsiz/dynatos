@@ -86,22 +86,27 @@ where
 
 impl<S, T> SignalReplace<T> for WithDefault<S, T>
 where
-	S: SignalReplace<Option<T>>,
+	S: SignalReplace<Option<T>, Value = Option<T>>,
 	T: Copy,
 {
+	type Value = T;
+
 	#[track_caller]
-	fn replace(&self, new_value: T) -> T {
+	fn replace(&self, new_value: T) -> Self::Value {
 		self.inner.replace(Some(new_value)).unwrap_or(self.default)
 	}
 }
 
 impl<S, T> SignalReplace<Option<T>> for WithDefault<S, T>
 where
-	S: SignalReplace<Option<T>>,
+	S: SignalReplace<Option<T>, Value = Option<T>>,
+	T: Copy,
 {
+	type Value = T;
+
 	#[track_caller]
-	fn replace(&self, new_value: Option<T>) -> Option<T> {
-		self.inner.replace(new_value)
+	fn replace(&self, new_value: Option<T>) -> Self::Value {
+		self.inner.replace(new_value).unwrap_or(self.default)
 	}
 }
 

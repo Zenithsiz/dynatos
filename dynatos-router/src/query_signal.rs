@@ -131,8 +131,10 @@ impl<T> SignalReplace<Option<T>> for QuerySignal<T>
 where
 	T: ToString + 'static,
 {
+	type Value = Option<T>;
+
 	#[track_caller]
-	fn replace(&self, new_value: Option<T>) -> Option<T> {
+	fn replace(&self, new_value: Option<T>) -> Self::Value {
 		mem::replace(&mut self.borrow_mut(), new_value)
 	}
 }

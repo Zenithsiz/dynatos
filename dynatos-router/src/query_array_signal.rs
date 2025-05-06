@@ -132,8 +132,10 @@ impl<T> SignalReplace<Vec<T>> for QueryArraySignal<T>
 where
 	T: ToString + 'static,
 {
+	type Value = Vec<T>;
+
 	#[track_caller]
-	fn replace(&self, new_value: Vec<T>) -> Vec<T> {
+	fn replace(&self, new_value: Vec<T>) -> Self::Value {
 		mem::replace(&mut self.borrow_mut(), new_value)
 	}
 }
