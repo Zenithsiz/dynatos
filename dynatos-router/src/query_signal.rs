@@ -263,3 +263,5 @@ where
 		f(&mut *value)
 	}
 }
+
+impl<T> signal::SignalSetDefaultImpl for QuerySignal<T> {}

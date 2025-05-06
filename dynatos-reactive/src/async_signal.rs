@@ -2,7 +2,7 @@
 
 // Imports
 use {
-	crate::{ReactiveWorld, SignalBorrow, SignalBorrowMut, SignalUpdate, SignalWith, Trigger},
+	crate::{ReactiveWorld, SignalBorrow, SignalBorrowMut, SignalSetDefaultImpl, SignalUpdate, SignalWith, Trigger},
 	core::{
 		fmt,
 		future::Future,
@@ -416,6 +416,8 @@ where
 		f(value)
 	}
 }
+
+impl<F: Loader, W: AsyncReactiveWorld<F>> SignalSetDefaultImpl for AsyncSignal<F, W> {}
 
 /// Loader
 pub trait Loader: 'static {

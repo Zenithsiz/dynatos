@@ -12,6 +12,7 @@ use {
 		AsyncSignal,
 		SignalBorrow,
 		SignalBorrowMut,
+		SignalSetDefaultImpl,
 		SignalUpdate,
 		SignalWith,
 	},
@@ -274,3 +275,5 @@ where
 		f(value)
 	}
 }
+
+impl<F: Loader> SignalSetDefaultImpl for LoadableSignal<F> {}

@@ -2,7 +2,7 @@
 
 // Imports
 use {
-	crate::{SignalBorrow, SignalBorrowMut, SignalReplace, SignalUpdate, SignalWith},
+	crate::{SignalBorrow, SignalBorrowMut, SignalReplace, SignalSet, SignalSetDefaultImpl, SignalUpdate, SignalWith},
 	core::ops::{Deref, DerefMut},
 };
 
@@ -81,6 +81,29 @@ where
 			Some(value) => f(value),
 			None => f(&self.default),
 		})
+	}
+}
+
+// Note: We disable the default impl because we can impl `SignalSet<T>` more
+//       efficiently and with less bounds since we don't need to update the
+//       value with the default, just to overwrite it afterwards.
+impl<S, T> !SignalSetDefaultImpl for WithDefault<S, T> {}
+
+impl<S, T> SignalSet<T> for WithDefault<S, T>
+where
+	S: SignalSet<Option<T>>,
+{
+	fn set(&self, new_value: T) {
+		self.inner.set(Some(new_value));
+	}
+}
+
+impl<S, T> SignalSet<Option<T>> for WithDefault<S, T>
+where
+	S: SignalSet<Option<T>>,
+{
+	fn set(&self, new_value: Option<T>) {
+		self.inner.set(new_value);
 	}
 }
 

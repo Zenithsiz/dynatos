@@ -15,7 +15,9 @@
 	local_waker,
 	cell_update,
 	debug_closure_helpers,
-	decl_macro
+	decl_macro,
+	auto_traits,
+	negative_impls
 )]
 
 // Modules
@@ -44,7 +46,7 @@ pub use self::{
 		SignalGetCopy,
 		SignalReplace,
 		SignalSet,
-		SignalSetWith,
+		SignalSetDefaultImpl,
 		SignalUpdate,
 		SignalWith,
 	},

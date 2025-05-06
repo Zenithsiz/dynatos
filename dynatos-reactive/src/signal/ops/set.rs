@@ -19,6 +19,12 @@ impl<T> SignalSetWith<T> for &'_ mut Option<T> {
 	}
 }
 
+/// Auto trait implemented for all signals that want a default implementation of `SignalSet`
+///
+/// If you are writing a signal type with type parameters, you should manually implement
+/// this auto trait, since those type parameters might disable it (although this only mattering for signals)
+pub auto trait SignalSetDefaultImpl {}
+
 /// Signal set
 pub trait SignalSet<Value> {
 	/// Sets the signal value
@@ -27,8 +33,7 @@ pub trait SignalSet<Value> {
 
 impl<S, T> SignalSet<T> for S
 where
-	S: SignalUpdate,
-	for<'a> S::Value<'a>: SignalSetWith<T>,
+	S: for<'a> SignalUpdate<Value<'a>: SignalSetWith<T>> + SignalSetDefaultImpl,
 {
 	#[track_caller]
 	fn set(&self, new_value: T) {

@@ -16,7 +16,7 @@ pub use ops::{
 	SignalGetCopy,
 	SignalReplace,
 	SignalSet,
-	SignalSetWith,
+	SignalSetDefaultImpl,
 	SignalUpdate,
 	SignalWith,
 };
@@ -230,6 +230,8 @@ impl<T: ?Sized + 'static, W: ReactiveWorld> SignalUpdate for Signal<T, W> {
 		f(&mut *value)
 	}
 }
+
+impl<T, W: ReactiveWorld> SignalSetDefaultImpl for Signal<T, W> {}
 
 impl<T, W: ReactiveWorld> Clone for Signal<T, W> {
 	fn clone(&self) -> Self {
