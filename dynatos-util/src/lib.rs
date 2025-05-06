@@ -1,7 +1,7 @@
 //! Utilities for `dynatos`
 
 // Features
-#![feature(decl_macro, never_type, try_trait_v2, cell_update)]
+#![feature(decl_macro, never_type, try_trait_v2)]
 
 // Modules
 pub mod try_or_return;

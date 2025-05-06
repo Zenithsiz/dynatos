@@ -13,7 +13,6 @@
 	once_cell_try,
 	async_fn_traits,
 	local_waker,
-	cell_update,
 	debug_closure_helpers,
 	decl_macro,
 	auto_traits,

@@ -12,8 +12,7 @@
 	trait_alias,
 	once_cell_try,
 	async_fn_traits,
-	local_waker,
-	cell_update
+	local_waker
 )]
 // Lints
 #![expect(
