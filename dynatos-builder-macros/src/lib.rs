@@ -32,6 +32,9 @@ pub fn builder(_attr: TokenStream, input: TokenStream) -> TokenStream {
 	// Return type
 	let ret_ty = &input.sig.output;
 
+	// Function attributes
+	let body_attrs = &input.attrs;
+
 	// Async
 	let asyncness = &input.sig.asyncness;
 	let await_expr = match asyncness {
@@ -260,6 +263,7 @@ pub fn builder(_attr: TokenStream, input: TokenStream) -> TokenStream {
 		impl< #builder_build_ty_params > #builder < #builder_build_type_args >
 			#build_where_bounds
 		{
+			#( #body_attrs )*
 			pub #asyncness fn build(self) #ret_ty {
 				let Self {
 					#builder_props_deconstruct
