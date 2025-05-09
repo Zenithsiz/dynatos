@@ -3,7 +3,7 @@
 // Imports
 use {
 	wasm_bindgen::{JsCast, JsValue},
-	web_sys::{Element, HtmlCanvasElement, HtmlImageElement, HtmlInputElement, HtmlTextAreaElement},
+	web_sys::{HtmlCanvasElement, HtmlElement, HtmlImageElement, HtmlInputElement, HtmlTextAreaElement},
 };
 
 /// Html namespace
@@ -19,13 +19,13 @@ macro el_name {
 	},
 }
 
-/// Expands to `$ElTy`, if present, otherwise to `Element`
+/// Expands to `$ElTy`, if present, otherwise to `HtmlElement`
 macro el_ty {
 	($ElTy:ty) => {
 		$ElTy
 	},
 	() => {
-		Element
+		HtmlElement
 	},
 }
 

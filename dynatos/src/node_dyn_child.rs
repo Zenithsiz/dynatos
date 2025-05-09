@@ -144,6 +144,7 @@ where
 	Ty;
 	[web_sys::Node];
 	[web_sys::Element];
+	[web_sys::HtmlElement];
 )]
 impl ToDynNode for Ty {
 	fn to_node(&self) -> Option<web_sys::Node> {

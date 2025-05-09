@@ -85,6 +85,7 @@ where
 	Ty;
 	[web_sys::Node];
 	[web_sys::Element];
+	[web_sys::HtmlElement];
 )]
 impl WithDynNodes for Ty {
 	fn with_nodes<F>(&self, mut f: F)

@@ -10,7 +10,7 @@ use {
 	dynatos_reactive::{SignalBorrowMut, SignalGet, SignalSet, SignalWithDefault},
 	dynatos_router::{Location, QuerySignal},
 	tracing_subscriber::prelude::*,
-	web_sys::Element,
+	web_sys::HtmlElement,
 	zutil_cloned::cloned,
 };
 
@@ -44,7 +44,7 @@ fn run() -> Result<(), anyhow::Error> {
 	Ok(())
 }
 
-fn page() -> Element {
+fn page() -> HtmlElement {
 	let query = QuerySignal::<i32>::new("a").with_default(20);
 
 	html::div().with_children([
