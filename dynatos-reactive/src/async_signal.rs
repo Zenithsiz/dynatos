@@ -2,7 +2,17 @@
 
 // Imports
 use {
-	crate::{ReactiveWorld, SignalBorrow, SignalBorrowMut, SignalSetDefaultImpl, SignalUpdate, SignalWith, Trigger},
+	crate::{
+		ReactiveWorld,
+		SignalBorrow,
+		SignalBorrowMut,
+		SignalGetClone,
+		SignalGetCopy,
+		SignalSetDefaultImpl,
+		SignalUpdate,
+		SignalWith,
+		Trigger,
+	},
 	core::{
 		fmt,
 		future::Future,
@@ -251,6 +261,28 @@ impl<F: Loader, W: AsyncReactiveWorld<F>> AsyncSignal<F, W> {
 		}
 	}
 
+	/// Copies the inner value, if loaded.
+	///
+	/// If unloaded, starts loading it
+	#[must_use]
+	pub fn get(&self) -> Option<F::Output>
+	where
+		F::Output: Copy,
+	{
+		self.borrow().as_deref().copied()
+	}
+
+	/// Clones the inner value, if loaded.
+	///
+	/// If unloaded, starts loading it
+	#[must_use]
+	pub fn get_cloned(&self) -> Option<F::Output>
+	where
+		F::Output: Clone,
+	{
+		self.borrow().as_deref().cloned()
+	}
+
 	/// Borrows the value, without loading it
 	#[must_use]
 	pub fn borrow_unloaded(&self) -> Option<BorrowRef<'_, F, W>> {
@@ -295,6 +327,22 @@ impl<F: Loader, W: AsyncReactiveWorld<F>> Deref for BorrowRef<'_, F, W> {
 
 	fn deref(&self) -> &Self::Target {
 		self.0.value.as_ref().expect("Borrow was `None`")
+	}
+}
+
+impl<F: Loader<Output: Copy>, W: AsyncReactiveWorld<F>> SignalGetCopy for Option<BorrowRef<'_, F, W>> {
+	type Value = Option<F::Output>;
+
+	fn copy_value(self) -> Self::Value {
+		self.as_deref().copied()
+	}
+}
+
+impl<F: Loader<Output: Clone>, W: AsyncReactiveWorld<F>> SignalGetClone for Option<BorrowRef<'_, F, W>> {
+	type Value = Option<F::Output>;
+
+	fn clone_value(self) -> Self::Value {
+		self.as_deref().cloned()
 	}
 }
 

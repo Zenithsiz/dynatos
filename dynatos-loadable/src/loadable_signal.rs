@@ -12,6 +12,8 @@ use {
 		AsyncSignal,
 		SignalBorrow,
 		SignalBorrowMut,
+		SignalGetClone,
+		SignalGetCopy,
 		SignalSetDefaultImpl,
 		SignalUpdate,
 		SignalWith,
@@ -149,6 +151,32 @@ where
 		self.0
 			.as_ref()
 			.unwrap_or_else(|_| panic!("Loadable should not be an error"))
+	}
+}
+
+impl<F, T, E> SignalGetCopy for Loadable<BorrowRef<'_, F>, E>
+where
+	F: Loader<Output = Result<T, E>>,
+	T: Copy + 'static,
+	E: 'static,
+{
+	type Value = Loadable<T, E>;
+
+	fn copy_value(self) -> Self::Value {
+		self.map(|value| *value)
+	}
+}
+
+impl<F, T, E> SignalGetClone for Loadable<BorrowRef<'_, F>, E>
+where
+	F: Loader<Output = Result<T, E>>,
+	T: Clone + 'static,
+	E: 'static,
+{
+	type Value = Loadable<T, E>;
+
+	fn clone_value(self) -> Self::Value {
+		self.map(|value| value.clone())
 	}
 }
 
