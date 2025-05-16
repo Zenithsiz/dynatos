@@ -162,6 +162,60 @@ impl<T, E> Loadable<&T, E> {
 	}
 }
 
+impl<T, E> Loadable<Option<T>, E> {
+	/// Transposes this loadable
+	pub fn transpose(self) -> Option<Loadable<T, E>>
+	where
+		T: Clone,
+	{
+		match self {
+			Self::Empty => Some(Loadable::Empty),
+			Self::Err(err) => Some(Loadable::Err(err)),
+			Self::Loaded(Some(value)) => Some(Loadable::Loaded(value)),
+			Self::Loaded(None) => None,
+		}
+	}
+
+	/// Flattens this loadable
+	pub fn flatten(self) -> Loadable<T, E>
+	where
+		T: Clone,
+	{
+		match self {
+			Self::Empty | Self::Loaded(None) => Loadable::Empty,
+			Self::Err(err) => Loadable::Err(err),
+			Self::Loaded(Some(value)) => Loadable::Loaded(value),
+		}
+	}
+}
+
+impl<T, E> Loadable<Result<T, E>, E> {
+	/// Transposes this loadable
+	pub fn transpose(self) -> Result<Loadable<T, E>, E>
+	where
+		T: Clone,
+	{
+		match self {
+			Self::Empty => Ok(Loadable::Empty),
+			Self::Err(err) => Ok(Loadable::Err(err)),
+			Self::Loaded(Ok(value)) => Ok(Loadable::Loaded(value)),
+			Self::Loaded(Err(err)) => Err(err),
+		}
+	}
+
+	/// Flattens this loadable
+	pub fn flatten(self) -> Loadable<T, E>
+	where
+		T: Clone,
+	{
+		match self {
+			Self::Empty => Loadable::Empty,
+			Self::Err(err) | Self::Loaded(Err(err)) => Loadable::Err(err),
+			Self::Loaded(Ok(value)) => Loadable::Loaded(value),
+		}
+	}
+}
+
 impl<T, E> From<T> for Loadable<T, E> {
 	fn from(value: T) -> Self {
 		Self::Loaded(value)
