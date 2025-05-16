@@ -2,7 +2,16 @@
 
 // Imports
 use {
-	crate::{SignalBorrow, SignalBorrowMut, SignalReplace, SignalSet, SignalSetDefaultImpl, SignalUpdate, SignalWith},
+	crate::{
+		SignalBorrow,
+		SignalBorrowMut,
+		SignalReplace,
+		SignalSet,
+		SignalSetDefaultImpl,
+		SignalUpdate,
+		SignalWith,
+		SignalWithDefaultImpl,
+	},
 	core::ops::{Deref, DerefMut},
 };
 
@@ -95,7 +104,11 @@ where
 // Note: We disable the default impl because we can impl `SignalSet<T>` more
 //       efficiently and with less bounds since we don't need to update the
 //       value with the default, just to overwrite it afterwards.
-impl<S, T> !SignalSetDefaultImpl for WithDefault<S, T> {}
+impl<S, T: ?Sized> !SignalSetDefaultImpl for WithDefault<S, T> {}
+
+// Note: We disable the default impl because we can impl `SignalWith<T>` for
+//       more signals (e.g. those that only impl `SignalWith` and not `SignalBorrow`)
+impl<S, T: ?Sized> !SignalWithDefaultImpl for WithDefault<S, T> {}
 
 impl<S, T> SignalSet<T> for WithDefault<S, T>
 where

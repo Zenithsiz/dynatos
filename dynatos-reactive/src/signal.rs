@@ -19,6 +19,7 @@ pub use ops::{
 	SignalSetDefaultImpl,
 	SignalUpdate,
 	SignalWith,
+	SignalWithDefaultImpl,
 };
 
 // Imports
@@ -125,19 +126,6 @@ impl<T: ?Sized + 'static, W: ReactiveWorld> SignalBorrow for Signal<T, W> {
 	}
 }
 
-impl<T: ?Sized + 'static, W: ReactiveWorld> SignalWith for Signal<T, W> {
-	type Value<'a> = &'a T;
-
-	#[track_caller]
-	fn with<F, O>(&self, f: F) -> O
-	where
-		F: for<'a> FnOnce(Self::Value<'a>) -> O,
-	{
-		let value = self.borrow();
-		f(&*value)
-	}
-}
-
 impl<T: 'static, W: ReactiveWorld> SignalReplace<T> for Signal<T, W> {
 	type Value = T;
 
@@ -228,7 +216,8 @@ impl<T: ?Sized + 'static, W: ReactiveWorld> SignalUpdate for Signal<T, W> {
 	}
 }
 
-impl<T, W: ReactiveWorld> SignalSetDefaultImpl for Signal<T, W> {}
+impl<T: ?Sized, W: ReactiveWorld> SignalSetDefaultImpl for Signal<T, W> {}
+impl<T: ?Sized, W: ReactiveWorld> SignalWithDefaultImpl for Signal<T, W> {}
 
 impl<T, W: ReactiveWorld> Clone for Signal<T, W> {
 	fn clone(&self) -> Self {

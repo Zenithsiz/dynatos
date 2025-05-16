@@ -4,7 +4,7 @@
 use {
 	core::ops::{Deref, DerefMut},
 	dynatos_html::{ev, EventTargetAddListener},
-	dynatos_reactive::{signal, Signal, SignalBorrow, SignalBorrowMut, SignalUpdate, SignalWith},
+	dynatos_reactive::{signal, Signal, SignalBorrow, SignalBorrowMut, SignalUpdate},
 	url::Url,
 	wasm_bindgen::JsValue,
 	zutil_cloned::cloned,
@@ -72,19 +72,6 @@ impl SignalBorrow for Location {
 	#[track_caller]
 	fn borrow_raw(&self) -> Self::Ref<'_> {
 		BorrowRef(self.0.borrow_raw())
-	}
-}
-
-impl SignalWith for Location {
-	type Value<'a> = &'a Url;
-
-	#[track_caller]
-	fn with<F, O>(&self, f: F) -> O
-	where
-		F: for<'a> FnOnce(Self::Value<'a>) -> O,
-	{
-		let location = self.borrow();
-		f(&location)
 	}
 }
 

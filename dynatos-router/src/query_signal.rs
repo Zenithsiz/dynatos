@@ -280,3 +280,6 @@ where
 }
 
 impl<T> signal::SignalSetDefaultImpl for QuerySignal<T> {}
+
+// Note: We want to return a `Option<&'a T>`, so we can't use the default impl
+impl<T> !signal::SignalWithDefaultImpl for QuerySignal<T> {}

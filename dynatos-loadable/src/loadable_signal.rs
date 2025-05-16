@@ -16,7 +16,7 @@ use {
 		SignalGetCopy,
 		SignalSetDefaultImpl,
 		SignalUpdate,
-		SignalWith,
+		SignalWithDefaultImpl,
 	},
 };
 
@@ -216,24 +216,6 @@ where
 	}
 }
 
-impl<F, T, E> SignalWith for LoadableSignal<F>
-where
-	F: Loader<Output = Result<T, E>>,
-	T: 'static,
-	E: Clone + 'static,
-{
-	type Value<'a> = Loadable<BorrowRef<'a, F>, E>;
-
-	#[track_caller]
-	fn with<F2, O>(&self, f: F2) -> O
-	where
-		F2: for<'a> FnOnce(Self::Value<'a>) -> O,
-	{
-		let value = self.borrow();
-		f(value)
-	}
-}
-
 /// Mutable reference type for [`SignalBorrow`] impl
 pub struct BorrowRefMut<'a, F: Loader>(async_signal::BorrowRefMut<'a, F>);
 
@@ -331,3 +313,4 @@ where
 }
 
 impl<F: Loader> SignalSetDefaultImpl for LoadableSignal<F> {}
+impl<F: Loader> SignalWithDefaultImpl for LoadableSignal<F> {}

@@ -154,8 +154,8 @@ where
 #[duplicate::duplicate_item(
 	Generics Ty;
 	[T] [Signal<T> where T: WithDynAttr + 'static];
-	[T, F] [Derived<T, F> where T: WithDynAttr + 'static, F: ?Sized];
-	[T, F] [Memo<T, F> where T: WithDynAttr + 'static, F: ?Sized];
+	[T, F] [Derived<T, F> where T: WithDynAttr + 'static, F: ?Sized + 'static];
+	[T, F] [Memo<T, F> where T: WithDynAttr + 'static, F: ?Sized + 'static];
 	[S, T] [WithDefault<S, T> where S: for<'a> SignalWith<Value<'a> = Option<&'a T>>, T: WithDynAttr + 'static];
 )]
 impl<Generics> WithDynAttr for Ty {
@@ -214,8 +214,8 @@ impl DynAttrPred for bool {
 #[duplicate::duplicate_item(
 	Generics Ty;
 	[T] [Signal<T> where T: DynAttrPred + 'static];
-	[T, F] [Derived<T, F> where T: DynAttrPred + 'static, F: ?Sized];
-	[T, F] [Memo<T, F> where T: DynAttrPred + 'static, F: ?Sized];
+	[T, F] [Derived<T, F> where T: DynAttrPred + 'static, F: ?Sized + 'static];
+	[T, F] [Memo<T, F> where T: DynAttrPred + 'static, F: ?Sized + 'static];
 	[S, T] [WithDefault<S, T> where S: for<'a> SignalWith<Value<'a> = Option<&'a T>>, T: DynAttrPred + 'static];
 )]
 impl<Generics> DynAttrPred for Ty {

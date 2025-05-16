@@ -122,8 +122,8 @@ where
 #[duplicate::duplicate_item(
 	Generics Ty;
 	[T] [Signal<T> where T: WithDynText + 'static];
-	[T, F] [Derived<T, F> where T: WithDynText + 'static, F: ?Sized];
-	[T, F] [Memo<T, F> where T: WithDynText + 'static, F: ?Sized];
+	[T, F] [Derived<T, F> where T: WithDynText + 'static, F: ?Sized + 'static];
+	[T, F] [Memo<T, F> where T: WithDynText + 'static, F: ?Sized + 'static];
 	[S, T] [WithDefault<S, T> where S: for<'a> SignalWith<Value<'a> = Option<&'a T>>, T: WithDynText + 'static];
 )]
 impl<Generics> WithDynText for Ty {

@@ -19,5 +19,5 @@ pub use self::{
 	replace::SignalReplace,
 	set::{SignalSet, SignalSetDefaultImpl},
 	update::SignalUpdate,
-	with::SignalWith,
+	with::{SignalWith, SignalWithDefaultImpl},
 };

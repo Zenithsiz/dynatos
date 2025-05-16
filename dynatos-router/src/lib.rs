@@ -1,7 +1,7 @@
 //! Routing for `dynatos`
 
 // Features
-#![feature(proc_macro_hygiene, stmt_expr_attributes, let_chains)]
+#![feature(proc_macro_hygiene, stmt_expr_attributes, let_chains, negative_impls)]
 
 // Modules
 mod anchor;

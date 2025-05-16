@@ -149,8 +149,8 @@ impl ToDynProp for Ty {
 #[duplicate::duplicate_item(
 	Generics Ty;
 	[T] [Signal<T> where T: ToDynProp + 'static];
-	[T, F] [Derived<T, F> where T: ToDynProp + 'static, F: ?Sized];
-	[T, F] [Memo<T, F> where T: ToDynProp + 'static, F: ?Sized];
+	[T, F] [Derived<T, F> where T: ToDynProp + 'static, F: ?Sized + 'static];
+	[T, F] [Memo<T, F> where T: ToDynProp + 'static, F: ?Sized + 'static];
 	[S, T] [WithDefault<S, T> where S: for<'a> SignalWith<Value<'a> = Option<&'a T>>, T: ToDynProp + 'static];
 )]
 impl<Generics> ToDynProp for Ty {

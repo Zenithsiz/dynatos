@@ -22,7 +22,7 @@ impl<T> SignalSetWith<T> for &'_ mut Option<T> {
 /// Auto trait implemented for all signals that want a default implementation of `SignalSet`
 ///
 /// If you are writing a signal type with type parameters, you should manually implement
-/// this auto trait, since those type parameters might disable it (although this only mattering for signals)
+/// this auto trait, since those type parameters might disable it
 pub auto trait SignalSetDefaultImpl {}
 
 /// Signal set

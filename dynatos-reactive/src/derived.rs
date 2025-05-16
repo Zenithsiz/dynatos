@@ -33,7 +33,7 @@
 
 // Imports
 use {
-	crate::{world::UnsizeF, Effect, EffectRun, ReactiveWorld, SignalBorrow, SignalWith, Trigger},
+	crate::{world::UnsizeF, Effect, EffectRun, ReactiveWorld, SignalBorrow, SignalWithDefaultImpl, Trigger},
 	core::{
 		fmt,
 		marker::{PhantomData, Unsize},
@@ -130,18 +130,7 @@ impl<T: 'static, F: ?Sized, W: DerivedWorld<T, F>> SignalBorrow for Derived<T, F
 	}
 }
 
-impl<T: 'static, F: ?Sized, W: DerivedWorld<T, F>> SignalWith for Derived<T, F, W> {
-	type Value<'a> = &'a T;
-
-	#[track_caller]
-	fn with<F2, O>(&self, f: F2) -> O
-	where
-		F2: for<'a> FnOnce(Self::Value<'a>) -> O,
-	{
-		let value = self.borrow();
-		f(&value)
-	}
-}
+impl<T: 'static, F: ?Sized, W: DerivedWorld<T, F>> SignalWithDefaultImpl for Derived<T, F, W> {}
 
 impl<T, F: ?Sized, W: DerivedWorld<T, F>> Clone for Derived<T, F, W> {
 	fn clone(&self) -> Self {

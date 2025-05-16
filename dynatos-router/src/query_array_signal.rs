@@ -19,7 +19,6 @@ use {
 		SignalReplace,
 		SignalSet,
 		SignalUpdate,
-		SignalWith,
 	},
 	std::rc::Rc,
 	zutil_cloned::cloned,
@@ -117,19 +116,6 @@ impl<T: 'static> SignalBorrow for QueryArraySignal<T> {
 	#[track_caller]
 	fn borrow_raw(&self) -> Self::Ref<'_> {
 		BorrowRef(self.inner.borrow_raw())
-	}
-}
-
-impl<T: 'static> SignalWith for QueryArraySignal<T> {
-	type Value<'a> = &'a [T];
-
-	#[track_caller]
-	fn with<F, O>(&self, f: F) -> O
-	where
-		F: for<'a> FnOnce(Self::Value<'a>) -> O,
-	{
-		let value = self.borrow();
-		f(&value)
 	}
 }
 
@@ -265,3 +251,4 @@ where
 }
 
 impl<T> signal::SignalSetDefaultImpl for QueryArraySignal<T> {}
+impl<T> signal::SignalWithDefaultImpl for QueryArraySignal<T> {}
