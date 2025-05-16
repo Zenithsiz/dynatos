@@ -18,11 +18,11 @@ use {
 	core::{
 		fmt,
 		hash::Hash,
-		marker::{PhantomData, Unsize},
+		marker::Unsize,
 		ops::CoerceUnsized,
 		sync::atomic::{self, AtomicBool},
 	},
-	dynatos_world::{IMut, IMutLike, Rc, RcLike, Weak, WeakLike, WorldDefault},
+	dynatos_world::{IMut, IMutLike, IMutRefMut, Rc, RcLike, Weak, WeakLike, WorldDefault},
 	std::collections::HashSet,
 };
 
@@ -38,8 +38,8 @@ pub(crate) struct Inner<F: ?Sized, W: ReactiveWorld> {
 	/// All dependencies of this effect
 	dependencies: IMut<HashSet<WeakTrigger<W>>, W>,
 
-	/// Phantom for `W` when it's unused
-	_phantom: PhantomData<W>,
+	/// Lock for gathering dependencies
+	gather_deps_lock: IMut<(), W>,
 
 	/// Effect runner
 	run: F,
@@ -113,7 +113,7 @@ impl<F, W: ReactiveWorld> Effect<F, W> {
 			#[cfg(debug_assertions)]
 			defined_loc: Location::caller(),
 			dependencies: IMut::<_, W>::new(HashSet::new()),
-			_phantom: PhantomData,
+			gather_deps_lock: IMut::<_, W>::new(()),
 			run,
 		};
 
@@ -191,13 +191,10 @@ impl<F: ?Sized, W: ReactiveWorld> Effect<F, W> {
 		// Push the effect
 		world::push_effect(self.downgrade());
 
+		// Lock the dependencies gatherer
+		let gather_deps_lock = self.inner.gather_deps_lock.write();
+
 		// Clear the dependencies
-		// TODO: Do we need to worry about timing here?
-		//       What if the user calls us twice? Should we have
-		//       `EffectDepsGatherer` carry a lock for something?
-		//       It can't have the dependencies copy, as `Trigger`
-		//       needs to be able to add dependencies to us via
-		//       `Self::add_dependency`.
 		let mut deps = self.inner.dependencies.write();
 		#[expect(clippy::iter_over_hash_type, reason = "We don't care about the order here")]
 		for dep in deps.drain() {
@@ -207,7 +204,7 @@ impl<F: ?Sized, W: ReactiveWorld> Effect<F, W> {
 		}
 
 		// Then return the gatherer, which will pop the effect from the stack on drop
-		EffectDepsGatherer(PhantomData)
+		EffectDepsGatherer(gather_deps_lock)
 	}
 
 	/// Gathers dependencies for this effect.
@@ -415,9 +412,9 @@ where
 ///
 /// While this type is alive, any signals used will
 /// be added as a dependency.
-pub struct EffectDepsGatherer<W: ReactiveWorld = WorldDefault>(PhantomData<W>);
+pub struct EffectDepsGatherer<'a, W: ReactiveWorld = WorldDefault>(IMutRefMut<'a, (), W>);
 
-impl<W: ReactiveWorld> Drop for EffectDepsGatherer<W> {
+impl<W: ReactiveWorld> Drop for EffectDepsGatherer<'_, W> {
 	fn drop(&mut self) {
 		// Pop our effect from the stack
 		world::pop_effect::<W>();

@@ -42,7 +42,8 @@ pub trait ReactiveWorld = ReactiveWorldInner
 where
 	Weak<effect::Inner<F<Self>, Self>, Self>: CoerceUnsized<Weak<effect::Inner<F<Self>, Self>, Self>>,
 	IMut<HashMap<crate::Subscriber<Self>, trigger::SubscriberInfo>, Self>: Sized,
-	IMut<HashSet<WeakTrigger<Self>>, Self>: Sized;
+	IMut<HashSet<WeakTrigger<Self>>, Self>: Sized,
+	IMut<(), Self>: Sized;
 
 impl ReactiveWorldInner for WorldThreadLocal {
 	type EffectStack = EffectStackThreadLocal;
