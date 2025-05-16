@@ -31,6 +31,13 @@ pub trait ReactiveWorldInner: World {
 
 // TODO: Remove this once we can assume these bounds, or somehow encode them into `ReactiveWorldInner`
 #[expect(private_bounds, reason = "We can't *not* leak some implementation details currently")]
+#[cfg_attr(
+	not(debug_assertions),
+	expect(
+		clippy::zero_sized_map_values,
+		reason = "It isn't zero sized with `debug_assertions`"
+	)
+)]
 pub trait ReactiveWorld = ReactiveWorldInner
 where
 	Weak<effect::Inner<F<Self>, Self>, Self>: CoerceUnsized<Weak<effect::Inner<F<Self>, Self>, Self>>,

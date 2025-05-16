@@ -1,5 +1,9 @@
 //! Reactivity for `dynatos`
 
+// TODO: Currently both effects and triggers need to keep a map
+//       of dependencies/subscribers to each other, can we change
+//       this to be more efficient?
+
 // Features
 #![feature(
 	unsize,

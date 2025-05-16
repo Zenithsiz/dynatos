@@ -78,7 +78,12 @@ impl SubscriberInfo {
 	#[track_caller]
 	#[cfg_attr(
 		not(debug_assertions),
-		expect(clippy::unused_self, reason = "We use it with `debug_assertions`")
+		expect(
+			clippy::unused_self,
+			clippy::missing_const_for_fn,
+			clippy::needless_pass_by_ref_mut,
+			reason = "We use it in a non-const way with `debug_assertions`"
+		)
 	)]
 	pub fn update(&mut self) {
 		#[cfg(debug_assertions)]
@@ -140,12 +145,6 @@ impl<W: ReactiveWorld> Trigger<W> {
 		}
 	}
 
-	/// Returns where this effect was defined
-	#[cfg(debug_assertions)]
-	pub(crate) fn defined_loc(&self) -> &'static Location<'static> {
-		self.inner.defined_loc
-	}
-
 	/// Downgrades this trigger
 	#[must_use]
 	pub fn downgrade(&self) -> WeakTrigger<W> {
@@ -165,7 +164,6 @@ impl<W: ReactiveWorld> Trigger<W> {
 	#[track_caller]
 	pub fn gather_subscribers(&self) {
 		if let Some(effect) = effect::running::<W>() {
-			#[cfg(debug_assertions)]
 			effect.add_dependency(self.downgrade());
 			self.add_subscriber(effect);
 		}
@@ -193,7 +191,7 @@ impl<W: ReactiveWorld> Trigger<W> {
 	///
 	/// Returns if the subscriber existed
 	#[track_caller]
-	fn _remove_subscriber<S: IntoSubscriber<W>>(&self, subscriber: S) -> bool {
+	pub(crate) fn remove_subscriber<S: IntoSubscriber<W>>(&self, subscriber: S) -> bool {
 		Self::remove_subscriber_inner(&self.inner, subscriber)
 	}
 
@@ -251,6 +249,10 @@ impl<W: ReactiveWorld> Trigger<W> {
 	}
 
 	/// Formats this trigger into `s`
+	#[cfg_attr(
+		not(debug_assertions),
+		expect(clippy::unused_self, reason = "We use it in with `debug_assertions`")
+	)]
 	fn fmt_debug(&self, mut s: fmt::DebugStruct<'_, '_>) -> Result<(), fmt::Error> {
 		#[cfg(debug_assertions)]
 		s.field_with("defined_loc", |f| fmt::Display::fmt(self.inner.defined_loc, f));

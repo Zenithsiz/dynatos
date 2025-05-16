@@ -8,17 +8,12 @@
 
 // Imports
 #[cfg(debug_assertions)]
-use {
-	crate::WeakTrigger,
-	core::panic::Location,
-	dynatos_world::IMut,
-	dynatos_world::IMutLike,
-	std::collections::HashSet,
-};
+use core::panic::Location;
 use {
 	crate::{
 		world::{self, UnsizeF},
 		ReactiveWorld,
+		WeakTrigger,
 	},
 	core::{
 		fmt,
@@ -27,7 +22,8 @@ use {
 		ops::CoerceUnsized,
 		sync::atomic::{self, AtomicBool},
 	},
-	dynatos_world::{Rc, RcLike, Weak, WeakLike, WorldDefault},
+	dynatos_world::{IMut, IMutLike, Rc, RcLike, Weak, WeakLike, WorldDefault},
+	std::collections::HashSet,
 };
 
 /// Effect inner
@@ -39,7 +35,6 @@ pub(crate) struct Inner<F: ?Sized, W: ReactiveWorld> {
 	/// Where this effect was defined
 	defined_loc: &'static Location<'static>,
 
-	#[cfg(debug_assertions)]
 	/// All dependencies of this effect
 	dependencies: IMut<HashSet<WeakTrigger<W>>, W>,
 
@@ -117,7 +112,6 @@ impl<F, W: ReactiveWorld> Effect<F, W> {
 			suppressed: AtomicBool::new(false),
 			#[cfg(debug_assertions)]
 			defined_loc: Location::caller(),
-			#[cfg(debug_assertions)]
 			dependencies: IMut::<_, W>::new(HashSet::new()),
 			_phantom: PhantomData,
 			run,
@@ -187,6 +181,8 @@ impl<F: ?Sized, W: ReactiveWorld> Effect<F, W> {
 	///
 	/// While this type lives, all signals used will be gathered as dependencies
 	/// for this effect.
+	///
+	/// Removes any existing dependencies before returning.
 	#[must_use]
 	pub fn deps_gatherer(&self) -> EffectDepsGatherer<W>
 	where
@@ -195,6 +191,21 @@ impl<F: ?Sized, W: ReactiveWorld> Effect<F, W> {
 		// Push the effect
 		world::push_effect(self.downgrade());
 
+		// Clear the dependencies
+		// TODO: Do we need to worry about timing here?
+		//       What if the user calls us twice? Should we have
+		//       `EffectDepsGatherer` carry a lock for something?
+		//       It can't have the dependencies copy, as `Trigger`
+		//       needs to be able to add dependencies to us via
+		//       `Self::add_dependency`.
+		let mut deps = self.inner.dependencies.write();
+		#[expect(clippy::iter_over_hash_type, reason = "We don't care about the order here")]
+		for dep in deps.drain() {
+			let Some(trigger) = dep.upgrade() else { continue };
+			// TODO: Use `self.downgrade` once we fix issues around the world
+			trigger.remove_subscriber(world::top_effect().expect("Just pushed"));
+		}
+
 		// Then return the gatherer, which will pop the effect from the stack on drop
 		EffectDepsGatherer(PhantomData)
 	}
@@ -202,6 +213,8 @@ impl<F: ?Sized, W: ReactiveWorld> Effect<F, W> {
 	/// Gathers dependencies for this effect.
 	///
 	/// All signals used within `gather` will have this effect as a dependency.
+	///
+	/// Removes any existing dependencies before running.
 	pub fn gather_dependencies<G, O>(&self, gather: G) -> O
 	where
 		F: UnsizeF<W> + 'static,
@@ -217,6 +230,7 @@ impl<F: ?Sized, W: ReactiveWorld> Effect<F, W> {
 		F: EffectRun + UnsizeF<W> + 'static,
 	{
 		// If we're suppressed, don't do anything
+		// TODO: Should we clear our dependencies in this case?
 		if self.inner.suppressed.load(atomic::Ordering::Acquire) {
 			return;
 		}
@@ -247,7 +261,6 @@ impl<F: ?Sized, W: ReactiveWorld> Effect<F, W> {
 		#[cfg(debug_assertions)]
 		s.field_with("defined_loc", |f| fmt::Display::fmt(self.inner.defined_loc, f));
 
-		#[cfg(debug_assertions)]
 		s.field_with("dependencies", |f| {
 			let mut s = f.debug_list();
 
@@ -260,7 +273,8 @@ impl<F: ?Sized, W: ReactiveWorld> Effect<F, W> {
 					s.entry(&"<...>");
 					continue;
 				};
-				s.entry_with(|f| fmt::Display::fmt(trigger.defined_loc(), f));
+
+				s.entry(&trigger);
 			}
 
 			s.finish()
@@ -348,7 +362,6 @@ impl<F: ?Sized, W: ReactiveWorld> WeakEffect<F, W> {
 	}
 
 	/// Adds a dependency to this effect
-	#[cfg(debug_assertions)]
 	pub(crate) fn add_dependency(&self, trigger: WeakTrigger<W>) {
 		let Some(effect) = self.upgrade() else { return };
 		effect.inner.dependencies.write().insert(trigger);
