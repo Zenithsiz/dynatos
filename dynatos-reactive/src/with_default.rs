@@ -9,6 +9,7 @@ use {
 		SignalSet,
 		SignalSetDefaultImpl,
 		SignalUpdate,
+		SignalUpdateDefaultImpl,
 		SignalWith,
 		SignalWithDefaultImpl,
 	},
@@ -109,6 +110,10 @@ impl<S, T: ?Sized> !SignalSetDefaultImpl for WithDefault<S, T> {}
 // Note: We disable the default impl because we can impl `SignalWith<T>` for
 //       more signals (e.g. those that only impl `SignalWith` and not `SignalBorrow`)
 impl<S, T: ?Sized> !SignalWithDefaultImpl for WithDefault<S, T> {}
+
+// Note: We disable the default impl because we can impl `SignalUpdate<T>` for
+//       more signals (e.g. those that only impl `SignalUpdate` and not `SignalBorrowMut`)
+impl<S, T: ?Sized> !SignalUpdateDefaultImpl for WithDefault<S, T> {}
 
 impl<S, T> SignalSet<T> for WithDefault<S, T>
 where

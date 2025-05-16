@@ -16,6 +16,7 @@ use {
 		SignalGetCopy,
 		SignalSetDefaultImpl,
 		SignalUpdate,
+		SignalUpdateDefaultImpl,
 		SignalWithDefaultImpl,
 	},
 };
@@ -314,3 +315,4 @@ where
 
 impl<F: Loader> SignalSetDefaultImpl for LoadableSignal<F> {}
 impl<F: Loader> SignalWithDefaultImpl for LoadableSignal<F> {}
+impl<F: Loader> SignalUpdateDefaultImpl for LoadableSignal<F> {}

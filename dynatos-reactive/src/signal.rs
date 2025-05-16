@@ -18,6 +18,7 @@ pub use ops::{
 	SignalSet,
 	SignalSetDefaultImpl,
 	SignalUpdate,
+	SignalUpdateDefaultImpl,
 	SignalWith,
 	SignalWithDefaultImpl,
 };
@@ -203,21 +204,9 @@ impl<T: ?Sized + 'static, W: ReactiveWorld> SignalBorrowMut for Signal<T, W> {
 }
 
 
-impl<T: ?Sized + 'static, W: ReactiveWorld> SignalUpdate for Signal<T, W> {
-	type Value<'a> = &'a mut T;
-
-	#[track_caller]
-	fn update<F, O>(&self, f: F) -> O
-	where
-		F: for<'a> FnOnce(Self::Value<'a>) -> O,
-	{
-		let mut value = self.borrow_mut();
-		f(&mut *value)
-	}
-}
-
 impl<T: ?Sized, W: ReactiveWorld> SignalSetDefaultImpl for Signal<T, W> {}
 impl<T: ?Sized, W: ReactiveWorld> SignalWithDefaultImpl for Signal<T, W> {}
+impl<T: ?Sized, W: ReactiveWorld> SignalUpdateDefaultImpl for Signal<T, W> {}
 
 impl<T, W: ReactiveWorld> Clone for Signal<T, W> {
 	fn clone(&self) -> Self {

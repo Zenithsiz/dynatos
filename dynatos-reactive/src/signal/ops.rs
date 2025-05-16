@@ -18,6 +18,6 @@ pub use self::{
 	get_cloned::{SignalGetClone, SignalGetCloned},
 	replace::SignalReplace,
 	set::{SignalSet, SignalSetDefaultImpl},
-	update::SignalUpdate,
+	update::{SignalUpdate, SignalUpdateDefaultImpl},
 	with::{SignalWith, SignalWithDefaultImpl},
 };

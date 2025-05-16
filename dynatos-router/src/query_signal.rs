@@ -18,7 +18,6 @@ use {
 		SignalBorrowMut,
 		SignalReplace,
 		SignalSet,
-		SignalUpdate,
 		SignalWith,
 	},
 	std::rc::Rc,
@@ -263,23 +262,14 @@ where
 	}
 }
 
-impl<T> SignalUpdate for QuerySignal<T>
-where
-	T: ToString + 'static,
-{
-	type Value<'a> = &'a mut Option<T>;
-
-	#[track_caller]
-	fn update<F, O>(&self, f: F) -> O
-	where
-		F: for<'a> FnOnce(Self::Value<'a>) -> O,
-	{
-		let mut value = self.borrow_mut();
-		f(&mut *value)
-	}
-}
-
 impl<T> signal::SignalSetDefaultImpl for QuerySignal<T> {}
 
-// Note: We want to return a `Option<&'a T>`, so we can't use the default impl
+// Note: We want to return an `Option<&T>`, so we can't use the default impl
+// TODO: Should we just return an `&Option<T>` instead? That is a big API promise
+//       due to requiring us to store an `Option<T>`, but the `SignalUpdate` impl
+//       already exposes an `&mut Option<T>`, so maybe that's fine?
 impl<T> !signal::SignalWithDefaultImpl for QuerySignal<T> {}
+
+// Note: Unlike `SignalWith`, we return an `&mut Option<T>` instead of `Option<&mut T>`,
+//       so the default impl is fine
+impl<T> signal::SignalUpdateDefaultImpl for QuerySignal<T> {}

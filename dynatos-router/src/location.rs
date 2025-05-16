@@ -4,7 +4,7 @@
 use {
 	core::ops::{Deref, DerefMut},
 	dynatos_html::{ev, EventTargetAddListener},
-	dynatos_reactive::{signal, Signal, SignalBorrow, SignalBorrowMut, SignalUpdate},
+	dynatos_reactive::{signal, Signal, SignalBorrow, SignalBorrowMut},
 	url::Url,
 	wasm_bindgen::JsValue,
 	zutil_cloned::cloned,
@@ -122,19 +122,6 @@ impl SignalBorrowMut for Location {
 	fn borrow_mut_raw(&self) -> Self::RefMut<'_> {
 		let value = self.0.borrow_mut_raw();
 		BorrowRefMut(value)
-	}
-}
-
-impl SignalUpdate for Location {
-	type Value<'a> = &'a mut Url;
-
-	#[track_caller]
-	fn update<F, O>(&self, f: F) -> O
-	where
-		F: for<'a> FnOnce(Self::Value<'a>) -> O,
-	{
-		let mut location = self.borrow_mut();
-		f(&mut location)
 	}
 }
 

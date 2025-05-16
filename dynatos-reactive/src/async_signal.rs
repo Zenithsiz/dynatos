@@ -9,7 +9,7 @@ use {
 		SignalGetClone,
 		SignalGetCopy,
 		SignalSetDefaultImpl,
-		SignalUpdate,
+		SignalUpdateDefaultImpl,
 		SignalWithDefaultImpl,
 		Trigger,
 	},
@@ -462,24 +462,9 @@ impl<F: Loader, W: AsyncReactiveWorld<F>> SignalBorrowMut for AsyncSignal<F, W> 
 	}
 }
 
-impl<F: Loader, W: AsyncReactiveWorld<F>> SignalUpdate for AsyncSignal<F, W>
-where
-	F::Output: 'static,
-{
-	type Value<'a> = Option<BorrowRefMut<'a, F, W>>;
-
-	#[track_caller]
-	fn update<F2, O>(&self, f: F2) -> O
-	where
-		F2: for<'a> FnOnce(Self::Value<'a>) -> O,
-	{
-		let value = self.borrow_mut();
-		f(value)
-	}
-}
-
 impl<F: Loader, W: AsyncReactiveWorld<F>> SignalSetDefaultImpl for AsyncSignal<F, W> {}
 impl<F: Loader, W: AsyncReactiveWorld<F>> SignalWithDefaultImpl for AsyncSignal<F, W> {}
+impl<F: Loader, W: AsyncReactiveWorld<F>> SignalUpdateDefaultImpl for AsyncSignal<F, W> {}
 
 /// Loader
 pub trait Loader: 'static {

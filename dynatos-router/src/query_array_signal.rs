@@ -9,17 +9,7 @@ use {
 		ops::{Deref, DerefMut},
 		str::FromStr,
 	},
-	dynatos_reactive::{
-		signal,
-		Effect,
-		Memo,
-		Signal,
-		SignalBorrow,
-		SignalBorrowMut,
-		SignalReplace,
-		SignalSet,
-		SignalUpdate,
-	},
+	dynatos_reactive::{signal, Effect, Memo, Signal, SignalBorrow, SignalBorrowMut, SignalReplace, SignalSet},
 	std::rc::Rc,
 	zutil_cloned::cloned,
 };
@@ -234,21 +224,6 @@ where
 	}
 }
 
-impl<T> SignalUpdate for QueryArraySignal<T>
-where
-	T: ToString + 'static,
-{
-	type Value<'a> = &'a mut Vec<T>;
-
-	#[track_caller]
-	fn update<F, O>(&self, f: F) -> O
-	where
-		F: for<'a> FnOnce(Self::Value<'a>) -> O,
-	{
-		let mut value = self.borrow_mut();
-		f(&mut *value)
-	}
-}
-
 impl<T> signal::SignalSetDefaultImpl for QueryArraySignal<T> {}
 impl<T> signal::SignalWithDefaultImpl for QueryArraySignal<T> {}
+impl<T> signal::SignalUpdateDefaultImpl for QueryArraySignal<T> {}

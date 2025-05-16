@@ -47,6 +47,7 @@ pub use self::{
 		SignalSet,
 		SignalSetDefaultImpl,
 		SignalUpdate,
+		SignalUpdateDefaultImpl,
 		SignalWith,
 		SignalWithDefaultImpl,
 	},
