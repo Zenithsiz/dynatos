@@ -365,6 +365,21 @@ impl<F: Loader, W: AsyncReactiveWorld<F>> SignalBorrow for AsyncSignal<F, W> {
 			.is_some()
 			.then(|| BorrowRef(IMutRefMut::<_, W>::downgrade(inner)))
 	}
+
+	#[track_caller]
+	fn borrow_raw(&self) -> Self::Ref<'_> {
+		// Start loading on borrow
+		// TODO: Should we start loading here?
+		//       If so, we need to add a `borrow_raw_unloaded` method too.
+		let mut inner = self.inner.write();
+		inner.start_loading(Rc::<_, W>::clone(&self.inner));
+
+		// Then get the value
+		inner
+			.value
+			.is_some()
+			.then(|| BorrowRef(IMutRefMut::<_, W>::downgrade(inner)))
+	}
 }
 
 impl<F: Loader, W: AsyncReactiveWorld<F>> SignalWith for AsyncSignal<F, W>
@@ -444,6 +459,20 @@ impl<F: Loader, W: AsyncReactiveWorld<F>> SignalBorrowMut for AsyncSignal<F, W> 
 		// Then get the value
 		inner.value.is_some().then(|| BorrowRefMut {
 			_trigger_on_drop: Some(TriggerOnDrop(Rc::<_, W>::clone(&inner.trigger), PhantomData)),
+			value:            inner,
+		})
+	}
+
+	#[track_caller]
+	fn borrow_mut_raw(&self) -> Self::RefMut<'_> {
+		// Note: We don't load when mutably borrowing, since that's probably
+		//       not what the user wants
+		// TODO: Should we even stop loading if the value was set in the meantime?
+		let inner = self.inner.write();
+
+		// Then get the value
+		inner.value.is_some().then(|| BorrowRefMut {
+			_trigger_on_drop: None,
 			value:            inner,
 		})
 	}

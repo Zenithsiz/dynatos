@@ -61,6 +61,14 @@ impl<S: SignalBorrow, T> SignalBorrow for WithDefault<S, T> {
 			default: &self.default,
 		}
 	}
+
+	#[track_caller]
+	fn borrow_raw(&self) -> Self::Ref<'_> {
+		BorrowRef {
+			value:   self.inner.borrow_raw(),
+			default: &self.default,
+		}
+	}
 }
 
 impl<S, T> SignalWith for WithDefault<S, T>
@@ -175,6 +183,14 @@ where
 	#[track_caller]
 	fn borrow_mut(&self) -> Self::RefMut<'_> {
 		let mut value = self.inner.borrow_mut();
+		value.get_or_insert(self.default);
+
+		BorrowRefMut { value }
+	}
+
+	#[track_caller]
+	fn borrow_mut_raw(&self) -> Self::RefMut<'_> {
+		let mut value = self.inner.borrow_mut_raw();
 		value.get_or_insert(self.default);
 
 		BorrowRefMut { value }

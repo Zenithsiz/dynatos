@@ -113,6 +113,11 @@ impl<T: 'static> SignalBorrow for QueryArraySignal<T> {
 	fn borrow(&self) -> Self::Ref<'_> {
 		BorrowRef(self.inner.borrow())
 	}
+
+	#[track_caller]
+	fn borrow_raw(&self) -> Self::Ref<'_> {
+		BorrowRef(self.inner.borrow_raw())
+	}
 }
 
 impl<T: 'static> SignalWith for QueryArraySignal<T> {
@@ -189,7 +194,7 @@ where
 
 	/// Update location on drop
 	// Note: Must be dropped *after* `value`.
-	_update_location_on_drop: UpdateLocationOnDrop<'a, T>,
+	_update_location_on_drop: Option<UpdateLocationOnDrop<'a, T>>,
 }
 
 impl<T> Deref for BorrowRefMut<'_, T>
@@ -227,7 +232,18 @@ where
 		let value = self.inner.borrow_mut();
 		BorrowRefMut {
 			value,
-			_update_location_on_drop: UpdateLocationOnDrop(self),
+			_update_location_on_drop: Some(UpdateLocationOnDrop(self)),
+		}
+	}
+
+	#[track_caller]
+	fn borrow_mut_raw(&self) -> Self::RefMut<'_> {
+		// TODO: Should we be updating the location on drop?
+
+		let value = self.inner.borrow_mut_raw();
+		BorrowRefMut {
+			value,
+			_update_location_on_drop: None,
 		}
 	}
 }

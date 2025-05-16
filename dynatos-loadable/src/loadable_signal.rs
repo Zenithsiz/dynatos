@@ -202,6 +202,18 @@ where
 			None => Loadable::Empty,
 		}
 	}
+
+	#[track_caller]
+	fn borrow_raw(&self) -> Self::Ref<'_> {
+		let res = self.inner.borrow_raw();
+		match res {
+			Some(res) => match &*res {
+				Ok(_) => Loadable::Loaded(BorrowRef(res)),
+				Err(err) => Loadable::Err(err.clone()),
+			},
+			None => Loadable::Empty,
+		}
+	}
 }
 
 impl<F, T, E> SignalWith for LoadableSignal<F>
@@ -278,6 +290,18 @@ where
 	#[track_caller]
 	fn borrow_mut(&self) -> Self::RefMut<'_> {
 		let res = self.inner.borrow_mut();
+		match res {
+			Some(res) => match &*res {
+				Ok(_) => Loadable::Loaded(BorrowRefMut(res)),
+				Err(err) => Loadable::Err(err.clone()),
+			},
+			None => Loadable::Empty,
+		}
+	}
+
+	#[track_caller]
+	fn borrow_mut_raw(&self) -> Self::RefMut<'_> {
+		let res = self.inner.borrow_mut_raw();
 		match res {
 			Some(res) => match &*res {
 				Ok(_) => Loadable::Loaded(BorrowRefMut(res)),
