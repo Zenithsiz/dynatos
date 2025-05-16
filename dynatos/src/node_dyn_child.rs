@@ -3,10 +3,11 @@
 // Imports
 use {
 	crate::ObjectAttachEffect,
-	core::cell::RefCell,
+	core::cell::{LazyCell, RefCell},
 	dynatos_html::{html, WeakRef},
 	dynatos_reactive::Effect,
 	dynatos_util::TryOrReturnExt,
+	std::sync::LazyLock,
 	wasm_bindgen::JsCast,
 };
 
@@ -119,6 +120,7 @@ where
 /// - `impl Fn() -> Option<N>`
 /// - `N`
 /// - `Option<N>`
+/// - `LazyCell<N, impl Fn() -> N>`
 ///
 /// Where `N` is a node type.
 pub trait ToDynNode {
@@ -159,5 +161,25 @@ where
 {
 	fn to_node(&self) -> Option<web_sys::Node> {
 		self.as_ref().and_then(N::to_node)
+	}
+}
+
+impl<N, F> ToDynNode for LazyCell<N, F>
+where
+	N: ToDynNode,
+	F: FnOnce() -> N,
+{
+	fn to_node(&self) -> Option<web_sys::Node> {
+		(**self).to_node()
+	}
+}
+
+impl<N, F> ToDynNode for LazyLock<N, F>
+where
+	N: ToDynNode,
+	F: FnOnce() -> N,
+{
+	fn to_node(&self) -> Option<web_sys::Node> {
+		(**self).to_node()
 	}
 }
