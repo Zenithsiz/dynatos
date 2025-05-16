@@ -3,6 +3,7 @@
 // Imports
 use {
 	crate::ObjectAttachEffect,
+	core::ops::Deref,
 	dynatos_html::WeakRef,
 	dynatos_reactive::{Derived, Effect, Memo, Signal, SignalWith, WithDefault},
 	dynatos_router::QuerySignal,
@@ -124,7 +125,8 @@ where
 	[T] [Signal<T> where T: WithDynText + 'static];
 	[T, F] [Derived<T, F> where T: WithDynText + 'static, F: ?Sized + 'static];
 	[T, F] [Memo<T, F> where T: WithDynText + 'static, F: ?Sized + 'static];
-	[S, T] [WithDefault<S, T> where S: for<'a> SignalWith<Value<'a> = Option<&'a T>>, T: WithDynText + 'static];
+	[S, T] [WithDefault<S, T> where Self: for<'a> SignalWith<Value<'a>: Sized + Deref<Target: WithDynText>>];
+	[T] [QuerySignal<T> where T: WithDynText + 'static];
 )]
 impl<Generics> WithDynText for Ty {
 	fn with_text<F2, O>(&self, f: F2) -> O
@@ -132,19 +134,5 @@ impl<Generics> WithDynText for Ty {
 		F2: FnOnce(Option<&str>) -> O,
 	{
 		self.with(|text| text.with_text(f))
-	}
-}
-impl<T> WithDynText for QuerySignal<T>
-where
-	T: WithDynText + 'static,
-{
-	fn with_text<F2, O>(&self, f: F2) -> O
-	where
-		F2: FnOnce(Option<&str>) -> O,
-	{
-		self.with(|text| match text {
-			Some(text) => text.with_text(f),
-			None => None::<T>.with_text(f),
-		})
 	}
 }

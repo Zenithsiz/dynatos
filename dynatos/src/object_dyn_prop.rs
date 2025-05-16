@@ -3,6 +3,7 @@
 // Imports
 use {
 	crate::ObjectAttachEffect,
+	core::ops::Deref,
 	dynatos_html::{ObjectRemoveProp, ObjectSetProp, WeakRef},
 	dynatos_reactive::{Derived, Effect, Memo, Signal, SignalWith, WithDefault},
 	dynatos_router::QuerySignal,
@@ -151,19 +152,11 @@ impl ToDynProp for Ty {
 	[T] [Signal<T> where T: ToDynProp + 'static];
 	[T, F] [Derived<T, F> where T: ToDynProp + 'static, F: ?Sized + 'static];
 	[T, F] [Memo<T, F> where T: ToDynProp + 'static, F: ?Sized + 'static];
-	[S, T] [WithDefault<S, T> where S: for<'a> SignalWith<Value<'a> = Option<&'a T>>, T: ToDynProp + 'static];
+	[S, T] [WithDefault<S, T> where Self: for<'a> SignalWith<Value<'a>: Sized + Deref<Target: ToDynProp>>];
+	[T] [QuerySignal<T> where T: ToDynProp + 'static];
 )]
 impl<Generics> ToDynProp for Ty {
 	fn to_prop(&self) -> Option<JsValue> {
 		self.with(|prop| prop.to_prop())
-	}
-}
-
-impl<T> ToDynProp for QuerySignal<T>
-where
-	T: ToDynProp + 'static,
-{
-	fn to_prop(&self) -> Option<JsValue> {
-		self.with(|prop| prop.as_ref().and_then(T::to_prop))
 	}
 }
