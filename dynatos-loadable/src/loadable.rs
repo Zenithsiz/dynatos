@@ -10,7 +10,7 @@ use {
 };
 
 /// Loadable value.
-#[derive(Clone, Copy, Debug)]
+#[derive(PartialEq, Eq, Clone, Copy, Debug)]
 pub enum Loadable<T, E> {
 	/// Empty
 	Empty,
