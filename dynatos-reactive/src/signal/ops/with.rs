@@ -18,6 +18,11 @@ pub trait SignalWith {
 	fn with<F, O>(&self, f: F) -> O
 	where
 		F: for<'a> FnOnce(Self::Value<'a>) -> O;
+
+	/// Uses the signal value without adding any dependencies
+	fn with_raw<F, O>(&self, f: F) -> O
+	where
+		F: for<'a> FnOnce(Self::Value<'a>) -> O;
 }
 
 impl<S, T> SignalWith for S
@@ -27,11 +32,21 @@ where
 {
 	type Value<'a> = &'a T;
 
+	#[track_caller]
 	fn with<F, O>(&self, f: F) -> O
 	where
 		F: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
 		let borrow = self.borrow();
+		f(&borrow)
+	}
+
+	#[track_caller]
+	fn with_raw<F, O>(&self, f: F) -> O
+	where
+		F: for<'a> FnOnce(Self::Value<'a>) -> O,
+	{
+		let borrow = self.borrow_raw();
 		f(&borrow)
 	}
 }

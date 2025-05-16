@@ -234,6 +234,15 @@ where
 		let value = self.borrow();
 		f(value)
 	}
+
+	#[track_caller]
+	fn with_raw<F2, O>(&self, f: F2) -> O
+	where
+		F2: for<'a> FnOnce(Self::Value<'a>) -> O,
+	{
+		let value = self.borrow_raw();
+		f(value)
+	}
 }
 
 /// Mutable reference type for [`SignalBorrow`] impl

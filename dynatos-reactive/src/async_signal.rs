@@ -398,6 +398,14 @@ where
 		let value = self.borrow();
 		f(value)
 	}
+
+	fn with_raw<F2, O>(&self, f: F2) -> O
+	where
+		F2: for<'a> FnOnce(Self::Value<'a>) -> O,
+	{
+		let value = self.borrow_raw();
+		f(value)
+	}
 }
 
 /// Triggers on `Drop`

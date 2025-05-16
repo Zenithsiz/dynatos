@@ -100,6 +100,17 @@ where
 			None => f(&self.default),
 		})
 	}
+
+	#[track_caller]
+	fn with_raw<F, O>(&self, f: F) -> O
+	where
+		F: for<'a> FnOnce(Self::Value<'a>) -> O,
+	{
+		self.inner.with_raw(|value| match value.into() {
+			Some(value) => f(value),
+			None => f(&self.default),
+		})
+	}
 }
 
 // Note: We disable the default impl because we can impl `SignalSet<T>` more
