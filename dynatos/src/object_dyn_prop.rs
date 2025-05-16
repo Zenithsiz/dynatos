@@ -164,6 +164,6 @@ where
 	T: ToDynProp + 'static,
 {
 	fn to_prop(&self) -> Option<JsValue> {
-		self.with(|prop| prop.and_then(T::to_prop))
+		self.with(|prop| prop.as_ref().and_then(T::to_prop))
 	}
 }

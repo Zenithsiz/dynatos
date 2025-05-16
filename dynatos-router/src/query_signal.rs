@@ -9,17 +9,7 @@ use {
 		ops::{Deref, DerefMut},
 		str::FromStr,
 	},
-	dynatos_reactive::{
-		signal,
-		Effect,
-		Memo,
-		Signal,
-		SignalBorrow,
-		SignalBorrowMut,
-		SignalReplace,
-		SignalSet,
-		SignalWith,
-	},
+	dynatos_reactive::{signal, Effect, Memo, Signal, SignalBorrow, SignalBorrowMut, SignalReplace, SignalSet},
 	std::rc::Rc,
 	zutil_cloned::cloned,
 };
@@ -93,41 +83,26 @@ impl<T> QuerySignal<T> {
 pub struct BorrowRef<'a, T>(signal::BorrowRef<'a, Option<T>>);
 
 impl<T> Deref for BorrowRef<'_, T> {
-	type Target = T;
+	type Target = Option<T>;
 
 	fn deref(&self) -> &Self::Target {
-		self.0.as_ref().expect("Inner query value was missing")
+		&self.0
 	}
 }
 
 impl<T: 'static> SignalBorrow for QuerySignal<T> {
 	type Ref<'a>
-		= Option<BorrowRef<'a, T>>
+		= BorrowRef<'a, T>
 	where
 		Self: 'a;
 
 	#[track_caller]
 	fn borrow(&self) -> Self::Ref<'_> {
-		let borrow = self.inner.borrow();
-		borrow.is_some().then(|| BorrowRef(borrow))
+		BorrowRef(self.inner.borrow())
 	}
 
 	fn borrow_raw(&self) -> Self::Ref<'_> {
-		let borrow = self.inner.borrow_raw();
-		borrow.is_some().then(|| BorrowRef(borrow))
-	}
-}
-
-impl<T: 'static> SignalWith for QuerySignal<T> {
-	type Value<'a> = Option<&'a T>;
-
-	#[track_caller]
-	fn with<F, O>(&self, f: F) -> O
-	where
-		F: for<'a> FnOnce(Self::Value<'a>) -> O,
-	{
-		let value = self.borrow();
-		f(value.as_deref())
+		BorrowRef(self.inner.borrow_raw())
 	}
 }
 
@@ -263,13 +238,5 @@ where
 }
 
 impl<T> signal::SignalSetDefaultImpl for QuerySignal<T> {}
-
-// Note: We want to return an `Option<&T>`, so we can't use the default impl
-// TODO: Should we just return an `&Option<T>` instead? That is a big API promise
-//       due to requiring us to store an `Option<T>`, but the `SignalUpdate` impl
-//       already exposes an `&mut Option<T>`, so maybe that's fine?
-impl<T> !signal::SignalWithDefaultImpl for QuerySignal<T> {}
-
-// Note: Unlike `SignalWith`, we return an `&mut Option<T>` instead of `Option<&mut T>`,
-//       so the default impl is fine
+impl<T> signal::SignalWithDefaultImpl for QuerySignal<T> {}
 impl<T> signal::SignalUpdateDefaultImpl for QuerySignal<T> {}
