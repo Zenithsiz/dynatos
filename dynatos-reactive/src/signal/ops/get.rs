@@ -34,6 +34,9 @@ pub trait SignalGet {
 
 	/// Gets the signal value, by copying it.
 	fn get(&self) -> Self::Value;
+
+	/// Gets the signal value, by copying it without adding dependencies.
+	fn get_raw(&self) -> Self::Value;
 }
 
 impl<S> SignalGet for S
@@ -45,6 +48,11 @@ where
 	#[track_caller]
 	fn get(&self) -> Self::Value {
 		self.with(|value| self::convert_inner::<S>(value.copy_value()))
+	}
+
+	#[track_caller]
+	fn get_raw(&self) -> Self::Value {
+		self.with_raw(|value| self::convert_inner::<S>(value.copy_value()))
 	}
 }
 
