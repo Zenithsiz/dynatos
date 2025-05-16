@@ -18,6 +18,11 @@ pub trait SignalUpdate {
 	fn update<F, O>(&self, f: F) -> O
 	where
 		F: for<'a> FnOnce(Self::Value<'a>) -> O;
+
+	/// Updates the signal value without updating dependencies
+	fn update_raw<F, O>(&self, f: F) -> O
+	where
+		F: for<'a> FnOnce(Self::Value<'a>) -> O;
 }
 
 impl<S, T> SignalUpdate for S
@@ -27,11 +32,21 @@ where
 {
 	type Value<'a> = &'a mut T;
 
+	#[track_caller]
 	fn update<F, O>(&self, f: F) -> O
 	where
 		F: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
 		let mut borrow = self.borrow_mut();
+		f(&mut borrow)
+	}
+
+	#[track_caller]
+	fn update_raw<F, O>(&self, f: F) -> O
+	where
+		F: for<'a> FnOnce(Self::Value<'a>) -> O,
+	{
+		let mut borrow = self.borrow_mut_raw();
 		f(&mut borrow)
 	}
 }

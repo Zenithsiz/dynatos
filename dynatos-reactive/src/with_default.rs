@@ -240,6 +240,14 @@ where
 	{
 		self.inner.update(|value| f(value.get_or_insert(self.default)))
 	}
+
+	#[track_caller]
+	fn update_raw<F, O>(&self, f: F) -> O
+	where
+		F: for<'a> FnOnce(Self::Value<'a>) -> O,
+	{
+		self.inner.update_raw(|value| f(value.get_or_insert(self.default)))
+	}
 }
 
 /// Extension trait to add a default value to a signal

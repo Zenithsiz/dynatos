@@ -339,6 +339,15 @@ where
 		let value = self.borrow_mut();
 		f(value)
 	}
+
+	#[track_caller]
+	fn update_raw<F2, O>(&self, f: F2) -> O
+	where
+		F2: for<'a> FnOnce(Self::Value<'a>) -> O,
+	{
+		let value = self.borrow_mut_raw();
+		f(value)
+	}
 }
 
 impl<F: Loader> SignalSetDefaultImpl for LoadableSignal<F> {}
