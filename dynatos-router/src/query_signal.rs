@@ -116,6 +116,11 @@ where
 	fn replace(&self, new_value: Option<T>) -> Self::Value {
 		mem::replace(&mut self.borrow_mut(), new_value)
 	}
+
+	#[track_caller]
+	fn replace_raw(&self, new_value: Option<T>) -> Self::Value {
+		mem::replace(&mut self.borrow_mut_raw(), new_value)
+	}
 }
 
 /// Updates the location on `Drop`

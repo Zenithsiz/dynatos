@@ -130,8 +130,14 @@ impl<T: ?Sized + 'static, W: ReactiveWorld> SignalBorrow for Signal<T, W> {
 impl<T: 'static, W: ReactiveWorld> SignalReplace<T> for Signal<T, W> {
 	type Value = T;
 
+	#[track_caller]
 	fn replace(&self, new_value: T) -> Self::Value {
 		mem::replace(&mut self.borrow_mut(), new_value)
+	}
+
+	#[track_caller]
+	fn replace_raw(&self, new_value: T) -> Self::Value {
+		mem::replace(&mut self.borrow_mut_raw(), new_value)
 	}
 }
 

@@ -167,6 +167,11 @@ where
 	fn replace(&self, new_value: T) -> Self::Value {
 		self.inner.replace(Some(new_value)).unwrap_or(self.default)
 	}
+
+	#[track_caller]
+	fn replace_raw(&self, new_value: T) -> Self::Value {
+		self.inner.replace_raw(Some(new_value)).unwrap_or(self.default)
+	}
 }
 
 impl<S, T> SignalReplace<Option<T>> for WithDefault<S, T>
@@ -179,6 +184,11 @@ where
 	#[track_caller]
 	fn replace(&self, new_value: Option<T>) -> Self::Value {
 		self.inner.replace(new_value).unwrap_or(self.default)
+	}
+
+	#[track_caller]
+	fn replace_raw(&self, new_value: Option<T>) -> Self::Value {
+		self.inner.replace_raw(new_value).unwrap_or(self.default)
 	}
 }
 
