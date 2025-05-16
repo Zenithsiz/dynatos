@@ -29,6 +29,9 @@ pub auto trait SignalSetDefaultImpl {}
 pub trait SignalSet<Value> {
 	/// Sets the signal value
 	fn set(&self, new_value: Value);
+
+	/// Sets the signal value without updating dependencies
+	fn set_raw(&self, new_value: Value);
 }
 
 impl<S, T> SignalSet<T> for S
@@ -38,5 +41,10 @@ where
 	#[track_caller]
 	fn set(&self, new_value: T) {
 		self.update(|value| SignalSetWith::set_value(value, new_value));
+	}
+
+	#[track_caller]
+	fn set_raw(&self, new_value: T) {
+		self.update_raw(|value| SignalSetWith::set_value(value, new_value));
 	}
 }

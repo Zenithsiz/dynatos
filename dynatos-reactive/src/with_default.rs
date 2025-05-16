@@ -130,8 +130,14 @@ impl<S, T> SignalSet<T> for WithDefault<S, T>
 where
 	S: SignalSet<Option<T>>,
 {
+	#[track_caller]
 	fn set(&self, new_value: T) {
 		self.inner.set(Some(new_value));
+	}
+
+	#[track_caller]
+	fn set_raw(&self, new_value: T) {
+		self.inner.set_raw(Some(new_value));
 	}
 }
 
@@ -139,8 +145,14 @@ impl<S, T> SignalSet<Option<T>> for WithDefault<S, T>
 where
 	S: SignalSet<Option<T>>,
 {
+	#[track_caller]
 	fn set(&self, new_value: Option<T>) {
 		self.inner.set(new_value);
+	}
+
+	#[track_caller]
+	fn set_raw(&self, new_value: Option<T>) {
+		self.inner.set_raw(new_value);
 	}
 }
 
