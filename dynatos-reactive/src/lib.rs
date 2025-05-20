@@ -50,6 +50,7 @@ pub use self::{
 		SignalReplace,
 		SignalSet,
 		SignalSetDefaultImpl,
+		SignalSetWith,
 		SignalUpdate,
 		SignalUpdateDefaultImpl,
 		SignalWith,

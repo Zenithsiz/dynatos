@@ -17,6 +17,7 @@ pub use ops::{
 	SignalReplace,
 	SignalSet,
 	SignalSetDefaultImpl,
+	SignalSetWith,
 	SignalUpdate,
 	SignalUpdateDefaultImpl,
 	SignalWith,

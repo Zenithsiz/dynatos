@@ -6,7 +6,7 @@ use {
 		convert::Infallible,
 		ops::{ControlFlow, Deref, DerefMut, FromResidual, Try},
 	},
-	dynatos_reactive::{SignalGetClone, SignalGetCopy},
+	dynatos_reactive::{SignalGetClone, SignalGetCopy, SignalSetWith},
 };
 
 /// Loadable value.
@@ -338,6 +338,30 @@ impl<T: Clone + 'static, E: 'static> SignalGetClone for Loadable<&'_ T, E> {
 
 	fn clone_value(self) -> Loadable<T, E> {
 		self.map(|value| value.clone())
+	}
+}
+
+impl<T: Copy + 'static, E: 'static> SignalSetWith<T> for &'_ mut Loadable<T, E> {
+	fn set_value(self, new_value: T) {
+		*self = Loadable::Loaded(new_value);
+	}
+}
+
+impl<T: Copy + 'static, E: 'static> SignalSetWith<Result<T, E>> for &'_ mut Loadable<T, E> {
+	fn set_value(self, new_value: Result<T, E>) {
+		*self = match new_value {
+			Ok(value) => Loadable::Loaded(value),
+			Err(err) => Loadable::Err(err),
+		};
+	}
+}
+
+impl<T: Copy + 'static, E: 'static> SignalSetWith<Option<T>> for &'_ mut Loadable<T, E> {
+	fn set_value(self, new_value: Option<T>) {
+		*self = match new_value {
+			Some(value) => Loadable::Loaded(value),
+			None => Loadable::Empty,
+		};
 	}
 }
 

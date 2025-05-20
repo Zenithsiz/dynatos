@@ -17,7 +17,7 @@ pub use self::{
 	get::{SignalGet, SignalGetCopy},
 	get_cloned::{SignalGetClone, SignalGetCloned},
 	replace::SignalReplace,
-	set::{SignalSet, SignalSetDefaultImpl},
+	set::{SignalSet, SignalSetDefaultImpl, SignalSetWith},
 	update::{SignalUpdate, SignalUpdateDefaultImpl},
 	with::{SignalWith, SignalWithDefaultImpl},
 };
