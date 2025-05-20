@@ -15,7 +15,7 @@ use {
 };
 
 /// Query signal
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct QueryArraySignal<T> {
 	/// Key
 	key: Rc<str>,
@@ -76,6 +76,16 @@ impl<T> QueryArraySignal<T> {
 			key,
 			inner,
 			update_effect: update,
+		}
+	}
+}
+
+impl<T> Clone for QueryArraySignal<T> {
+	fn clone(&self) -> Self {
+		Self {
+			key:           Rc::clone(&self.key),
+			inner:         self.inner.clone(),
+			update_effect: self.update_effect.clone(),
 		}
 	}
 }
