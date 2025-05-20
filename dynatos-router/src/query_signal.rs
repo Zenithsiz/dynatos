@@ -16,7 +16,7 @@ use {
 };
 
 /// Query signal
-pub struct QuerySignal<T: FromStr, E = <T as FromStr>::Err> {
+pub struct QuerySignal<T, E = <T as FromStr>::Err> {
 	/// Key
 	key: Rc<str>,
 
@@ -27,14 +27,14 @@ pub struct QuerySignal<T: FromStr, E = <T as FromStr>::Err> {
 	update_effect: Effect<dyn Fn()>,
 }
 
-impl<T: FromStr, E> QuerySignal<T, E> {
+impl<T, E> QuerySignal<T, E> {
 	/// Creates a new query signal for `key`.
 	///
 	/// Expects a context of type [`Location`](crate::Location).
 	#[track_caller]
 	pub fn new<K>(key: K) -> Self
 	where
-		T: 'static,
+		T: FromStr + 'static,
 		E: From<T::Err> + 'static,
 		K: Into<Rc<str>>,
 	{
@@ -73,7 +73,7 @@ impl<T: FromStr, E> QuerySignal<T, E> {
 	}
 }
 
-impl<T: FromStr, E> Clone for QuerySignal<T, E> {
+impl<T, E> Clone for QuerySignal<T, E> {
 	fn clone(&self) -> Self {
 		Self {
 			key:           Rc::clone(&self.key),
@@ -85,7 +85,7 @@ impl<T: FromStr, E> Clone for QuerySignal<T, E> {
 
 impl<T, E> fmt::Debug for QuerySignal<T, E>
 where
-	T: FromStr + fmt::Debug,
+	T: fmt::Debug,
 	E: fmt::Debug,
 {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -99,9 +99,9 @@ where
 
 /// Reference type for [`SignalBorrow`] impl
 #[derive(Debug)]
-pub struct BorrowRef<'a, T: FromStr, E = <T as FromStr>::Err>(signal::BorrowRef<'a, Loadable<T, E>>);
+pub struct BorrowRef<'a, T, E = <T as FromStr>::Err>(signal::BorrowRef<'a, Loadable<T, E>>);
 
-impl<T: FromStr, E> Deref for BorrowRef<'_, T, E> {
+impl<T, E> Deref for BorrowRef<'_, T, E> {
 	type Target = Loadable<T, E>;
 
 	fn deref(&self) -> &Self::Target {
@@ -111,7 +111,7 @@ impl<T: FromStr, E> Deref for BorrowRef<'_, T, E> {
 
 impl<T, E> SignalBorrow for QuerySignal<T, E>
 where
-	T: FromStr + 'static,
+	T: 'static,
 	E: 'static,
 {
 	type Ref<'a>
@@ -131,7 +131,7 @@ where
 
 impl<T, E> SignalReplace<Loadable<T, E>> for QuerySignal<T, E>
 where
-	T: FromStr + ToString + 'static,
+	T: ToString + 'static,
 	E: 'static,
 {
 	type Value = Loadable<T, E>;
@@ -151,13 +151,11 @@ where
 // Note: We need this wrapper because `BorrowRefMut::value` must
 //       already be dropped when we update the location, which we
 //       can't do if we implement `Drop` on `BorrowRefMut`.
-struct UpdateLocationOnDrop<'a, T: FromStr + ToString + 'static, E: 'static = <T as FromStr>::Err>(
-	pub &'a QuerySignal<T, E>,
-);
+struct UpdateLocationOnDrop<'a, T: ToString + 'static, E: 'static = <T as FromStr>::Err>(pub &'a QuerySignal<T, E>);
 
 impl<'a, T, E> fmt::Debug for UpdateLocationOnDrop<'a, T, E>
 where
-	T: FromStr + ToString + 'static + fmt::Debug,
+	T: ToString + 'static + fmt::Debug,
 	E: 'static,
 {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -167,7 +165,7 @@ where
 
 impl<T, E> Drop for UpdateLocationOnDrop<'_, T, E>
 where
-	T: FromStr + ToString + 'static,
+	T: ToString + 'static,
 	E: 'static,
 {
 	fn drop(&mut self) {
@@ -226,7 +224,7 @@ where
 /// Reference type for [`SignalBorrowMut`] impl
 pub struct BorrowRefMut<'a, T, E = <T as FromStr>::Err>
 where
-	T: FromStr + ToString + 'static,
+	T: ToString + 'static,
 	E: 'static,
 {
 	/// Value
@@ -239,7 +237,7 @@ where
 
 impl<'a, T, E> fmt::Debug for BorrowRefMut<'a, T, E>
 where
-	T: FromStr + ToString + fmt::Debug + 'static,
+	T: ToString + fmt::Debug + 'static,
 	E: fmt::Debug,
 {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -252,7 +250,7 @@ where
 
 impl<T, E> Deref for BorrowRefMut<'_, T, E>
 where
-	T: FromStr + ToString,
+	T: ToString,
 {
 	type Target = Loadable<T, E>;
 
@@ -263,7 +261,7 @@ where
 
 impl<T, E> DerefMut for BorrowRefMut<'_, T, E>
 where
-	T: FromStr + ToString,
+	T: ToString,
 {
 	fn deref_mut(&mut self) -> &mut Self::Target {
 		&mut self.value
@@ -272,7 +270,7 @@ where
 
 impl<T, E> SignalBorrowMut for QuerySignal<T, E>
 where
-	T: FromStr + ToString + 'static,
+	T: ToString + 'static,
 	E: 'static,
 {
 	type RefMut<'a>
@@ -300,6 +298,6 @@ where
 	}
 }
 
-impl<T: FromStr, E> signal::SignalSetDefaultImpl for QuerySignal<T, E> {}
-impl<T: FromStr, E> signal::SignalWithDefaultImpl for QuerySignal<T, E> {}
-impl<T: FromStr, E> signal::SignalUpdateDefaultImpl for QuerySignal<T, E> {}
+impl<T, E> signal::SignalSetDefaultImpl for QuerySignal<T, E> {}
+impl<T, E> signal::SignalWithDefaultImpl for QuerySignal<T, E> {}
+impl<T, E> signal::SignalUpdateDefaultImpl for QuerySignal<T, E> {}
