@@ -140,6 +140,17 @@ impl<T, E> Loadable<T, E> {
 			Self::Loaded(value) => Some(value),
 		}
 	}
+
+	/// Gets the value in this loadable.
+	///
+	/// If unloaded, returns `default`
+	pub fn loaded_or(self, default: T) -> Result<T, E> {
+		match self {
+			Self::Empty => Ok(default),
+			Self::Err(err) => Err(err),
+			Self::Loaded(value) => Ok(value),
+		}
+	}
 }
 
 impl<T, E> Loadable<&T, E> {
