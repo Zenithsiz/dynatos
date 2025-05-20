@@ -222,6 +222,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "dynatos-loadable"
+version = "0.1.0"
+dependencies = [
+ "anyhow",
+ "duplicate",
+ "dynatos-reactive",
+ "dynatos-util",
+ "extend",
+ "tracing",
+]
+
+[[package]]
 name = "dynatos-reactive"
 version = "0.1.0"
 dependencies = [
@@ -249,6 +261,7 @@ dependencies = [
  "duplicate",
  "dynatos-context",
  "dynatos-html",
+ "dynatos-loadable",
  "dynatos-reactive",
  "dynatos-util",
  "extend",
@@ -734,6 +747,7 @@ dependencies = [
  "dynatos",
  "dynatos-context",
  "dynatos-html",
+ "dynatos-loadable",
  "dynatos-reactive",
  "dynatos-router",
  "dynatos-util",

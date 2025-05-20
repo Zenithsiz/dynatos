@@ -1,5 +1,9 @@
 //! Query array signal
 
+// TODO: Should we also return a `Loadable`?
+//       Do we even need to exist? Could `QuerySignal`
+//       just special case values of `Vec<T>` somehow?
+
 // Imports
 use {
 	crate::Location,

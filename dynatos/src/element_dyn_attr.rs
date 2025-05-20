@@ -6,7 +6,6 @@ use {
 	core::ops::Deref,
 	dynatos_html::WeakRef,
 	dynatos_reactive::{Derived, Effect, Memo, Signal, SignalWith, WithDefault},
-	dynatos_router::QuerySignal,
 	dynatos_util::TryOrReturnExt,
 };
 
@@ -158,7 +157,6 @@ where
 	[T, F] [Derived<T, F> where T: WithDynAttr + 'static, F: ?Sized + 'static];
 	[T, F] [Memo<T, F> where T: WithDynAttr + 'static, F: ?Sized + 'static];
 	[S, T] [WithDefault<S, T> where Self: for<'a> SignalWith<Value<'a>: Sized + Deref<Target: WithDynAttr>>];
-	[T] [QuerySignal<T> where T: WithDynAttr + 'static];
 )]
 impl<Generics> WithDynAttr for Ty {
 	fn with_attr<F2, O>(&self, f: F2) -> O

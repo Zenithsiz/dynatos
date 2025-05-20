@@ -7,7 +7,8 @@
 use {
 	dynatos::{NodeWithDynText, ObjectWithContext},
 	dynatos_html::{ev, html, EventTargetWithListener, NodeWithChildren, NodeWithText},
-	dynatos_reactive::{SignalBorrowMut, SignalGet, SignalSet, SignalWithDefault},
+	dynatos_loadable::Loadable,
+	dynatos_reactive::{SignalBorrowMut, SignalGetCloned, SignalSet},
 	dynatos_router::{Location, QuerySignal},
 	tracing_subscriber::prelude::*,
 	web_sys::HtmlElement,
@@ -45,11 +46,12 @@ fn run() -> Result<(), anyhow::Error> {
 }
 
 fn page() -> HtmlElement {
-	let query = QuerySignal::<i32>::new("a").with_default(20);
+	// TODO: If we add `.with_loadable_default()`, use it again in this example.
+	let query = QuerySignal::<i32>::new("a");
 
 	html::div().with_children([
 		#[cloned(query)]
-		html::p().with_dyn_text(move || format!("{:?}", query.get())),
+		html::p().with_dyn_text(move || format!("{:?}", query.get_cloned())),
 		html::hr(),
 		dynatos_router::anchor("/?a=5").with_text("5"),
 		html::br(),
@@ -60,13 +62,15 @@ fn page() -> HtmlElement {
 		#[cloned(query)]
 		html::button()
 			.with_event_listener::<ev::Click>(move |_ev| {
-				*query.borrow_mut() += 1;
+				if let Loadable::Loaded(value) = &mut *query.borrow_mut() {
+					*value += 1;
+				}
 			})
 			.with_text("Add"),
 		html::br(),
 		html::button()
 			.with_event_listener::<ev::Click>(move |_ev| {
-				query.set(6);
+				query.set(Loadable::Loaded(6));
 			})
 			.with_text("6"),
 	])

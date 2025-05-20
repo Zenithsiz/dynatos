@@ -6,7 +6,6 @@ use {
 	core::ops::Deref,
 	dynatos_html::{ObjectRemoveProp, ObjectSetProp, WeakRef},
 	dynatos_reactive::{Derived, Effect, Memo, Signal, SignalWith, WithDefault},
-	dynatos_router::QuerySignal,
 	dynatos_util::TryOrReturnExt,
 	wasm_bindgen::JsValue,
 };
@@ -153,7 +152,6 @@ impl ToDynProp for Ty {
 	[T, F] [Derived<T, F> where T: ToDynProp + 'static, F: ?Sized + 'static];
 	[T, F] [Memo<T, F> where T: ToDynProp + 'static, F: ?Sized + 'static];
 	[S, T] [WithDefault<S, T> where Self: for<'a> SignalWith<Value<'a>: Sized + Deref<Target: ToDynProp>>];
-	[T] [QuerySignal<T> where T: ToDynProp + 'static];
 )]
 impl<Generics> ToDynProp for Ty {
 	fn to_prop(&self) -> Option<JsValue> {

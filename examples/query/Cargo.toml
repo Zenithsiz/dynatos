@@ -8,6 +8,7 @@ edition = "2021"
 dynatos = { workspace = true }
 dynatos-context = { workspace = true }
 dynatos-html = { workspace = true }
+dynatos-loadable = { workspace = true }
 dynatos-reactive = { workspace = true }
 dynatos-router = { workspace = true }
 dynatos-util = { workspace = true }

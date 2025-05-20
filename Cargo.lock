@@ -277,6 +277,7 @@ dependencies = [
  "duplicate",
  "dynatos-context",
  "dynatos-html",
+ "dynatos-loadable",
  "dynatos-reactive",
  "dynatos-util",
  "extend",
