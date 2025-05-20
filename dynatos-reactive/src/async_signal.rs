@@ -388,7 +388,7 @@ impl<F: Loader, W: AsyncReactiveWorld<F>> SignalWith for AsyncSignal<F, W>
 where
 	F::Output: 'static,
 {
-	type Value<'a> = Option<BorrowRef<'a, F, W>>;
+	type Value<'a> = Option<&'a F::Output>;
 
 	#[track_caller]
 	fn with<F2, O>(&self, f: F2) -> O
@@ -396,7 +396,7 @@ where
 		F2: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
 		let value = self.borrow();
-		f(value)
+		f(value.as_deref())
 	}
 
 	fn with_raw<F2, O>(&self, f: F2) -> O
@@ -404,7 +404,7 @@ where
 		F2: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
 		let value = self.borrow_raw();
-		f(value)
+		f(value.as_deref())
 	}
 }
 
@@ -492,15 +492,15 @@ impl<F: Loader, W: AsyncReactiveWorld<F>> SignalUpdate for AsyncSignal<F, W>
 where
 	F::Output: 'static,
 {
-	type Value<'a> = Option<BorrowRefMut<'a, F, W>>;
+	type Value<'a> = Option<&'a mut F::Output>;
 
 	#[track_caller]
 	fn update<F2, O>(&self, f: F2) -> O
 	where
 		F2: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
-		let value = self.borrow_mut();
-		f(value)
+		let mut value = self.borrow_mut();
+		f(value.as_deref_mut())
 	}
 
 	#[track_caller]
@@ -508,8 +508,8 @@ where
 	where
 		F2: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
-		let value = self.borrow_mut_raw();
-		f(value)
+		let mut value = self.borrow_mut_raw();
+		f(value.as_deref_mut())
 	}
 }
 

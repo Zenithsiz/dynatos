@@ -224,7 +224,7 @@ where
 	T: 'static,
 	E: Clone + 'static,
 {
-	type Value<'a> = Loadable<BorrowRef<'a, F>, E>;
+	type Value<'a> = Loadable<&'a T, E>;
 
 	#[track_caller]
 	fn with<F2, O>(&self, f: F2) -> O
@@ -232,7 +232,7 @@ where
 		F2: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
 		let value = self.borrow();
-		f(value)
+		f(value.as_deref())
 	}
 
 	#[track_caller]
@@ -241,7 +241,7 @@ where
 		F2: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
 		let value = self.borrow_raw();
-		f(value)
+		f(value.as_deref())
 	}
 }
 
@@ -329,15 +329,15 @@ where
 	T: 'static,
 	E: Clone + 'static,
 {
-	type Value<'a> = Loadable<BorrowRefMut<'a, F>, E>;
+	type Value<'a> = Loadable<&'a mut T, E>;
 
 	#[track_caller]
 	fn update<F2, O>(&self, f: F2) -> O
 	where
 		F2: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
-		let value = self.borrow_mut();
-		f(value)
+		let mut value = self.borrow_mut();
+		f(value.as_deref_mut())
 	}
 
 	#[track_caller]
@@ -345,8 +345,8 @@ where
 	where
 		F2: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
-		let value = self.borrow_mut_raw();
-		f(value)
+		let mut value = self.borrow_mut_raw();
+		f(value.as_deref_mut())
 	}
 }
 
