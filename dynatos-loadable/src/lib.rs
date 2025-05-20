@@ -5,10 +5,12 @@
 
 // Modules
 pub mod loadable;
+pub mod loadable_borrow;
 pub mod loadable_signal;
 
 // Exports
 pub use self::{
 	loadable::{IntoLoaded, IteratorLoadableExt, Loadable},
+	loadable_borrow::{LoadableBorrow, LoadableBorrowMut, SignalBorrowLoadable, SignalBorrowMutLoadable},
 	loadable_signal::LoadableSignal,
 };
