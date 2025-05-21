@@ -99,6 +99,18 @@ impl<T, E> Loadable<T, E> {
 		}
 	}
 
+	/// Maps this loadable's error
+	pub fn map_err<U, F>(self, f: F) -> Loadable<T, U>
+	where
+		F: FnOnce(E) -> U,
+	{
+		match self {
+			Self::Empty => Loadable::Empty,
+			Self::Err(err) => Loadable::Err(f(err)),
+			Self::Loaded(value) => Loadable::Loaded(value),
+		}
+	}
+
 	/// Zips two loadable.
 	///
 	/// If is empty, the result will be empty.
