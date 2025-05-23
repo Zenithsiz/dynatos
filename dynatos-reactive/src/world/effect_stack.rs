@@ -15,16 +15,16 @@ pub trait EffectStack<W>: Sized {
 	type F: ?Sized + EffectRun + Unsize<Self::F> + 'static;
 
 	/// Pushes an effect to the stack.
-	fn push_effect<F>(f: WeakEffect<F, W>)
+	fn push<F>(f: WeakEffect<F, W>)
 	where
 		F: ?Sized + Unsize<Self::F>,
 		W: ReactiveWorld;
 
 	/// Pops an effect from the stack
-	fn pop_effect();
+	fn pop();
 
 	/// Returns the top effect of the stack
-	fn top_effect() -> Option<WeakEffect<Self::F, W>>
+	fn top() -> Option<WeakEffect<Self::F, W>>
 	where
 		W: ReactiveWorld;
 }
@@ -43,18 +43,18 @@ static EFFECT_STACK_STD_RC: EffectStackImpl<dyn EffectRun, WorldThreadLocal> =
 impl EffectStack<WorldThreadLocal> for EffectStackThreadLocal {
 	type F = dyn EffectRun + 'static;
 
-	fn push_effect<F>(f: WeakEffect<F, WorldThreadLocal>)
+	fn push<F>(f: WeakEffect<F, WorldThreadLocal>)
 	where
 		F: ?Sized + Unsize<Self::F>,
 	{
 		EFFECT_STACK_STD_RC.write().push(f);
 	}
 
-	fn pop_effect() {
+	fn pop() {
 		EFFECT_STACK_STD_RC.write().pop().expect("Missing added effect");
 	}
 
-	fn top_effect() -> Option<WeakEffect<Self::F, WorldThreadLocal>> {
+	fn top() -> Option<WeakEffect<Self::F, WorldThreadLocal>> {
 		EFFECT_STACK_STD_RC.read().last().cloned()
 	}
 }
@@ -70,18 +70,18 @@ static EFFECT_STACK_STD_ARC: EffectStackImpl<dyn EffectRun + Send + Sync, WorldG
 impl EffectStack<WorldGlobal> for EffectStackGlobal {
 	type F = dyn EffectRun + Send + Sync + 'static;
 
-	fn push_effect<F>(f: WeakEffect<F, WorldGlobal>)
+	fn push<F>(f: WeakEffect<F, WorldGlobal>)
 	where
 		F: ?Sized + Unsize<Self::F>,
 	{
 		EFFECT_STACK_STD_ARC.write().push(f);
 	}
 
-	fn pop_effect() {
+	fn pop() {
 		EFFECT_STACK_STD_ARC.write().pop().expect("Missing added effect");
 	}
 
-	fn top_effect() -> Option<WeakEffect<Self::F, WorldGlobal>> {
+	fn top() -> Option<WeakEffect<Self::F, WorldGlobal>> {
 		EFFECT_STACK_STD_ARC.read().last().cloned()
 	}
 }

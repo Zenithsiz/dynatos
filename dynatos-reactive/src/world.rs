@@ -64,7 +64,7 @@ where
 	F: ?Sized + Unsize<self::F<W>>,
 	W: ReactiveWorld,
 {
-	W::EffectStack::push_effect(effect);
+	W::EffectStack::push(effect);
 }
 
 /// Pops an effect onto the effect stack of the world `W`
@@ -72,7 +72,7 @@ pub fn pop_effect<W>()
 where
 	W: ReactiveWorld,
 {
-	W::EffectStack::pop_effect();
+	W::EffectStack::pop();
 }
 
 /// Returns the top of the effect stack of the world `W`
@@ -81,5 +81,5 @@ pub fn top_effect<W>() -> Option<WeakEffect<F<W>, W>>
 where
 	W: ReactiveWorld,
 {
-	W::EffectStack::top_effect()
+	W::EffectStack::top()
 }
