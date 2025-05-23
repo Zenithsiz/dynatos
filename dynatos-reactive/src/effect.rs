@@ -11,7 +11,7 @@
 use core::panic::Location;
 use {
 	crate::{
-		world::{self, UnsizeF},
+		world::{self, EffectStack, UnsizeF},
 		ReactiveWorld,
 		WeakTrigger,
 	},
@@ -189,7 +189,7 @@ impl<F: ?Sized, W: ReactiveWorld> Effect<F, W> {
 		F: UnsizeF<W> + 'static,
 	{
 		// Push the effect
-		world::push_effect(self.downgrade());
+		W::EffectStack::push(self.downgrade());
 
 		// Lock the dependencies gatherer
 		let gather_deps_lock = self.inner.gather_deps_lock.write();
@@ -200,7 +200,7 @@ impl<F: ?Sized, W: ReactiveWorld> Effect<F, W> {
 		for dep in deps.drain() {
 			let Some(trigger) = dep.upgrade() else { continue };
 			// TODO: Use `self.downgrade` once we fix issues around the world
-			trigger.remove_subscriber(world::top_effect().expect("Just pushed"));
+			trigger.remove_subscriber(W::EffectStack::top().expect("Just pushed"));
 		}
 
 		// Then return the gatherer, which will pop the effect from the stack on drop
@@ -417,7 +417,7 @@ pub struct EffectDepsGatherer<'a, W: ReactiveWorld = WorldDefault>(IMutRefMut<'a
 impl<W: ReactiveWorld> Drop for EffectDepsGatherer<'_, W> {
 	fn drop(&mut self) {
 		// Pop our effect from the stack
-		world::pop_effect::<W>();
+		W::EffectStack::pop();
 	}
 }
 
@@ -425,7 +425,7 @@ impl<W: ReactiveWorld> Drop for EffectDepsGatherer<'_, W> {
 // TODO: Move this elsewhere
 #[must_use]
 pub fn running<W: ReactiveWorld>() -> Option<WeakEffect<world::F<W>, W>> {
-	world::top_effect::<W>()
+	<W>::EffectStack::top()
 }
 
 /// Effect run

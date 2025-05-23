@@ -17,7 +17,7 @@ pub use self::effect_stack::{EffectStack, EffectStackGlobal, EffectStackThreadLo
 
 // Imports
 use {
-	crate::{effect, trigger, WeakEffect, WeakTrigger},
+	crate::{effect, trigger, WeakTrigger},
 	core::{marker::Unsize, ops::CoerceUnsized},
 	dynatos_world::{IMut, Weak, World, WorldGlobal, WorldThreadLocal},
 	std::collections::{HashMap, HashSet},
@@ -57,29 +57,3 @@ pub type F<W: ReactiveWorld> = <W::EffectStack as EffectStack<W>>::F;
 
 /// `Unsize` into the effect stack function of the world `W`
 pub trait UnsizeF<W: ReactiveWorld> = Unsize<F<W>>;
-
-/// Pushes an effect onto the effect stack of the world `W`
-pub fn push_effect<F, W>(effect: WeakEffect<F, W>)
-where
-	F: ?Sized + Unsize<self::F<W>>,
-	W: ReactiveWorld,
-{
-	W::EffectStack::push(effect);
-}
-
-/// Pops an effect onto the effect stack of the world `W`
-pub fn pop_effect<W>()
-where
-	W: ReactiveWorld,
-{
-	W::EffectStack::pop();
-}
-
-/// Returns the top of the effect stack of the world `W`
-#[must_use]
-pub fn top_effect<W>() -> Option<WeakEffect<F<W>, W>>
-where
-	W: ReactiveWorld,
-{
-	W::EffectStack::top()
-}
