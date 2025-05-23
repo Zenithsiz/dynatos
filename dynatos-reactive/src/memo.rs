@@ -2,7 +2,7 @@
 
 // Imports
 use {
-	crate::{world::UnsizeF, Effect, EffectRun, ReactiveWorld, SignalBorrow, SignalWithDefaultImpl, Trigger},
+	crate::{Effect, EffectRun, ReactiveWorld, SignalBorrow, SignalWithDefaultImpl, Trigger},
 	core::{
 		fmt,
 		marker::{PhantomData, Unsize},
@@ -42,7 +42,7 @@ impl<T, F, W: MemoWorld<T, F>> Memo<T, F, W> {
 	where
 		T: PartialEq + 'static,
 		F: Fn() -> T + 'static,
-		EffectFn<T, F, W>: UnsizeF<W>,
+		EffectFn<T, F, W>: Unsize<W::F>,
 	{
 		let value = IMut::<_, W>::new(None);
 		let effect = Effect::new_in(

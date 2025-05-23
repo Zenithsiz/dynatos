@@ -10,11 +10,7 @@
 #[cfg(debug_assertions)]
 use core::panic::Location;
 use {
-	crate::{
-		world::{self, EffectStack, UnsizeF},
-		ReactiveWorld,
-		WeakTrigger,
-	},
+	crate::{world::EffectStack, ReactiveWorld, WeakTrigger},
 	core::{
 		fmt,
 		hash::Hash,
@@ -91,7 +87,7 @@ impl<F, W: ReactiveWorld> Effect<F, W> {
 	#[track_caller]
 	pub fn new_in(run: F, world: W) -> Self
 	where
-		F: EffectRun + UnsizeF<W> + 'static,
+		F: EffectRun + Unsize<W::F> + 'static,
 	{
 		// Create the effect
 		let effect = Self::new_raw_in(run, world);
@@ -128,7 +124,7 @@ impl<F, W: ReactiveWorld> Effect<F, W> {
 	#[track_caller]
 	pub fn try_new_in(run: F, world: W) -> Option<Self>
 	where
-		F: EffectRun + UnsizeF<W> + 'static,
+		F: EffectRun + Unsize<W::F> + 'static,
 	{
 		let effect = Self::new_in(run, world);
 		match effect.is_inert() {
@@ -186,7 +182,7 @@ impl<F: ?Sized, W: ReactiveWorld> Effect<F, W> {
 	#[must_use]
 	pub fn deps_gatherer(&self) -> EffectDepsGatherer<W>
 	where
-		F: UnsizeF<W> + 'static,
+		F: Unsize<W::F> + 'static,
 	{
 		// Push the effect
 		W::EffectStack::push(self.downgrade());
@@ -214,7 +210,7 @@ impl<F: ?Sized, W: ReactiveWorld> Effect<F, W> {
 	/// Removes any existing dependencies before running.
 	pub fn gather_dependencies<G, O>(&self, gather: G) -> O
 	where
-		F: UnsizeF<W> + 'static,
+		F: Unsize<W::F> + 'static,
 		G: FnOnce() -> O,
 	{
 		let _gatherer = self.deps_gatherer();
@@ -224,7 +220,7 @@ impl<F: ?Sized, W: ReactiveWorld> Effect<F, W> {
 	/// Runs the effect
 	pub fn run(&self)
 	where
-		F: EffectRun + UnsizeF<W> + 'static,
+		F: EffectRun + Unsize<W::F> + 'static,
 	{
 		// If we're suppressed, don't do anything
 		// TODO: Should we clear our dependencies in this case?
@@ -347,7 +343,7 @@ impl<F: ?Sized, W: ReactiveWorld> WeakEffect<F, W> {
 	/// Returns if the effect still existed
 	pub fn try_run(&self) -> bool
 	where
-		F: EffectRun + UnsizeF<W> + 'static,
+		F: EffectRun + Unsize<W::F> + 'static,
 	{
 		// Try to upgrade, else return that it was missing
 		let Some(effect) = self.upgrade() else {
@@ -424,7 +420,7 @@ impl<W: ReactiveWorld> Drop for EffectDepsGatherer<'_, W> {
 /// Returns the current running effect
 // TODO: Move this elsewhere
 #[must_use]
-pub fn running<W: ReactiveWorld>() -> Option<WeakEffect<world::F<W>, W>> {
+pub fn running<W: ReactiveWorld>() -> Option<WeakEffect<W::F, W>> {
 	<W>::EffectStack::top()
 }
 

@@ -17,7 +17,7 @@ pub use self::effect_stack::{EffectStack, EffectStackGlobal, EffectStackThreadLo
 
 // Imports
 use {
-	crate::{effect, trigger, WeakTrigger},
+	crate::{effect, trigger, EffectRun, WeakTrigger},
 	core::{marker::Unsize, ops::CoerceUnsized},
 	dynatos_world::{IMut, Weak, World, WorldGlobal, WorldThreadLocal},
 	std::collections::{HashMap, HashSet},
@@ -25,6 +25,9 @@ use {
 
 /// Reactive world
 pub trait ReactiveWorldInner: World {
+	/// Effect function
+	type F: ?Sized + EffectRun + Unsize<Self::F> + 'static;
+
 	/// Effect stack
 	type EffectStack: EffectStack<Self>;
 }
@@ -40,20 +43,17 @@ pub trait ReactiveWorldInner: World {
 )]
 pub trait ReactiveWorld = ReactiveWorldInner
 where
-	Weak<effect::Inner<F<Self>, Self>, Self>: CoerceUnsized<Weak<effect::Inner<F<Self>, Self>, Self>>,
+	Weak<effect::Inner<<Self as ReactiveWorldInner>::F, Self>, Self>:
+		CoerceUnsized<Weak<effect::Inner<<Self as ReactiveWorldInner>::F, Self>, Self>>,
 	IMut<HashMap<crate::Subscriber<Self>, trigger::SubscriberInfo>, Self>: Sized,
 	IMut<HashSet<WeakTrigger<Self>>, Self>: Sized,
 	IMut<(), Self>: Sized;
 
 impl ReactiveWorldInner for WorldThreadLocal {
 	type EffectStack = EffectStackThreadLocal;
+	type F = dyn EffectRun + 'static;
 }
 impl ReactiveWorldInner for WorldGlobal {
 	type EffectStack = EffectStackGlobal;
+	type F = dyn EffectRun + Send + Sync + 'static;
 }
-
-/// The effect stack function type of the world `W`
-pub type F<W: ReactiveWorld> = <W::EffectStack as EffectStack<W>>::F;
-
-/// `Unsize` into the effect stack function of the world `W`
-pub trait UnsizeF<W: ReactiveWorld> = Unsize<F<W>>;

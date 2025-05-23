@@ -5,7 +5,7 @@
 
 // Imports
 use {
-	crate::{effect, world, Effect, ReactiveWorld, WeakEffect},
+	crate::{effect, Effect, ReactiveWorld, WeakEffect},
 	core::{
 		fmt,
 		hash::{Hash, Hasher},
@@ -24,7 +24,7 @@ use {
 #[derive(Debug)]
 pub struct Subscriber<W: ReactiveWorld> {
 	/// Effect
-	effect: WeakEffect<world::F<W>, W>,
+	effect: WeakEffect<W::F, W>,
 }
 
 impl<W: ReactiveWorld> Clone for Subscriber<W> {
@@ -366,9 +366,9 @@ impl<W: ReactiveWorld> IntoSubscriber<W> for Subscriber<W> {
 )]
 impl<F, W> IntoSubscriber<W> for T<F, W>
 where
-	F: ?Sized + core::marker::Unsize<world::F<W>>,
+	F: ?Sized + core::marker::Unsize<W::F>,
 	W: ReactiveWorld,
-	WeakEffect<F, W>: CoerceUnsized<WeakEffect<world::F<W>, W>>,
+	WeakEffect<F, W>: CoerceUnsized<WeakEffect<W::F, W>>,
 {
 	#[track_caller]
 	fn into_subscriber(self) -> Subscriber<W> {
