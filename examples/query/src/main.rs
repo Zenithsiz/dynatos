@@ -9,7 +9,7 @@ use {
 	dynatos_html::{ev, html, EventTargetWithListener, NodeWithChildren, NodeWithText},
 	dynatos_loadable::Loadable,
 	dynatos_reactive::{SignalBorrowMut, SignalGetCloned, SignalSet},
-	dynatos_router::{Location, QuerySignal},
+	dynatos_router::{Location, QuerySignal, SingleQuery},
 	tracing_subscriber::prelude::*,
 	web_sys::HtmlElement,
 	zutil_cloned::cloned,
@@ -47,7 +47,7 @@ fn run() -> Result<(), anyhow::Error> {
 
 fn page() -> HtmlElement {
 	// TODO: If we add `.with_loadable_default()`, use it again in this example.
-	let query = QuerySignal::<i32>::new("a");
+	let query = QuerySignal::new(SingleQuery::<i32>::new("a"));
 
 	html::div().with_children([
 		#[cloned(query)]
@@ -70,7 +70,7 @@ fn page() -> HtmlElement {
 		html::br(),
 		html::button()
 			.with_event_listener::<ev::Click>(move |_ev| {
-				query.set(Loadable::Loaded(6));
+				query.set(6);
 			})
 			.with_text("6"),
 	])
