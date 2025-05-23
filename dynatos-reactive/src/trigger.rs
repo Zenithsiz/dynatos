@@ -429,7 +429,7 @@ mod test {
 
 	/// Benches triggering a trigger with `N` no-op effects.
 	fn trigger_noop_n<const N: usize>(bencher: &mut Bencher) {
-		let trigger: Trigger = Trigger::new();
+		let trigger = Trigger::new();
 		let effects = core::array::from_fn::<_, N, _>(|_| Effect::new(|| ()));
 		for effect in &effects {
 			trigger.add_subscriber(effect);
