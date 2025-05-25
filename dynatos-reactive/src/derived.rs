@@ -181,6 +181,6 @@ where
 	#[track_caller]
 	fn run(&self) {
 		*self.value.write() = Some((self.f)());
-		self.trigger.trigger();
+		self.trigger.exec();
 	}
 }

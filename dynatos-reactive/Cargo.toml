@@ -16,6 +16,7 @@ futures = { workspace = true }
 itertools = { workspace = true }
 parking_lot = { workspace = true }
 pin-project = { workspace = true }
+priority-queue = { workspace = true }
 scopeguard = { workspace = true }
 tokio = { workspace = true, features = ["sync"] }
 tracing = { workspace = true }

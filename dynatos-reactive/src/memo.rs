@@ -161,7 +161,7 @@ where
 		if !is_same {
 			*value = Some(new_value);
 			drop(value);
-			self.trigger.trigger();
+			self.trigger.exec();
 		}
 	}
 }

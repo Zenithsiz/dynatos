@@ -5,10 +5,12 @@
 
 // Imports
 use {
-	crate::{effect, Effect, ReactiveWorld, WeakEffect},
+	crate::{effect, world::RunQueue, Effect, ReactiveWorld, WeakEffect},
 	core::{
+		borrow::Borrow,
 		fmt,
 		hash::{Hash, Hasher},
+		marker::PhantomData,
 		ops::CoerceUnsized,
 	},
 	dynatos_world::{IMut, IMutLike, Rc, RcLike, Weak, WeakLike, WorldDefault},
@@ -49,9 +51,16 @@ impl<W: ReactiveWorld> Hash for Subscriber<W> {
 	}
 }
 
+impl<W: ReactiveWorld> Borrow<WeakEffect<W::F, W>> for Subscriber<W> {
+	fn borrow(&self) -> &WeakEffect<W::F, W> {
+		&self.effect
+	}
+}
+
 /// Subscriber info
+// TODO: Make cloning this cheap by wrapping it in an `Arc` or something.
 #[derive(Clone, Debug)]
-pub(crate) struct SubscriberInfo {
+pub struct SubscriberInfo {
 	#[cfg(debug_assertions)]
 	/// Where this subscriber was defined
 	defined_locs: HashSet<&'static Location<'static>>,
@@ -67,6 +76,7 @@ impl SubscriberInfo {
 			reason = "It can't be a `const fn` with `debug_assertions`"
 		)
 	)]
+	#[must_use]
 	pub fn new() -> Self {
 		Self {
 			#[cfg(debug_assertions)]
@@ -88,6 +98,12 @@ impl SubscriberInfo {
 	pub fn update(&mut self) {
 		#[cfg(debug_assertions)]
 		self.defined_locs.insert(Location::caller());
+	}
+}
+
+impl Default for SubscriberInfo {
+	fn default() -> Self {
+		Self::new()
 	}
 }
 
@@ -202,49 +218,32 @@ impl<W: ReactiveWorld> Trigger<W> {
 		subscribers.remove(&subscriber.into_subscriber()).is_some()
 	}
 
-	/// Triggers this trigger.
+	/// Executes this trigger.
 	///
-	/// Re-runs all subscribers.
-	pub fn trigger(&self) {
-		Self::trigger_inner(&self.inner);
-	}
+	/// Adds all subscribers to the run queue, and once the returned
+	/// executor is dropped, and there are no other executors alive,
+	/// all queues effects are run.
+	#[track_caller]
+	pub fn exec(&self) -> TriggerExec<W> {
+		let subscribers = self.inner.subscribers.read();
 
-	/// Inner function for [`Self::trigger`]
-	fn trigger_inner(inner: &Inner<W>) {
-		// Run all subscribers, and remove any empty ones
-		// Note: Since running the subscriber might add subscribers, we can't keep
-		//       the inner borrow active, so we gather all dependencies before-hand.
-		//       However, we can remove subscribers in between running effects, so we
-		//       don't need to wait for that.
-		// TODO: Have a 2nd field `to_add_subscribers` where subscribers are added if
-		//       the main field is locked, and after this loop move any subscribers from
-		//       it to the main field?
-		let subscribers = inner
-			.subscribers
-			.write()
-			.iter()
-			.map(|(subscriber, info)| (subscriber.clone(), info.clone()))
-			.collect::<Vec<_>>();
-		for (subscriber, info) in subscribers {
-			let Some(effect) = subscriber.effect.upgrade() else {
-				Self::remove_subscriber_inner(inner, subscriber.effect);
-				continue;
-			};
+		// Increase the ref count
+		W::RunQueue::inc_ref();
 
+		// Then all all of our subscribers
+		// TODO: Should we care about the order? Randomizing it is probably good, since
+		//       it'll bring to the surface weird bugs or performance dependent on effect run order.
+		#[expect(clippy::iter_over_hash_type, reason = "We don't care about which order they go in")]
+		for (subscriber, info) in &*subscribers {
+			W::RunQueue::push(subscriber.clone(), info.clone());
+		}
+
+		TriggerExec {
 			#[cfg(debug_assertions)]
-			{
-				use itertools::Itertools;
-				tracing::trace!(
-					effect_loc=%effect.defined_loc(),
-					subscriber_locs=%info.defined_locs.iter().copied().map(Location::to_string).join(";"),
-					trigger_loc=%inner.defined_loc,
-					"Running effect due to trigger"
-				);
-			};
-			#[cfg(not(debug_assertions))]
-			let _: SubscriberInfo = info;
-
-			effect.run();
+			trigger_defined_loc: self.inner.defined_loc,
+			#[cfg(debug_assertions)]
+			exec_defined_loc: Location::caller(),
+			_phantom: PhantomData,
 		}
 	}
 
@@ -376,6 +375,52 @@ where
 	}
 }
 
+/// Trigger executor
+pub struct TriggerExec<W: ReactiveWorld> {
+	/// Trigger defined location
+	#[cfg(debug_assertions)]
+	trigger_defined_loc: &'static Location<'static>,
+
+	/// Execution defined location
+	#[cfg(debug_assertions)]
+	exec_defined_loc: &'static Location<'static>,
+
+	/// Phantom
+	_phantom: PhantomData<W>,
+}
+
+impl<W: ReactiveWorld> Drop for TriggerExec<W> {
+	fn drop(&mut self) {
+		// Decrease the reference count, and if we weren't the last, quit
+		if !W::RunQueue::dec_ref() {
+			return;
+		}
+
+		// If we were the last, keep popping effects and running them until
+		// the run queue is empty
+		while let Some((subscriber, info)) = W::RunQueue::pop() {
+			let Some(effect) = subscriber.effect.upgrade() else {
+				continue;
+			};
+
+			#[cfg(debug_assertions)]
+			{
+				use itertools::Itertools;
+
+				tracing::trace!(
+					effect_loc=%effect.defined_loc(),
+					subscriber_locs=%info.defined_locs.iter().copied().map(Location::to_string).join(";"),
+					trigger_loc=%self.trigger_defined_loc,
+					exec_loc=%self.exec_defined_loc,
+					"Running effect due to trigger"
+				);
+			};
+
+			effect.run();
+		}
+	}
+}
+
 #[cfg(test)]
 mod test {
 	// Imports
@@ -392,7 +437,7 @@ mod test {
 		#[thread_local]
 		static TRIGGERS: Cell<usize> = Cell::new(0);
 
-		// Create the effect and reset the flag
+		// Create the effect
 		let effect = Effect::new(move || TRIGGERS.set(TRIGGERS.get() + 1));
 
 		// Then create the trigger, and ensure it wasn't triggered
@@ -402,18 +447,78 @@ mod test {
 		assert_eq!(TRIGGERS.get(), 1, "Trigger was triggered early");
 
 		// Then trigger and ensure it was triggered
-		trigger.trigger();
+		trigger.exec();
 		assert_eq!(TRIGGERS.get(), 2, "Trigger was not triggered");
 
 		// Then add the subscriber again and ensure the effect isn't run twice
 		trigger.add_subscriber(&effect);
-		trigger.trigger();
+		trigger.exec();
 		assert_eq!(TRIGGERS.get(), 3, "Trigger ran effect multiple times");
 
 		// Finally drop the effect and try again
 		mem::drop(effect);
-		trigger.trigger();
+		trigger.exec();
 		assert_eq!(TRIGGERS.get(), 3, "Trigger was triggered after effect was dropped");
+	}
+
+	#[test]
+	fn exec_multiple() {
+		/// Counts the number of times the effect was run
+		#[thread_local]
+		static TRIGGERS: Cell<usize> = Cell::new(0);
+
+		let effect = Effect::new(move || TRIGGERS.set(TRIGGERS.get() + 1));
+
+		let trigger = Trigger::new();
+		trigger.add_subscriber(&effect);
+
+		let exec0 = trigger.exec();
+		assert_eq!(TRIGGERS.get(), 1, "Trigger was triggered when executing");
+		let exec1 = trigger.exec();
+
+		drop(exec1);
+		assert_eq!(
+			TRIGGERS.get(),
+			1,
+			"Trigger was triggered when dropping a single executor"
+		);
+
+		drop(exec0);
+		assert_eq!(
+			TRIGGERS.get(),
+			2,
+			"Trigger wasn't triggered when dropping last executor"
+		);
+	}
+
+	#[test]
+	fn exec_multiple_same_effect() {
+		/// Counts the number of times the effect was run
+		#[thread_local]
+		static TRIGGERS: Cell<usize> = Cell::new(0);
+
+		let effect = Effect::new(move || TRIGGERS.set(TRIGGERS.get() + 1));
+
+		let trigger0 = Trigger::new();
+		trigger0.add_subscriber(&effect);
+
+		let trigger1 = Trigger::new();
+		trigger1.add_subscriber(&effect);
+
+		let exec0 = trigger0.exec();
+		let exec1 = trigger1.exec();
+
+		drop((exec0, exec1));
+
+		assert_eq!(TRIGGERS.get(), 2, "Effect was run multiple times in same run queue");
+
+		trigger0.exec();
+
+		assert_eq!(
+			TRIGGERS.get(),
+			3,
+			"Effect wasn't run even when no other executors existed"
+		);
 	}
 
 	#[bench]
@@ -436,7 +541,7 @@ mod test {
 		}
 
 		bencher.iter(|| {
-			trigger.trigger();
+			trigger.exec();
 		});
 	}
 

@@ -11,9 +11,13 @@
 
 // Modules
 pub mod effect_stack;
+pub mod run_queue;
 
 // Exports
-pub use self::effect_stack::{EffectStack, EffectStackGlobal, EffectStackThreadLocal};
+pub use self::{
+	effect_stack::{EffectStack, EffectStackGlobal, EffectStackThreadLocal},
+	run_queue::{RunQueue, RunQueueGlobal, RunQueueThreadLocal},
+};
 
 // Imports
 use {
@@ -30,6 +34,9 @@ pub trait ReactiveWorldInner: World {
 
 	/// Effect stack
 	type EffectStack: EffectStack<Self>;
+
+	/// Run queue
+	type RunQueue: RunQueue<Self>;
 }
 
 // TODO: Remove this once we can assume these bounds, or somehow encode them into `ReactiveWorldInner`
@@ -52,8 +59,10 @@ where
 impl ReactiveWorldInner for WorldThreadLocal {
 	type EffectStack = EffectStackThreadLocal;
 	type F = dyn EffectRun + 'static;
+	type RunQueue = RunQueueThreadLocal;
 }
 impl ReactiveWorldInner for WorldGlobal {
 	type EffectStack = EffectStackGlobal;
 	type F = dyn EffectRun + Send + Sync + 'static;
+	type RunQueue = RunQueueGlobal;
 }

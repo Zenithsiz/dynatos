@@ -20,7 +20,9 @@
 	debug_closure_helpers,
 	decl_macro,
 	auto_traits,
-	negative_impls
+	negative_impls,
+	stmt_expr_attributes,
+	proc_macro_hygiene
 )]
 
 // Modules

@@ -3,6 +3,7 @@
 // Imports
 use {
 	crate::{
+		trigger::TriggerExec,
 		ReactiveWorld,
 		SignalBorrow,
 		SignalBorrowMut,
@@ -18,7 +19,6 @@ use {
 	core::{
 		fmt,
 		future::Future,
-		marker::PhantomData,
 		ops::{Deref, DerefMut},
 	},
 	dynatos_world::{IMut, IMutLike, IMutRef, IMutRefMut, IMutRefMutLike, Rc, RcLike, WorldDefault},
@@ -99,7 +99,7 @@ impl<F: Loader, W: AsyncReactiveWorld<F>> Inner<F, W> {
 
 			// Finally trigger and awake all waiters.
 			// TODO: Notify using the trigger?
-			trigger.trigger();
+			trigger.exec();
 			notify.notify_waiters();
 		});
 		self.handle = Some(handle);
@@ -408,18 +408,6 @@ where
 	}
 }
 
-/// Triggers on `Drop`
-// Note: We need this wrapper because `BorrowRefMut::value` must
-//       already be dropped when we run the trigger, which we
-//       can't do if we implement `Drop` on `BorrowRefMut`.
-struct TriggerOnDrop<F: Loader, W: AsyncReactiveWorld<F>>(Rc<Trigger<W>, W>, PhantomData<F>);
-
-impl<F: Loader, W: AsyncReactiveWorld<F>> Drop for TriggerOnDrop<F, W> {
-	fn drop(&mut self) {
-		self.0.trigger();
-	}
-}
-
 /// Reference type for [`SignalBorrowMut`] impl
 pub struct BorrowRefMut<'a, F: Loader, W: AsyncReactiveWorld<F> = WorldDefault> {
 	/// Value
@@ -427,7 +415,7 @@ pub struct BorrowRefMut<'a, F: Loader, W: AsyncReactiveWorld<F> = WorldDefault> 
 
 	/// Trigger on drop
 	// Note: Must be dropped *after* `value`.
-	_trigger_on_drop: Option<TriggerOnDrop<F, W>>,
+	_trigger_on_drop: Option<TriggerExec<W>>,
 }
 
 impl<F: Loader, W: AsyncReactiveWorld<F>> fmt::Debug for BorrowRefMut<'_, F, W>
@@ -468,7 +456,7 @@ impl<F: Loader, W: AsyncReactiveWorld<F>> SignalBorrowMut for AsyncSignal<F, W> 
 
 		// Then get the value
 		inner.value.is_some().then(|| BorrowRefMut {
-			_trigger_on_drop: Some(TriggerOnDrop(Rc::<_, W>::clone(&inner.trigger), PhantomData)),
+			_trigger_on_drop: Some(inner.trigger.exec()),
 			value:            inner,
 		})
 	}

@@ -26,7 +26,7 @@ pub use ops::{
 
 // Imports
 use {
-	crate::{ReactiveWorld, Trigger},
+	crate::{trigger::TriggerExec, ReactiveWorld, Trigger},
 	core::{
 		fmt,
 		marker::Unsize,
@@ -142,27 +142,14 @@ impl<T: 'static, W: ReactiveWorld> SignalReplace<T> for Signal<T, W> {
 	}
 }
 
-/// Triggers on `Drop`
-// Note: We need this wrapper because `BorrowRefMut::value` must
-//       already be dropped when we run the trigger, which we
-//       can't do if we implement `Drop` on `BorrowRefMut`.
-#[derive(Debug)]
-struct TriggerOnDrop<'a, W: ReactiveWorld>(pub &'a Trigger<W>);
-
-impl<W: ReactiveWorld> Drop for TriggerOnDrop<'_, W> {
-	fn drop(&mut self) {
-		self.0.trigger();
-	}
-}
-
 /// Reference type for [`SignalBorrowMut`] impl
 pub struct BorrowRefMut<'a, T: ?Sized + 'a, W: ReactiveWorld = WorldDefault> {
 	/// Value
 	value: IMutRefMut<'a, T, W>,
 
-	/// Trigger on drop
+	/// Trigger executor
 	// Note: Must be dropped *after* `value`.
-	_trigger_on_drop: Option<TriggerOnDrop<'a, W>>,
+	_trigger_exec: Option<TriggerExec<W>>,
 }
 
 impl<T: ?Sized, W: ReactiveWorld> Deref for BorrowRefMut<'_, T, W> {
@@ -196,7 +183,7 @@ impl<T: ?Sized + 'static, W: ReactiveWorld> SignalBorrowMut for Signal<T, W> {
 		let value = self.inner.value.write();
 		BorrowRefMut {
 			value,
-			_trigger_on_drop: Some(TriggerOnDrop(&self.inner.trigger)),
+			_trigger_exec: Some(self.inner.trigger.exec()),
 		}
 	}
 
@@ -205,7 +192,7 @@ impl<T: ?Sized + 'static, W: ReactiveWorld> SignalBorrowMut for Signal<T, W> {
 		let value = self.inner.value.write();
 		BorrowRefMut {
 			value,
-			_trigger_on_drop: None,
+			_trigger_exec: None,
 		}
 	}
 }
@@ -236,7 +223,22 @@ impl<T: fmt::Debug, W: ReactiveWorld> fmt::Debug for Signal<T, W> {
 mod test {
 	// Imports
 	extern crate test;
-	use {super::*, test::Bencher};
+	use {super::*, crate::Effect, test::Bencher, zutil_cloned::cloned};
+
+	#[test]
+	fn multiple_mut() {
+		let a = Signal::new(1_i32);
+		let b = Signal::new(2_i32);
+
+		#[cloned(a, b)]
+		let _effect = Effect::new(move || {
+			a.get();
+			b.get();
+		});
+
+		let _a = a.borrow_mut();
+		let _b = b.borrow_mut();
+	}
 
 	#[bench]
 	fn clone_100(bencher: &mut Bencher) {
