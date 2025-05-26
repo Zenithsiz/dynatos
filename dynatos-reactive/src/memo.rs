@@ -2,7 +2,7 @@
 
 // Imports
 use {
-	crate::{Effect, EffectRun, ReactiveWorld, SignalBorrow, SignalWithDefaultImpl, Trigger},
+	crate::{Effect, EffectRun, EffectRunCtx, ReactiveWorld, SignalBorrow, SignalWithDefaultImpl, Trigger},
 	core::{
 		fmt,
 		marker::{PhantomData, Unsize},
@@ -143,14 +143,14 @@ struct EffectFn<T, F: ?Sized, W: MemoWorld<T, F>> {
 	f: F,
 }
 
-impl<T, F, W> EffectRun for EffectFn<T, F, W>
+impl<T, F, W> EffectRun<W> for EffectFn<T, F, W>
 where
 	T: PartialEq + 'static,
 	F: Fn() -> T,
 	W: MemoWorld<T, F>,
 {
 	#[track_caller]
-	fn run(&self) {
+	fn run(&self, _ctx: EffectRunCtx<'_, W>) {
 		let new_value = (self.f)();
 		let mut value = self.value.write();
 

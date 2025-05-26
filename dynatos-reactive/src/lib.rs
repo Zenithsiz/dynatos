@@ -22,7 +22,8 @@
 	auto_traits,
 	negative_impls,
 	stmt_expr_attributes,
-	proc_macro_hygiene
+	proc_macro_hygiene,
+	type_alias_impl_trait
 )]
 
 // Modules
@@ -39,7 +40,7 @@ pub mod world;
 pub use self::{
 	async_signal::AsyncSignal,
 	derived::Derived,
-	effect::{Effect, EffectRun, WeakEffect},
+	effect::{Effect, EffectRun, EffectRunCtx, WeakEffect},
 	memo::Memo,
 	signal::{
 		Signal,

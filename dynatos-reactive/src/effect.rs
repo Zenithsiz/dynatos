@@ -14,7 +14,7 @@ use {
 	core::{
 		fmt,
 		hash::Hash,
-		marker::Unsize,
+		marker::{PhantomData, Unsize},
 		ops::CoerceUnsized,
 		sync::atomic::{self, AtomicBool},
 	},
@@ -54,7 +54,7 @@ impl<F> Effect<F, WorldDefault> {
 	#[track_caller]
 	pub fn new(run: F) -> Self
 	where
-		F: EffectRun + 'static,
+		F: EffectRun<WorldDefault> + 'static,
 	{
 		Self::new_in(run, WorldDefault::default())
 	}
@@ -74,7 +74,7 @@ impl<F> Effect<F, WorldDefault> {
 	#[track_caller]
 	pub fn try_new(run: F) -> Option<Self>
 	where
-		F: EffectRun + 'static,
+		F: EffectRun<WorldDefault> + 'static,
 	{
 		Self::try_new_in(run, WorldDefault::default())
 	}
@@ -87,7 +87,7 @@ impl<F, W: ReactiveWorld> Effect<F, W> {
 	#[track_caller]
 	pub fn new_in(run: F, world: W) -> Self
 	where
-		F: EffectRun + Unsize<W::F> + 'static,
+		F: EffectRun<W> + Unsize<W::F> + 'static,
 	{
 		// Create the effect
 		let effect = Self::new_raw_in(run, world);
@@ -124,7 +124,7 @@ impl<F, W: ReactiveWorld> Effect<F, W> {
 	#[track_caller]
 	pub fn try_new_in(run: F, world: W) -> Option<Self>
 	where
-		F: EffectRun + Unsize<W::F> + 'static,
+		F: EffectRun<W> + Unsize<W::F> + 'static,
 	{
 		let effect = Self::new_in(run, world);
 		match effect.is_inert() {
@@ -220,7 +220,7 @@ impl<F: ?Sized, W: ReactiveWorld> Effect<F, W> {
 	/// Runs the effect
 	pub fn run(&self)
 	where
-		F: EffectRun + Unsize<W::F> + 'static,
+		F: EffectRun<W> + Unsize<W::F> + 'static,
 	{
 		// If we're suppressed, don't do anything
 		// TODO: Should we clear our dependencies in this case?
@@ -229,7 +229,12 @@ impl<F: ?Sized, W: ReactiveWorld> Effect<F, W> {
 		}
 
 		// Otherwise, run it
-		self.gather_dependencies(move || self.inner.run.run());
+		let ctx = EffectRunCtx {
+			// TODO: Not have to clone the effect each time we run?
+			effect:   W::unsize_effect(self.clone()),
+			_phantom: PhantomData,
+		};
+		self.gather_dependencies(move || self.inner.run.run(ctx));
 	}
 
 	/// Suppresses this effect from running while calling this function
@@ -343,7 +348,7 @@ impl<F: ?Sized, W: ReactiveWorld> WeakEffect<F, W> {
 	/// Returns if the effect still existed
 	pub fn try_run(&self) -> bool
 	where
-		F: EffectRun + Unsize<W::F> + 'static,
+		F: EffectRun<W> + Unsize<W::F> + 'static,
 	{
 		// Try to upgrade, else return that it was missing
 		let Some(effect) = self.upgrade() else {
@@ -425,16 +430,32 @@ pub fn running<W: ReactiveWorld>() -> Option<WeakEffect<W::F, W>> {
 }
 
 /// Effect run
-pub trait EffectRun {
+pub trait EffectRun<W: ReactiveWorld = WorldDefault> {
 	/// Runs the effect
-	fn run(&self);
+	fn run(&self, ctx: EffectRunCtx<'_, W>);
 }
 
-impl<F> EffectRun for F
+/// Effect run context
+pub struct EffectRunCtx<'a, W: ReactiveWorld> {
+	/// Effect
+	effect: Effect<W::F, W>,
+
+	_phantom: PhantomData<&'a ()>,
+}
+
+impl<'a, W: ReactiveWorld> EffectRunCtx<'a, W> {
+	/// Returns the effect running this
+	pub fn effect(&self) -> Effect<W::F, W> {
+		self.effect.clone()
+	}
+}
+
+impl<F, W> EffectRun<W> for F
 where
 	F: Fn(),
+	W: ReactiveWorld,
 {
-	fn run(&self) {
+	fn run(&self, _ctx: EffectRunCtx<'_, W>) {
 		self();
 	}
 }

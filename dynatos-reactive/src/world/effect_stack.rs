@@ -34,7 +34,7 @@ pub struct EffectStackThreadLocal;
 
 /// Effect stack for `EffectStackThreadLocal`
 #[thread_local]
-static EFFECT_STACK_STD_RC: EffectStackImpl<dyn EffectRun, WorldThreadLocal> =
+static EFFECT_STACK_STD_RC: EffectStackImpl<dyn EffectRun<WorldThreadLocal>, WorldThreadLocal> =
 	EffectStackImpl::<_, WorldThreadLocal>::new(vec![]);
 
 impl EffectStack<WorldThreadLocal> for EffectStackThreadLocal {
@@ -58,7 +58,7 @@ impl EffectStack<WorldThreadLocal> for EffectStackThreadLocal {
 pub struct EffectStackGlobal;
 
 /// Effect stack for `EffectStackGlobal`
-static EFFECT_STACK_STD_ARC: EffectStackImpl<dyn EffectRun + Send + Sync, WorldGlobal> =
+static EFFECT_STACK_STD_ARC: EffectStackImpl<dyn EffectRun<WorldGlobal> + Send + Sync, WorldGlobal> =
 	EffectStackImpl::<_, WorldGlobal>::new(vec![]);
 
 

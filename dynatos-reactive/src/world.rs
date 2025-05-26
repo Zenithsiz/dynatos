@@ -21,7 +21,7 @@ pub use self::{
 
 // Imports
 use {
-	crate::{effect, trigger, EffectRun, WeakTrigger},
+	crate::{effect, trigger, Effect, EffectRun, WeakTrigger},
 	core::{marker::Unsize, ops::CoerceUnsized},
 	dynatos_world::{IMut, Weak, World, WorldGlobal, WorldThreadLocal},
 	std::collections::{HashMap, HashSet},
@@ -30,13 +30,20 @@ use {
 /// Reactive world
 pub trait ReactiveWorldInner: World {
 	/// Effect function
-	type F: ?Sized + EffectRun + Unsize<Self::F> + 'static;
+	type F: ?Sized + Unsize<Self::F> + 'static;
 
 	/// Effect stack
 	type EffectStack: EffectStack<Self>;
 
 	/// Run queue
 	type RunQueue: RunQueue<Self>;
+
+	/// Unsizes an effect `Effect<F, W>` to `Effect<Self::F, W>`
+	// TODO: Encode the capability somehow...
+	fn unsize_effect<F>(effect: Effect<F, Self>) -> Effect<Self::F, Self>
+	where
+		F: ?Sized + Unsize<Self::F>,
+		Self: ReactiveWorld;
 }
 
 // TODO: Remove this once we can assume these bounds, or somehow encode them into `ReactiveWorldInner`
@@ -50,6 +57,7 @@ pub trait ReactiveWorldInner: World {
 )]
 pub trait ReactiveWorld = ReactiveWorldInner
 where
+	<Self as ReactiveWorldInner>::F: EffectRun<Self>,
 	Weak<effect::Inner<<Self as ReactiveWorldInner>::F, Self>, Self>:
 		CoerceUnsized<Weak<effect::Inner<<Self as ReactiveWorldInner>::F, Self>, Self>>,
 	IMut<HashMap<crate::Subscriber<Self>, trigger::SubscriberInfo>, Self>: Sized,
@@ -58,11 +66,27 @@ where
 
 impl ReactiveWorldInner for WorldThreadLocal {
 	type EffectStack = EffectStackThreadLocal;
-	type F = dyn EffectRun + 'static;
+	type F = dyn EffectRun<Self> + 'static;
 	type RunQueue = RunQueueThreadLocal;
+
+	fn unsize_effect<F>(effect: Effect<F, Self>) -> Effect<Self::F, Self>
+	where
+		F: ?Sized + Unsize<Self::F>,
+		Self: ReactiveWorld,
+	{
+		effect
+	}
 }
 impl ReactiveWorldInner for WorldGlobal {
 	type EffectStack = EffectStackGlobal;
-	type F = dyn EffectRun + Send + Sync + 'static;
+	type F = dyn EffectRun<Self> + Send + Sync + 'static;
 	type RunQueue = RunQueueGlobal;
+
+	fn unsize_effect<F>(effect: Effect<F, Self>) -> Effect<Self::F, Self>
+	where
+		F: ?Sized + Unsize<Self::F>,
+		Self: ReactiveWorld,
+	{
+		effect
+	}
 }
