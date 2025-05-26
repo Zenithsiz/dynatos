@@ -224,7 +224,9 @@ impl<F: ?Sized, W: ReactiveWorld> Effect<F, W> {
 	{
 		// If we're suppressed, don't do anything
 		// TODO: Should we clear our dependencies in this case?
-		if self.inner.suppressed.load(atomic::Ordering::Acquire) {
+		// TODO: Since triggers check if we're suppressed before adding
+		//       us to the run queue, should we still need this check here?
+		if self.is_suppressed() {
 			return;
 		}
 
@@ -250,6 +252,11 @@ impl<F: ?Sized, W: ReactiveWorld> Effect<F, W> {
 		self.inner.suppressed.store(last_suppressed, atomic::Ordering::Release);
 
 		output
+	}
+
+	/// Returns whether the effect is suppressed
+	pub fn is_suppressed(&self) -> bool {
+		self.inner.suppressed.load(atomic::Ordering::Acquire)
 	}
 
 	/// Formats this effect into `s`

@@ -235,6 +235,17 @@ impl<W: ReactiveWorld> Trigger<W> {
 		//       it'll bring to the surface weird bugs or performance dependent on effect run order.
 		#[expect(clippy::iter_over_hash_type, reason = "We don't care about which order they go in")]
 		for (subscriber, info) in &*subscribers {
+			// If the effect doesn't exist anymore, remove it
+			let Some(effect) = subscriber.effect.upgrade() else {
+				continue;
+			};
+
+			// Skip suppressed effects
+			if effect.is_suppressed() {
+				continue;
+			}
+
+			// TODO: Should the run queue use strong effects?
 			W::RunQueue::push(subscriber.clone(), info.clone());
 		}
 
