@@ -359,9 +359,9 @@ gen_either! { Either3, All3, t1: T1, t2: T2, t3: T3 }
 /// Extension trait to create an enum split signal
 // TODO: Add this for other worlds
 #[extend::ext_sized(name = SignalEnumSplit)]
-pub impl<S, T> S {
+pub impl<S> S {
 	/// Splits this signal into sub-signals
-	fn enum_split(self) -> EnumSplitSignal<S, T>
+	fn enum_split<T>(self) -> EnumSplitSignal<S, T>
 	where
 		T: EnumSplitValue<S> + 'static,
 		S: SignalGetCloned<Value = T> + SignalSet<T> + Clone + 'static,
