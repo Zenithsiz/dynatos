@@ -246,6 +246,7 @@ dependencies = [
  "dynatos-util",
  "extend",
  "tracing",
+ "zutil-cloned",
 ]
 
 [[package]]

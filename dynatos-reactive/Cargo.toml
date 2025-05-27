@@ -21,8 +21,6 @@ scopeguard = { workspace = true }
 tokio = { workspace = true, features = ["sync"] }
 tracing = { workspace = true }
 wasm-bindgen-futures = { workspace = true }
-
-[dev-dependencies]
 zutil-cloned = { workspace = true }
 
 [lints]

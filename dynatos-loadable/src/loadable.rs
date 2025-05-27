@@ -6,7 +6,15 @@ use {
 		convert::Infallible,
 		ops::{ControlFlow, Deref, DerefMut, FromResidual, Try},
 	},
-	dynatos_reactive::{SignalGetClone, SignalGetCopy, SignalSetWith},
+	dynatos_reactive::{
+		enum_split::{EnumSplitValue, EnumSplitValueUpdateCtx, SignalStorage},
+		ReactiveWorld,
+		Signal,
+		SignalGetClone,
+		SignalGetCopy,
+		SignalSet,
+		SignalSetWith,
+	},
 };
 
 /// Loadable value.
@@ -374,6 +382,62 @@ impl<T: Copy + 'static, E: 'static> SignalSetWith<Option<T>> for &'_ mut Loadabl
 			Some(value) => Loadable::Loaded(value),
 			None => Loadable::Empty,
 		};
+	}
+}
+
+/// Split value storage for the [`EnumSplitValue`] impl.
+#[derive(Debug)]
+pub struct SplitValueStorage<T, E> {
+	loaded: Option<SignalStorage<T>>,
+	err:    Option<SignalStorage<E>>,
+}
+
+impl<T, E> Default for SplitValueStorage<T, E> {
+	fn default() -> Self {
+		Self {
+			loaded: None,
+			err:    None,
+		}
+	}
+}
+
+impl<T, E, S, W> EnumSplitValue<S, W> for Loadable<T, E>
+where
+	T: Clone + 'static,
+	E: Clone + 'static,
+	S: SignalSet<Self> + Clone + 'static,
+	W: ReactiveWorld,
+{
+	type SigKind = Loadable<(), ()>;
+	type Signal = Loadable<Signal<T>, Signal<E>>;
+	type SignalsStorage = SplitValueStorage<T, E>;
+
+	fn get_signal(storage: &Self::SignalsStorage, cur: &Self::SigKind) -> Option<Self::Signal> {
+		let signal = match cur {
+			Loadable::Empty => Loadable::Empty,
+			Loadable::Err(()) => Loadable::Err(storage.err.as_ref()?.signal()),
+			Loadable::Loaded(()) => Loadable::Loaded(storage.loaded.as_ref()?.signal()),
+		};
+
+		Some(signal)
+	}
+
+	fn kind(&self) -> Self::SigKind {
+		self.as_ref().map(|_| ()).map_err(|_| ())
+	}
+
+	fn update(self, storage: &mut Self::SignalsStorage, ctx: EnumSplitValueUpdateCtx<'_, S, W>) {
+		match self {
+			Self::Loaded(new_value) => match &storage.loaded {
+				Some(storage) => storage.set(new_value),
+				None => storage.loaded = Some(ctx.create_signal_storage(new_value, Self::Loaded)),
+			},
+			Self::Err(new_value) => match &storage.err {
+				Some(storage) => storage.set(new_value),
+				None => storage.err = Some(ctx.create_signal_storage(new_value, Self::Err)),
+			},
+			Self::Empty => (),
+		}
 	}
 }
 

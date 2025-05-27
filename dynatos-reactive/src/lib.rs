@@ -23,13 +23,15 @@
 	negative_impls,
 	stmt_expr_attributes,
 	proc_macro_hygiene,
-	type_alias_impl_trait
+	type_alias_impl_trait,
+	macro_metavar_expr
 )]
 
 // Modules
 pub mod async_signal;
 pub mod derived;
 pub mod effect;
+pub mod enum_split;
 pub mod memo;
 pub mod signal;
 pub mod trigger;
@@ -41,6 +43,7 @@ pub use self::{
 	async_signal::AsyncSignal,
 	derived::Derived,
 	effect::{Effect, EffectRun, EffectRunCtx, WeakEffect},
+	enum_split::{EnumSplitSignal, SignalEnumSplit},
 	memo::Memo,
 	signal::{
 		Signal,

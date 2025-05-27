@@ -231,6 +231,7 @@ dependencies = [
  "dynatos-util",
  "extend",
  "tracing",
+ "zutil-cloned",
 ]
 
 [[package]]
@@ -252,6 +253,7 @@ dependencies = [
  "tokio",
  "tracing",
  "wasm-bindgen-futures",
+ "zutil-cloned",
 ]
 
 [[package]]

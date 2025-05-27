@@ -731,7 +731,7 @@ dependencies = [
  "extend",
  "tracing",
  "tracing-subscriber",
- "zutil-cloned",
+ "zutil-cloned 0.1.0 (git+https://github.com/Zenithsiz/zutil?rev=92cf40d6242e211fc59c2f702b8d1932ed7aaf8b)",
 ]
 
 [[package]]
@@ -899,6 +899,7 @@ dependencies = [
  "tokio",
  "tracing",
  "wasm-bindgen-futures",
+ "zutil-cloned 0.1.0 (git+https://github.com/Zenithsiz/zutil?rev=978fa5df733d59fc691812ce2fa6072bf901dc7f)",
 ]
 
 [[package]]
@@ -4121,6 +4122,15 @@ dependencies = [
 name = "zutil-cloned"
 version = "0.1.0"
 source = "git+https://github.com/Zenithsiz/zutil?rev=92cf40d6242e211fc59c2f702b8d1932ed7aaf8b#92cf40d6242e211fc59c2f702b8d1932ed7aaf8b"
+dependencies = [
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "zutil-cloned"
+version = "0.1.0"
+source = "git+https://github.com/Zenithsiz/zutil?rev=978fa5df733d59fc691812ce2fa6072bf901dc7f#978fa5df733d59fc691812ce2fa6072bf901dc7f"
 dependencies = [
  "quote",
  "syn",

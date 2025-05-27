@@ -240,6 +240,7 @@ impl<F: ?Sized, W: ReactiveWorld> Effect<F, W> {
 	}
 
 	/// Suppresses this effect from running while calling this function
+	// TODO: Remove this and just add a wrapper around `EffectRun` with the check?
 	pub fn suppressed<F2, O>(&self, f: F2) -> O
 	where
 		F2: FnOnce() -> O,
