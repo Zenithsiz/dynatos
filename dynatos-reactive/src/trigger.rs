@@ -89,9 +89,7 @@ impl SubscriberInfo {
 	#[cfg_attr(
 		not(debug_assertions),
 		expect(
-			clippy::unused_self,
 			clippy::missing_const_for_fn,
-			clippy::needless_pass_by_ref_mut,
 			reason = "We use it in a non-const way with `debug_assertions`"
 		)
 	)]
@@ -426,6 +424,11 @@ impl<W: ReactiveWorld> Drop for TriggerExec<W> {
 					"Running effect due to trigger"
 				);
 			};
+
+			#[cfg(not(debug_assertions))]
+			{
+				let _: SubscriberInfo = info;
+			}
 
 			effect.run();
 		}
