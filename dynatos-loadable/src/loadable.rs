@@ -262,6 +262,15 @@ impl<T, E> From<Result<T, E>> for Loadable<T, E> {
 	}
 }
 
+impl<T, E> From<Option<T>> for Loadable<T, E> {
+	fn from(value: Option<T>) -> Self {
+		match value {
+			Some(value) => Self::Loaded(value),
+			None => Self::Empty,
+		}
+	}
+}
+
 impl<T, E> From<Option<Result<T, E>>> for Loadable<T, E> {
 	fn from(value: Option<Result<T, E>>) -> Self {
 		value.map_or(Self::Empty, Self::from)
