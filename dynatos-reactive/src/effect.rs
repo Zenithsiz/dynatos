@@ -222,6 +222,7 @@ impl<F: ?Sized, W: ReactiveWorld> Effect<F, W> {
 	}
 
 	/// Runs the effect
+	#[track_caller]
 	pub fn run(&self)
 	where
 		F: EffectRun<W> + Unsize<W::F> + 'static,
@@ -240,7 +241,8 @@ impl<F: ?Sized, W: ReactiveWorld> Effect<F, W> {
 			effect:   W::unsize_effect(self.clone()),
 			_phantom: PhantomData,
 		};
-		self.gather_dependencies(move || self.inner.run.run(ctx));
+		let _gatherer = self.deps_gatherer();
+		self.inner.run.run(ctx);
 	}
 
 	/// Suppresses this effect from running while calling this function
@@ -358,6 +360,7 @@ impl<F: ?Sized, W: ReactiveWorld> WeakEffect<F, W> {
 	/// Runs this effect, if it exists.
 	///
 	/// Returns if the effect still existed
+	#[track_caller]
 	pub fn try_run(&self) -> bool
 	where
 		F: EffectRun<W> + Unsize<W::F> + 'static,
