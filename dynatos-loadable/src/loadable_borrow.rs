@@ -52,6 +52,7 @@ where
 	E: Clone,
 {
 	/// Borrows this signal as a `Loadable<Borrow<T>, E>`
+	#[track_caller]
 	fn borrow_loadable(&self) -> Loadable<LoadableBorrow<S::Ref<'_>>, E> {
 		let borrow = self.borrow();
 		match &*borrow {
@@ -62,6 +63,7 @@ where
 	}
 
 	/// Borrows this signal as a `Loadable<Borrow<T>, E>`, without adding a dependency
+	#[track_caller]
 	fn borrow_loadable_raw(&self) -> Loadable<LoadableBorrow<S::Ref<'_>>, E> {
 		let borrow = self.borrow_raw();
 		match &*borrow {
