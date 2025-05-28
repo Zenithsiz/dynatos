@@ -80,35 +80,34 @@ impl<T: FromStr<Err: StdError> + ToString> QueryWrite<&'_ Loadable<T, T::Err>> f
 
 impl<T: FromStr<Err: StdError> + ToString> QueryWrite<Option<&'_ T>> for SingleQuery<T> {
 	fn write(&self, new_value: Option<&T>) {
-		dynatos_context::with_expect::<Location, _, _>(|location| {
-			let mut location = location.borrow_mut();
-			let mut added_query = false;
-			let mut queries = vec![];
-			for (key, value) in location.query_pairs().into_owned() {
-				// If it's another key, keep it
-				if key != *self.key {
-					queries.push((key, value));
-					continue;
-				}
-
-				// If we already added our query, this is a duplicate, so skip it
-				if added_query {
-					continue;
-				}
-
-				// If it's our key, check what we should do
-				if let Some(new_value) = new_value {
-					added_query = true;
-					queries.push((self.key.to_string(), new_value.to_string()));
-				}
+		let location = dynatos_context::expect_cloned::<Location>();
+		let mut location = location.borrow_mut();
+		let mut added_query = false;
+		let mut queries = vec![];
+		for (key, value) in location.query_pairs().into_owned() {
+			// If it's another key, keep it
+			if key != *self.key {
+				queries.push((key, value));
+				continue;
 			}
 
-			// If we haven't added ours yet by now, add it at the end
-			if !added_query && let Some(new_value) = new_value {
+			// If we already added our query, this is a duplicate, so skip it
+			if added_query {
+				continue;
+			}
+
+			// If it's our key, check what we should do
+			if let Some(new_value) = new_value {
+				added_query = true;
 				queries.push((self.key.to_string(), new_value.to_string()));
 			}
+		}
 
-			location.query_pairs_mut().clear().extend_pairs(queries);
-		});
+		// If we haven't added ours yet by now, add it at the end
+		if !added_query && let Some(new_value) = new_value {
+			queries.push((self.key.to_string(), new_value.to_string()));
+		}
+
+		location.query_pairs_mut().clear().extend_pairs(queries);
 	}
 }

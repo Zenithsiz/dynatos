@@ -277,6 +277,7 @@ pub trait QueryParse {
 /// Query write
 pub trait QueryWrite<T> {
 	/// Writes the value back into the query
+	#[track_caller]
 	fn write(&self, new_value: T);
 }
 
