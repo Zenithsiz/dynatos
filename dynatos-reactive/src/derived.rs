@@ -144,6 +144,9 @@ impl<T: fmt::Debug, F: ?Sized, W: DerivedWorld<T, F>> fmt::Debug for Derived<T, 
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		let effect_fn = self.effect.inner_fn();
 		let mut debug = f.debug_struct("Derived");
+		debug.field("effect", &self.effect);
+		debug.field("trigger", &effect_fn.trigger);
+
 		match effect_fn.value.try_read() {
 			Some(value) => debug.field("value", &*value).finish(),
 			None => debug.finish_non_exhaustive(),
