@@ -17,13 +17,21 @@ use {
 /// Run queue
 // TODO: Require `W: ReactiveWorld` once that doesn't result in a cycle overflow.
 pub trait RunQueue<W>: Sized {
+	/// Exec guard
+	type ExecGuard;
+
 	/// Increases the reference count of the queue
 	fn inc_ref();
 
 	/// Decreases the reference count of the queue.
 	///
-	/// Returns whether the reference count hit 0
-	fn dec_ref() -> bool;
+	/// Returns a guard for execution all effects if
+	/// this was the last trigger exec dropped.
+	///
+	/// Any further created trigger execs won't
+	/// execute the functions and will instead just
+	/// add them to the queue
+	fn dec_ref() -> Option<Self::ExecGuard>;
 
 	/// Pushes a subscriber to the queue.
 	fn push(subscriber: Subscriber<W>, info: SubscriberInfo)
@@ -71,6 +79,9 @@ struct Inner<W: ReactiveWorld> {
 
 	/// Reference count
 	ref_count: usize,
+
+	/// Whether currently executing the queue
+	is_exec: bool,
 }
 
 impl<W: ReactiveWorld> Inner<W> {
@@ -79,6 +90,7 @@ impl<W: ReactiveWorld> Inner<W> {
 			queue:     PriorityQueue::new(),
 			next:      0,
 			ref_count: 0,
+			is_exec:   false,
 		}
 	}
 }
@@ -94,19 +106,35 @@ pub struct RunQueueThreadLocal;
 static RUN_QUEUE_STD_RC: LazyCell<RunQueueImpl<WorldThreadLocal>> =
 	LazyCell::new(|| RunQueueImpl::<WorldThreadLocal>::new(Inner::new()));
 
+/// `RunQueueThreadLocal` execution guard
+pub struct RunQueueExecGuardThreadLocal;
+
+impl Drop for RunQueueExecGuardThreadLocal {
+	fn drop(&mut self) {
+		let mut inner = RUN_QUEUE_STD_RC.write();
+		inner.is_exec = false;
+	}
+}
+
 impl RunQueue<WorldThreadLocal> for RunQueueThreadLocal {
+	type ExecGuard = RunQueueExecGuardThreadLocal;
+
 	fn inc_ref() {
 		let mut inner = RUN_QUEUE_STD_RC.write();
 		inner.ref_count += 1;
 	}
 
-	fn dec_ref() -> bool {
+	fn dec_ref() -> Option<Self::ExecGuard> {
 		let mut inner = RUN_QUEUE_STD_RC.write();
 		inner.ref_count = inner
 			.ref_count
 			.checked_sub(1)
 			.expect("Attempted to decrease reference count beyond 0");
-		inner.ref_count == 0
+
+		(inner.ref_count == 0 && !inner.queue.is_empty()).then(|| {
+			inner.is_exec = true;
+			RunQueueExecGuardThreadLocal
+		})
 	}
 
 	fn push(subscriber: Subscriber<WorldThreadLocal>, info: SubscriberInfo) {
@@ -133,20 +161,35 @@ pub struct RunQueueGlobal;
 static RUN_QUEUE_STD_ARC: LazyLock<RunQueueImpl<WorldGlobal>> =
 	LazyLock::new(|| RunQueueImpl::<WorldGlobal>::new(Inner::new()));
 
+/// `RunQueueGlobal` execution guard
+pub struct RunQueueExecGuardGlobal;
+
+impl Drop for RunQueueExecGuardGlobal {
+	fn drop(&mut self) {
+		let mut inner = RUN_QUEUE_STD_ARC.write();
+		inner.is_exec = false;
+	}
+}
 
 impl RunQueue<WorldGlobal> for RunQueueGlobal {
+	type ExecGuard = RunQueueExecGuardGlobal;
+
 	fn inc_ref() {
 		let mut inner = RUN_QUEUE_STD_ARC.write();
 		inner.ref_count += 1;
 	}
 
-	fn dec_ref() -> bool {
+	fn dec_ref() -> Option<Self::ExecGuard> {
 		let mut inner = RUN_QUEUE_STD_ARC.write();
 		inner.ref_count = inner
 			.ref_count
 			.checked_sub(1)
 			.expect("Attempted to decrease reference count beyond 0");
-		inner.ref_count == 0
+
+		(inner.ref_count == 0 && !inner.queue.is_empty()).then(|| {
+			inner.is_exec = true;
+			RunQueueExecGuardGlobal
+		})
 	}
 
 	fn push(subscriber: Subscriber<WorldGlobal>, info: SubscriberInfo) {

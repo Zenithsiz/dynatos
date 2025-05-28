@@ -401,9 +401,9 @@ pub struct TriggerExec<W: ReactiveWorld> {
 impl<W: ReactiveWorld> Drop for TriggerExec<W> {
 	fn drop(&mut self) {
 		// Decrease the reference count, and if we weren't the last, quit
-		if !W::RunQueue::dec_ref() {
+		let Some(_exec_guard) = W::RunQueue::dec_ref() else {
 			return;
-		}
+		};
 
 		// If we were the last, keep popping effects and running them until
 		// the run queue is empty
