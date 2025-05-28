@@ -413,22 +413,25 @@ impl<W: ReactiveWorld> Drop for TriggerExec<W> {
 			};
 
 			#[cfg(debug_assertions)]
-			{
-				use itertools::Itertools;
+			tracing::trace!(
+				"Running effect due to trigger\nEffect   : {}\nSubscribers: {}\nTrigger  : {}\nExecution: {}",
+				effect.defined_loc(),
+				match info.defined_locs.is_empty() {
+					true => "[]".to_owned(),
+					false => info
+						.defined_locs
+						.iter()
+						.copied()
+						.map(|loc| format!("\n         - {loc}"))
+						.collect::<String>(),
+				},
+				self.trigger_defined_loc,
+				self.exec_defined_loc,
+			);
 
-				tracing::trace!(
-					effect_loc=%effect.defined_loc(),
-					subscriber_locs=%info.defined_locs.iter().copied().map(Location::to_string).join(";"),
-					trigger_loc=%self.trigger_defined_loc,
-					exec_loc=%self.exec_defined_loc,
-					"Running effect due to trigger"
-				);
-			};
 
 			#[cfg(not(debug_assertions))]
-			{
-				let _: SubscriberInfo = info;
-			}
+			let _: SubscriberInfo = info;
 
 			effect.run();
 		}
