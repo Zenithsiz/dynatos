@@ -8,10 +8,12 @@ pub trait SignalBorrowMut {
 		Self: 'a;
 
 	/// Borrows the signal value mutably
+	#[track_caller]
 	fn borrow_mut(&self) -> Self::RefMut<'_>;
 
 	/// Borrows the signal value mutably without updating dependencies
 	// TODO: Better name than `_raw`?
 	// TODO: Allow using a different reference than `Self::RefMut`?
+	#[track_caller]
 	fn borrow_mut_raw(&self) -> Self::RefMut<'_>;
 }

@@ -64,7 +64,6 @@ impl<S: SignalBorrow, T> SignalBorrow for WithDefault<S, T> {
 	where
 		Self: 'a;
 
-	#[track_caller]
 	fn borrow(&self) -> Self::Ref<'_> {
 		BorrowRef {
 			value:   self.inner.borrow(),
@@ -72,7 +71,6 @@ impl<S: SignalBorrow, T> SignalBorrow for WithDefault<S, T> {
 		}
 	}
 
-	#[track_caller]
 	fn borrow_raw(&self) -> Self::Ref<'_> {
 		BorrowRef {
 			value:   self.inner.borrow_raw(),
@@ -90,7 +88,6 @@ where
 {
 	type Value<'a> = &'a T;
 
-	#[track_caller]
 	fn with<F, O>(&self, f: F) -> O
 	where
 		F: for<'a> FnOnce(Self::Value<'a>) -> O,
@@ -101,7 +98,6 @@ where
 		})
 	}
 
-	#[track_caller]
 	fn with_raw<F, O>(&self, f: F) -> O
 	where
 		F: for<'a> FnOnce(Self::Value<'a>) -> O,
@@ -130,12 +126,10 @@ impl<S, T> SignalSet<T> for WithDefault<S, T>
 where
 	S: SignalSet<Option<T>>,
 {
-	#[track_caller]
 	fn set(&self, new_value: T) {
 		self.inner.set(Some(new_value));
 	}
 
-	#[track_caller]
 	fn set_raw(&self, new_value: T) {
 		self.inner.set_raw(Some(new_value));
 	}
@@ -145,12 +139,10 @@ impl<S, T> SignalSet<Option<T>> for WithDefault<S, T>
 where
 	S: SignalSet<Option<T>>,
 {
-	#[track_caller]
 	fn set(&self, new_value: Option<T>) {
 		self.inner.set(new_value);
 	}
 
-	#[track_caller]
 	fn set_raw(&self, new_value: Option<T>) {
 		self.inner.set_raw(new_value);
 	}
@@ -163,12 +155,10 @@ where
 {
 	type Value = T;
 
-	#[track_caller]
 	fn replace(&self, new_value: T) -> Self::Value {
 		self.inner.replace(Some(new_value)).unwrap_or(self.default)
 	}
 
-	#[track_caller]
 	fn replace_raw(&self, new_value: T) -> Self::Value {
 		self.inner.replace_raw(Some(new_value)).unwrap_or(self.default)
 	}
@@ -181,12 +171,10 @@ where
 {
 	type Value = T;
 
-	#[track_caller]
 	fn replace(&self, new_value: Option<T>) -> Self::Value {
 		self.inner.replace(new_value).unwrap_or(self.default)
 	}
 
-	#[track_caller]
 	fn replace_raw(&self, new_value: Option<T>) -> Self::Value {
 		self.inner.replace_raw(new_value).unwrap_or(self.default)
 	}
@@ -231,7 +219,6 @@ where
 	where
 		Self: 'a;
 
-	#[track_caller]
 	fn borrow_mut(&self) -> Self::RefMut<'_> {
 		let mut value = self.inner.borrow_mut();
 		value.get_or_insert(self.default);
@@ -239,7 +226,6 @@ where
 		BorrowRefMut { value }
 	}
 
-	#[track_caller]
 	fn borrow_mut_raw(&self) -> Self::RefMut<'_> {
 		let mut value = self.inner.borrow_mut_raw();
 		value.get_or_insert(self.default);
@@ -255,7 +241,6 @@ where
 {
 	type Value<'a> = &'a mut T;
 
-	#[track_caller]
 	fn update<F, O>(&self, f: F) -> O
 	where
 		F: for<'a> FnOnce(Self::Value<'a>) -> O,
@@ -263,7 +248,6 @@ where
 		self.inner.update(|value| f(value.get_or_insert(self.default)))
 	}
 
-	#[track_caller]
 	fn update_raw<F, O>(&self, f: F) -> O
 	where
 		F: for<'a> FnOnce(Self::Value<'a>) -> O,

@@ -355,6 +355,7 @@ impl<W: ReactiveWorld> fmt::Debug for WeakTrigger<W> {
 /// Types that may be converted into a subscriber
 pub trait IntoSubscriber<W: ReactiveWorld> {
 	/// Converts this type into a weak effect.
+	#[track_caller]
 	fn into_subscriber(self) -> Subscriber<W>;
 }
 
@@ -378,7 +379,6 @@ where
 	W: ReactiveWorld,
 	WeakEffect<F, W>: CoerceUnsized<WeakEffect<W::F, W>>,
 {
-	#[track_caller]
 	fn into_subscriber(self) -> Subscriber<W> {
 		Subscriber { effect: effect_value }
 	}

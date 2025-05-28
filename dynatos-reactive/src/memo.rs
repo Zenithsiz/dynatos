@@ -87,7 +87,6 @@ impl<T: 'static, F: ?Sized, W: MemoWorld<T, F>> SignalBorrow for Memo<T, F, W> {
 	where
 		Self: 'a;
 
-	#[track_caller]
 	fn borrow(&self) -> Self::Ref<'_> {
 		self.effect.inner_fn().trigger.gather_subscribers();
 
@@ -149,7 +148,6 @@ where
 	F: Fn() -> T,
 	W: MemoWorld<T, F>,
 {
-	#[track_caller]
 	fn run(&self, _ctx: EffectRunCtx<'_, W>) {
 		let new_value = (self.f)();
 		let mut value = self.value.write();

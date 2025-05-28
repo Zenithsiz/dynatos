@@ -15,11 +15,13 @@ pub trait SignalUpdate {
 	type Value<'a>: ?Sized;
 
 	/// Updates the signal value
+	#[track_caller]
 	fn update<F, O>(&self, f: F) -> O
 	where
 		F: for<'a> FnOnce(Self::Value<'a>) -> O;
 
 	/// Updates the signal value without updating dependencies
+	#[track_caller]
 	fn update_raw<F, O>(&self, f: F) -> O
 	where
 		F: for<'a> FnOnce(Self::Value<'a>) -> O;
@@ -32,7 +34,6 @@ where
 {
 	type Value<'a> = &'a mut T;
 
-	#[track_caller]
 	fn update<F, O>(&self, f: F) -> O
 	where
 		F: for<'a> FnOnce(Self::Value<'a>) -> O,
@@ -41,7 +42,6 @@ where
 		f(&mut borrow)
 	}
 
-	#[track_caller]
 	fn update_raw<F, O>(&self, f: F) -> O
 	where
 		F: for<'a> FnOnce(Self::Value<'a>) -> O,

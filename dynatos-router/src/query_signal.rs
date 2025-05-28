@@ -103,7 +103,6 @@ where
 	where
 		Self: 'a;
 
-	#[track_caller]
 	fn borrow(&self) -> Self::Ref<'_> {
 		BorrowRef(self.inner.borrow())
 	}
@@ -120,12 +119,10 @@ where
 {
 	type Value = T::Value;
 
-	#[track_caller]
 	fn replace(&self, new_value: T::Value) -> Self::Value {
 		mem::replace(&mut *self.borrow_mut(), new_value)
 	}
 
-	#[track_caller]
 	fn replace_raw(&self, new_value: T::Value) -> Self::Value {
 		mem::replace(&mut *self.borrow_mut_raw(), new_value)
 	}
@@ -239,7 +236,6 @@ where
 	where
 		Self: 'a;
 
-	#[track_caller]
 	fn borrow_mut(&self) -> Self::RefMut<'_> {
 		let value = self.inner.borrow_mut();
 		BorrowRefMut {
@@ -248,7 +244,6 @@ where
 		}
 	}
 
-	#[track_caller]
 	fn borrow_mut_raw(&self) -> Self::RefMut<'_> {
 		// TODO: Should we be updating the location on drop?
 		let value = self.inner.borrow_mut_raw();

@@ -15,11 +15,13 @@ pub trait SignalWith {
 	type Value<'a>: ?Sized;
 
 	/// Uses the signal value
+	#[track_caller]
 	fn with<F, O>(&self, f: F) -> O
 	where
 		F: for<'a> FnOnce(Self::Value<'a>) -> O;
 
 	/// Uses the signal value without adding any dependencies
+	#[track_caller]
 	fn with_raw<F, O>(&self, f: F) -> O
 	where
 		F: for<'a> FnOnce(Self::Value<'a>) -> O;
@@ -32,7 +34,6 @@ where
 {
 	type Value<'a> = &'a T;
 
-	#[track_caller]
 	fn with<F, O>(&self, f: F) -> O
 	where
 		F: for<'a> FnOnce(Self::Value<'a>) -> O,
@@ -41,7 +42,6 @@ where
 		f(&borrow)
 	}
 
-	#[track_caller]
 	fn with_raw<F, O>(&self, f: F) -> O
 	where
 		F: for<'a> FnOnce(Self::Value<'a>) -> O,

@@ -447,6 +447,7 @@ pub fn running<W: ReactiveWorld>() -> Option<WeakEffect<W::F, W>> {
 /// Effect run
 pub trait EffectRun<W: ReactiveWorld = WorldDefault> {
 	/// Runs the effect
+	#[track_caller]
 	fn run(&self, ctx: EffectRunCtx<'_, W>);
 }
 
