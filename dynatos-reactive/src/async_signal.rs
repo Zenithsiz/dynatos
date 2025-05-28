@@ -451,10 +451,13 @@ impl<F: Loader, W: AsyncReactiveWorld<F>> SignalBorrowMut for AsyncSignal<F, W> 
 		let inner = self.inner.write();
 
 		// Then get the value
-		inner.value.is_some().then(|| BorrowRefMut {
+		match inner.value.is_some() {
+			true => Some(BorrowRefMut {
 			_trigger_on_drop: Some(inner.trigger.exec()),
 			value:            inner,
-		})
+			}),
+			false => None,
+		}
 	}
 
 	fn borrow_mut_raw(&self) -> Self::RefMut<'_> {
