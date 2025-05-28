@@ -188,7 +188,11 @@ impl<F: ?Sized, W: ReactiveWorld> Effect<F, W> {
 		W::EffectStack::push(self.downgrade());
 
 		// Lock the dependencies gatherer
-		let gather_deps_lock = self.inner.gather_deps_lock.write();
+		let gather_deps_lock = self
+			.inner
+			.gather_deps_lock
+			.try_write()
+			.expect("Cannot gather effect dependencies recursively");
 
 		// Clear the dependencies
 		let mut deps = self.inner.dependencies.write();
