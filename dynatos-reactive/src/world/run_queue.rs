@@ -131,7 +131,7 @@ impl RunQueue<WorldThreadLocal> for RunQueueThreadLocal {
 			.checked_sub(1)
 			.expect("Attempted to decrease reference count beyond 0");
 
-		(inner.ref_count == 0 && !inner.queue.is_empty()).then(|| {
+		(inner.ref_count == 0 && !inner.queue.is_empty() && !inner.is_exec).then(|| {
 			inner.is_exec = true;
 			RunQueueExecGuardThreadLocal
 		})
@@ -167,6 +167,7 @@ pub struct RunQueueExecGuardGlobal;
 impl Drop for RunQueueExecGuardGlobal {
 	fn drop(&mut self) {
 		let mut inner = RUN_QUEUE_STD_ARC.write();
+		assert!(inner.is_exec, "Run queue stopped execution before guard was dropped");
 		inner.is_exec = false;
 	}
 }
@@ -186,7 +187,7 @@ impl RunQueue<WorldGlobal> for RunQueueGlobal {
 			.checked_sub(1)
 			.expect("Attempted to decrease reference count beyond 0");
 
-		(inner.ref_count == 0 && !inner.queue.is_empty()).then(|| {
+		(inner.ref_count == 0 && !inner.queue.is_empty() && !inner.is_exec).then(|| {
 			inner.is_exec = true;
 			RunQueueExecGuardGlobal
 		})
