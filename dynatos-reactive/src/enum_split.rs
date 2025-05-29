@@ -1,10 +1,14 @@
 //! Enum split signal
 
 // Modules
+mod ctx;
 mod either;
 
 // Exports
-pub use self::either::{All1, All2, All3, Either1, Either2, Either3};
+pub use self::{
+	ctx::EnumSplitValueUpdateCtx,
+	either::{All1, All2, All3, Either1, Either2, Either3},
+};
 
 // Imports
 use {
@@ -17,16 +21,11 @@ use {
 		SignalBorrow,
 		SignalGetCloned,
 		SignalSet,
-		SignalWith,
 		SignalWithDefaultImpl,
 		Trigger,
 	},
-	core::{
-		fmt,
-		marker::{PhantomData, Unsize},
-	},
+	core::{fmt, marker::Unsize},
 	dynatos_world::{IMut, IMutLike, WorldDefault},
-	zutil_cloned::cloned,
 };
 
 /// World for [`EnumSplitSignal`]
@@ -188,19 +187,15 @@ where
 	S: SignalGetCloned<Value = T> + SignalSet<T> + Clone + 'static,
 	W: EnumSplitWorld<S, T>,
 {
-	fn run(&self, ctx: EffectRunCtx<'_, W>) {
+	fn run(&self, run_ctx: EffectRunCtx<'_, W>) {
 		// Get the new value
 		let new_value = self.signal.get_cloned();
 
 		// Then update the current signal
 		let mut inner = self.inner.write();
 		let prev_cur = inner.cur.replace(new_value.kind());
-		let ctx = EnumSplitValueUpdateCtx {
-			outer_signal: self.signal.clone(),
-			this_effect:  ctx.effect(),
-			_phantom:     PhantomData,
-		};
-		new_value.update(&mut inner.signals, ctx);
+		let update_ctx = EnumSplitValueUpdateCtx::new(self.signal.clone(), run_ctx.effect());
+		new_value.update(&mut inner.signals, update_ctx);
 
 		if prev_cur != inner.cur {
 			drop(inner);
@@ -228,47 +223,6 @@ pub trait EnumSplitValue<S, W: ReactiveWorld = WorldDefault> {
 
 	/// Updates a signal with this value
 	fn update(self, storage: &mut Self::SignalsStorage, ctx: EnumSplitValueUpdateCtx<'_, S, W>);
-}
-
-/// Context for [`EnumSplitValue::update`]
-pub struct EnumSplitValueUpdateCtx<'a, S, W: ReactiveWorld> {
-	/// Outer signal
-	outer_signal: S,
-
-	/// Effect currently running
-	this_effect: Effect<W::F, W>,
-
-	_phantom: PhantomData<&'a ()>,
-}
-
-impl<'a, S, W: ReactiveWorld> EnumSplitValueUpdateCtx<'a, S, W> {
-	/// Creates signal storage from a value
-	pub fn create_signal_storage<T, V, F>(&self, value: V, into_t: F) -> SignalStorage<V>
-	where
-		T: EnumSplitValue<S, W>,
-		S: SignalSet<T> + Clone + 'static,
-		V: Clone + 'static,
-		F: Fn(V) -> T + 'static,
-	{
-		let signal = Signal::new(value);
-
-		// Create the write-back effect.
-		// Note: We don't want to run it and write into the outer at startup, so
-		//       we create it raw and add dependencies manually.
-		#[cloned(inner_signal = signal, this_effect = self.this_effect, outer_signal = self.outer_signal)]
-		let write_back_effect = Effect::new_raw(move || {
-			let value = inner_signal.get_cloned();
-			this_effect.suppressed(|| outer_signal.set(into_t(value)));
-		});
-		write_back_effect.gather_dependencies(|| {
-			signal.with(|_| ());
-		});
-
-		SignalStorage {
-			signal,
-			write_back_effect,
-		}
-	}
 }
 
 impl<S, T, W> EnumSplitValue<S, W> for Option<T>
