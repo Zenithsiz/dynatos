@@ -51,9 +51,6 @@ impl<'a, S, W: ReactiveWorld> EnumSplitValueUpdateCtx<'a, S, W> {
 			signal.with(|_| ());
 		});
 
-		SignalStorage {
-			signal,
-			write_back_effect,
-		}
+		SignalStorage::new(signal, write_back_effect)
 	}
 }

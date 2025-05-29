@@ -3,11 +3,13 @@
 // Modules
 mod ctx;
 mod either;
+mod storage;
 
 // Exports
 pub use self::{
 	ctx::EnumSplitValueUpdateCtx,
 	either::{All1, All2, All3, Either1, Either2, Either3},
+	storage::SignalStorage,
 };
 
 // Imports
@@ -120,36 +122,6 @@ impl<S, T: EnumSplitValue<S, W>, W: EnumSplitWorld<S, T>> SignalBorrow for EnumS
 }
 
 impl<S, T: EnumSplitValue<S, W>, W: EnumSplitWorld<S, T>> SignalWithDefaultImpl for EnumSplitSignal<S, T, W> {}
-
-/// Signal storage.
-#[derive(Debug)]
-pub struct SignalStorage<T> {
-	/// Signal
-	// TODO: Allow the user to specify another type of signal?
-	signal: Signal<T>,
-
-	/// Write-back effect
-	// TODO: Not use dynamic dispatch here
-	write_back_effect: Effect<dyn EffectRun>,
-}
-
-impl<T> SignalStorage<T> {
-	/// Clones the signal in storage
-	#[must_use]
-	pub fn signal(&self) -> Signal<T> {
-		self.signal.clone()
-	}
-
-	/// Sets the value of the signal in storage.
-	///
-	/// Suppresses the write-back effect during.
-	pub fn set(&self, new_value: T)
-	where
-		T: 'static,
-	{
-		self.write_back_effect.suppressed(|| self.signal.set(new_value));
-	}
-}
 
 /// Effect fn inner
 struct EffectFnInner<S, T: EnumSplitValue<S, W>, W: ReactiveWorld> {
