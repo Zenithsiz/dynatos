@@ -196,7 +196,7 @@ impl<T: ?Sized, W: ReactiveWorld> SignalSetDefaultImpl for Signal<T, W> {}
 impl<T: ?Sized, W: ReactiveWorld> SignalWithDefaultImpl for Signal<T, W> {}
 impl<T: ?Sized, W: ReactiveWorld> SignalUpdateDefaultImpl for Signal<T, W> {}
 
-impl<T, W: ReactiveWorld> Clone for Signal<T, W> {
+impl<T: ?Sized, W: ReactiveWorld> Clone for Signal<T, W> {
 	fn clone(&self) -> Self {
 		Self {
 			inner: Rc::<_, W>::clone(&self.inner),
@@ -204,10 +204,10 @@ impl<T, W: ReactiveWorld> Clone for Signal<T, W> {
 	}
 }
 
-impl<T: fmt::Debug, W: ReactiveWorld> fmt::Debug for Signal<T, W> {
+impl<T: ?Sized + fmt::Debug, W: ReactiveWorld> fmt::Debug for Signal<T, W> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		f.debug_struct("Signal")
-			.field("value", &*self.inner.value.read())
+			.field("value", &&*self.inner.value.read())
 			.field("trigger", &self.inner.trigger)
 			.finish()
 	}
