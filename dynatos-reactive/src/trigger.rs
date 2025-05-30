@@ -223,6 +223,17 @@ impl<W: ReactiveWorld> Trigger<W> {
 	/// all queues effects are run.
 	#[track_caller]
 	pub fn exec(&self) -> TriggerExec<W> {
+		self.exec_inner(
+			#[cfg(debug_assertions)]
+			Location::caller(),
+		)
+	}
+
+	/// Inner function for [`Self::exec`]
+	pub(crate) fn exec_inner(
+		&self,
+		#[cfg(debug_assertions)] exec_defined_loc: &'static Location<'static>,
+	) -> TriggerExec<W> {
 		let subscribers = self.inner.subscribers.read();
 
 		// Increase the ref count
@@ -251,7 +262,7 @@ impl<W: ReactiveWorld> Trigger<W> {
 			#[cfg(debug_assertions)]
 			trigger_defined_loc: self.inner.defined_loc,
 			#[cfg(debug_assertions)]
-			exec_defined_loc: Location::caller(),
+			exec_defined_loc,
 			_phantom: PhantomData,
 		}
 	}

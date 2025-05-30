@@ -1,6 +1,8 @@
 //! Async signal
 
 // Imports
+#[cfg(debug_assertions)]
+use core::panic::Location;
 use {
 	crate::{
 		trigger::TriggerExec,
@@ -78,6 +80,9 @@ impl<F: Loader, W: AsyncReactiveWorld<F>> Inner<F, W> {
 			return false;
 		}
 
+		#[cfg(debug_assertions)]
+		let caller_loc = Location::caller();
+
 		// Then spawn the future
 		// TODO: Allow using something other than `wasm_bindgen_futures`?
 		let (fut, handle) = futures::future::abortable(self.loader.load());
@@ -99,7 +104,10 @@ impl<F: Loader, W: AsyncReactiveWorld<F>> Inner<F, W> {
 
 			// Finally trigger and awake all waiters.
 			// TODO: Notify using the trigger?
-			trigger.exec();
+			trigger.exec_inner(
+				#[cfg(debug_assertions)]
+				caller_loc,
+			);
 			notify.notify_waiters();
 		});
 		self.handle = Some(handle);
@@ -453,8 +461,8 @@ impl<F: Loader, W: AsyncReactiveWorld<F>> SignalBorrowMut for AsyncSignal<F, W> 
 		// Then get the value
 		match inner.value.is_some() {
 			true => Some(BorrowRefMut {
-			_trigger_on_drop: Some(inner.trigger.exec()),
-			value:            inner,
+				_trigger_on_drop: Some(inner.trigger.exec()),
+				value:            inner,
 			}),
 			false => None,
 		}
