@@ -18,7 +18,7 @@ use {
 		ops::CoerceUnsized,
 		sync::atomic::{self, AtomicBool},
 	},
-	dynatos_world::{IMut, IMutLike, IMutRefMut, Rc, RcLike, Weak, WeakLike, WorldDefault},
+	dynatos_world::{IMut, IMutLike, Rc, RcLike, Weak, WeakLike, WorldDefault},
 	std::collections::HashSet,
 };
 
@@ -33,9 +33,6 @@ pub(crate) struct Inner<F: ?Sized, W: ReactiveWorld> {
 
 	/// All dependencies of this effect
 	dependencies: IMut<HashSet<WeakTrigger<W>>, W>,
-
-	/// Lock for gathering dependencies
-	gather_deps_lock: IMut<(), W>,
 
 	/// Effect runner
 	run: F,
@@ -109,7 +106,6 @@ impl<F, W: ReactiveWorld> Effect<F, W> {
 			#[cfg(debug_assertions)]
 			defined_loc: Location::caller(),
 			dependencies: IMut::<_, W>::new(HashSet::new()),
-			gather_deps_lock: IMut::<_, W>::new(()),
 			run,
 		};
 
@@ -177,8 +173,6 @@ impl<F: ?Sized, W: ReactiveWorld> Effect<F, W> {
 	///
 	/// While this type lives, all signals used will be gathered as dependencies
 	/// for this effect.
-	///
-	/// Removes any existing dependencies before returning.
 	#[must_use]
 	pub fn deps_gatherer(&self) -> EffectDepsGatherer<W>
 	where
@@ -187,31 +181,13 @@ impl<F: ?Sized, W: ReactiveWorld> Effect<F, W> {
 		// Push the effect
 		W::EffectStack::push(self.downgrade());
 
-		// Lock the dependencies gatherer
-		let gather_deps_lock = self
-			.inner
-			.gather_deps_lock
-			.try_write()
-			.expect("Cannot gather effect dependencies recursively");
-
-		// Clear the dependencies
-		let mut deps = self.inner.dependencies.write();
-		#[expect(clippy::iter_over_hash_type, reason = "We don't care about the order here")]
-		for dep in deps.drain() {
-			let Some(trigger) = dep.upgrade() else { continue };
-			// TODO: Use `self.downgrade` once we fix issues around the world
-			trigger.remove_subscriber(W::EffectStack::top().expect("Just pushed"));
-		}
-
 		// Then return the gatherer, which will pop the effect from the stack on drop
-		EffectDepsGatherer(gather_deps_lock)
+		EffectDepsGatherer(PhantomData)
 	}
 
 	/// Gathers dependencies for this effect.
 	///
 	/// All signals used within `gather` will have this effect as a dependency.
-	///
-	/// Removes any existing dependencies before running.
 	pub fn gather_dependencies<G, O>(&self, gather: G) -> O
 	where
 		F: Unsize<W::F> + 'static,
@@ -221,7 +197,9 @@ impl<F: ?Sized, W: ReactiveWorld> Effect<F, W> {
 		gather()
 	}
 
-	/// Runs the effect
+	/// Runs the effect.
+	///
+	/// Removes any existing dependencies before running.
 	#[track_caller]
 	pub fn run(&self)
 	where
@@ -233,6 +211,13 @@ impl<F: ?Sized, W: ReactiveWorld> Effect<F, W> {
 		//       us to the run queue, should we still need this check here?
 		if self.is_suppressed() {
 			return;
+		}
+
+		// Clear the dependencies before running
+		#[expect(clippy::iter_over_hash_type, reason = "We don't care about the order here")]
+		for dep in self.inner.dependencies.write().drain() {
+			let Some(trigger) = dep.upgrade() else { continue };
+			trigger.remove_subscriber(W::unsize_effect(self.clone()).downgrade());
 		}
 
 		// Otherwise, run it
@@ -428,7 +413,7 @@ where
 ///
 /// While this type is alive, any signals used will
 /// be added as a dependency.
-pub struct EffectDepsGatherer<'a, W: ReactiveWorld = WorldDefault>(IMutRefMut<'a, (), W>);
+pub struct EffectDepsGatherer<'a, W: ReactiveWorld = WorldDefault>(PhantomData<(&'a (), W)>);
 
 impl<W: ReactiveWorld> Drop for EffectDepsGatherer<'_, W> {
 	fn drop(&mut self) {
