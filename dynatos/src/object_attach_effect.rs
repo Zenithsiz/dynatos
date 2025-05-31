@@ -4,7 +4,7 @@
 use {
 	core::marker::Unsize,
 	dynatos_html::{ObjectGet, ObjectSetProp},
-	dynatos_reactive::Effect,
+	dynatos_reactive::{Effect, EffectRun},
 	wasm_bindgen::prelude::wasm_bindgen,
 };
 
@@ -15,7 +15,7 @@ pub impl js_sys::Object {
 	/// Attaches an effect to this object
 	fn attach_effect<F>(&self, effect: Effect<F>)
 	where
-		F: ?Sized + Fn() + Unsize<dyn Fn()>,
+		F: ?Sized + EffectRun + Unsize<dyn EffectRun>,
 	{
 		// Get the effects map, or create it, if it doesn't exist
 		// TODO: Use an static anonymous symbol?
@@ -48,7 +48,7 @@ where
 	/// Returns the object, for chaining
 	fn with_effect<F>(self, effect: Effect<F>) -> Self
 	where
-		F: ?Sized + Fn() + Unsize<dyn Fn()>,
+		F: ?Sized + EffectRun + Unsize<dyn EffectRun>,
 	{
 		self.as_ref().attach_effect(effect);
 		self
@@ -58,4 +58,4 @@ where
 /// A wasm `Effect` type.
 #[wasm_bindgen]
 #[expect(dead_code, reason = "We just want to keep the field alive, not use it")]
-struct WasmEffect(Effect<dyn Fn()>);
+struct WasmEffect(Effect<dyn EffectRun>);
