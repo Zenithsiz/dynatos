@@ -1,7 +1,7 @@
 //! Egui effect
 
 // Imports
-use dynatos_reactive::{effect::EffectDepsGatherer, Effect};
+use dynatos_reactive::{effect::EffectDepsGatherer, Effect, EffectRun};
 
 /// An effect that redraws an egui context whenever any signals change
 pub struct EguiEffect {
@@ -32,4 +32,4 @@ impl EguiEffect {
 	}
 }
 
-pub type EffectFn = impl Fn();
+pub type EffectFn = impl EffectRun;
