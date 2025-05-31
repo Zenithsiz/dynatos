@@ -15,13 +15,23 @@ use {
 		mem,
 		ops::{Deref, DerefMut},
 	},
-	dynatos_reactive::{signal, Effect, Memo, Signal, SignalBorrow, SignalBorrowMut, SignalReplace, SignalSet},
+	dynatos_reactive::{
+		signal,
+		Effect,
+		EffectRun,
+		Memo,
+		Signal,
+		SignalBorrow,
+		SignalBorrowMut,
+		SignalReplace,
+		SignalSet,
+	},
 	std::rc::Rc,
 	zutil_cloned::cloned,
 };
 
 /// Query signal
-pub struct QuerySignal<T: QueryParse> {
+pub struct QuerySignal<T: QueryParse + Clone + 'static> {
 	/// Query
 	query: T,
 
@@ -29,17 +39,16 @@ pub struct QuerySignal<T: QueryParse> {
 	inner: Signal<Option<T::Value>>,
 
 	/// Update effect.
-	update_effect: Effect<dyn Fn()>,
+	update_effect: Effect<UpdateEffect<T>>,
 }
 
-impl<T: QueryParse> QuerySignal<T> {
+impl<T: QueryParse + Clone> QuerySignal<T> {
 	/// Creates a new query signal with `query`.
 	#[track_caller]
+	#[define_opaque(UpdateEffect)]
 	pub fn new(query: T) -> Self
 	where
-		// TODO: Remove this clone call by storing it inside
-		//       somewhere shared.
-		T: QueryParse + Clone + 'static,
+		T: 'static,
 		T::Value: 'static,
 	{
 		let inner = Signal::new(None);
@@ -57,6 +66,10 @@ impl<T: QueryParse> QuerySignal<T> {
 	}
 }
 
+// TODO: Remove this clone bound by storing it inside
+//       somewhere shared.
+type UpdateEffect<T: QueryParse + Clone + 'static> = impl EffectRun;
+
 impl<T: QueryParse + Clone> Clone for QuerySignal<T> {
 	fn clone(&self) -> Self {
 		Self {
@@ -69,7 +82,7 @@ impl<T: QueryParse + Clone> Clone for QuerySignal<T> {
 
 impl<T> fmt::Debug for QuerySignal<T>
 where
-	T: QueryParse + fmt::Debug,
+	T: QueryParse + Clone + 'static + fmt::Debug,
 	T::Value: fmt::Debug,
 {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -95,7 +108,7 @@ impl<T: QueryParse> Deref for BorrowRef<'_, T> {
 
 impl<T> SignalBorrow for QuerySignal<T>
 where
-	T: QueryParse,
+	T: QueryParse + Clone + 'static,
 	T::Value: 'static,
 {
 	type Ref<'a>
@@ -114,7 +127,7 @@ where
 
 impl<T> SignalReplace<T::Value> for QuerySignal<T>
 where
-	T: QueryParse + QueryWriteValue,
+	T: QueryParse + QueryWriteValue + Clone + 'static,
 	T::Value: 'static,
 {
 	type Value = T::Value;
@@ -130,7 +143,7 @@ where
 
 impl<T, U> SignalSet<U> for QuerySignal<T>
 where
-	T: QueryParse + QueryWriteValue,
+	T: QueryParse + QueryWriteValue + Clone + 'static,
 	T::Value: 'static,
 	U: Into<T::Value>,
 {
@@ -150,12 +163,12 @@ where
 // TODO: Remove this once we implement the trigger stack.
 struct WriteQueryOnDrop<'a, T>(pub &'a QuerySignal<T>)
 where
-	T: QueryParse + QueryWriteValue,
+	T: QueryParse + QueryWriteValue + Clone + 'static,
 	T::Value: 'static;
 
 impl<'a, T> fmt::Debug for WriteQueryOnDrop<'a, T>
 where
-	T: QueryParse + QueryWriteValue,
+	T: QueryParse + QueryWriteValue + Clone + 'static,
 {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		f.debug_tuple("UpdateLocationOnDrop").finish_non_exhaustive()
@@ -164,7 +177,7 @@ where
 
 impl<T> Drop for WriteQueryOnDrop<'_, T>
 where
-	T: QueryParse + QueryWriteValue,
+	T: QueryParse + QueryWriteValue + Clone + 'static,
 	T::Value: 'static,
 {
 	fn drop(&mut self) {
@@ -182,7 +195,7 @@ where
 /// Reference type for [`SignalBorrowMut`] impl
 pub struct BorrowRefMut<'a, T>
 where
-	T: QueryParse + QueryWriteValue,
+	T: QueryParse + QueryWriteValue + Clone + 'static,
 	T::Value: 'static,
 {
 	/// Value
@@ -195,7 +208,7 @@ where
 
 impl<'a, T> fmt::Debug for BorrowRefMut<'a, T>
 where
-	T: QueryParse + QueryWriteValue,
+	T: QueryParse + QueryWriteValue + Clone + 'static,
 	T::Value: fmt::Debug,
 {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
@@ -208,7 +221,7 @@ where
 
 impl<T> Deref for BorrowRefMut<'_, T>
 where
-	T: QueryParse + QueryWriteValue,
+	T: QueryParse + QueryWriteValue + Clone + 'static,
 {
 	type Target = T::Value;
 
@@ -219,7 +232,7 @@ where
 
 impl<T> DerefMut for BorrowRefMut<'_, T>
 where
-	T: QueryParse + QueryWriteValue,
+	T: QueryParse + QueryWriteValue + Clone + 'static,
 {
 	fn deref_mut(&mut self) -> &mut Self::Target {
 		self.value.as_mut().expect("Should have value")
@@ -228,7 +241,7 @@ where
 
 impl<T> SignalBorrowMut for QuerySignal<T>
 where
-	T: QueryParse + QueryWriteValue,
+	T: QueryParse + QueryWriteValue + Clone + 'static,
 	T::Value: 'static,
 {
 	type RefMut<'a>
@@ -255,11 +268,11 @@ where
 }
 
 // Note: We want a broader set impl to allow setting `T`s in `Loadable<T, E>`s.
-impl<T: QueryParse> !signal::SignalSetDefaultImpl for QuerySignal<T> {}
-impl<T: QueryParse> signal::SignalGetDefaultImpl for QuerySignal<T> {}
-impl<T: QueryParse> signal::SignalGetClonedDefaultImpl for QuerySignal<T> {}
-impl<T: QueryParse> signal::SignalWithDefaultImpl for QuerySignal<T> {}
-impl<T: QueryParse> signal::SignalUpdateDefaultImpl for QuerySignal<T> {}
+impl<T: QueryParse + Clone + 'static> !signal::SignalSetDefaultImpl for QuerySignal<T> {}
+impl<T: QueryParse + Clone + 'static> signal::SignalGetDefaultImpl for QuerySignal<T> {}
+impl<T: QueryParse + Clone + 'static> signal::SignalGetClonedDefaultImpl for QuerySignal<T> {}
+impl<T: QueryParse + Clone + 'static> signal::SignalWithDefaultImpl for QuerySignal<T> {}
+impl<T: QueryParse + Clone + 'static> signal::SignalUpdateDefaultImpl for QuerySignal<T> {}
 
 
 /// Query parse
