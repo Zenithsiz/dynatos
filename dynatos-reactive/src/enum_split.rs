@@ -96,7 +96,10 @@ where
 		s.field("effect", &self.effect);
 
 		match self.effect.inner_fn().inner.try_read() {
-			Some(inner) => s.field("signals", &inner.signals).field("cur", &inner.cur).finish(),
+			Some(inner) => s
+				.field("signals", &inner.signals)
+				.field("cur_kind", &inner.cur_kind)
+				.finish(),
 			None => s.finish_non_exhaustive(),
 		}
 	}
@@ -118,7 +121,7 @@ impl<S, T: EnumSplitValue<S, W>, W: EnumSplitWorld<S, T>> SignalBorrow for EnumS
 
 		let inner = effect_fn.inner.read();
 
-		let cur = inner.cur.as_ref().expect("Should have a current signal");
+		let cur = inner.cur_kind.as_ref().expect("Should have a current signal");
 		T::get_signal(&inner.signals, cur).expect("Signal for current signal was missing")
 	}
 }
@@ -147,15 +150,15 @@ struct EffectFnInner<S, T: EnumSplitValue<S, W>, W: ReactiveWorld> {
 	/// Signals
 	signals: T::SignalsStorage,
 
-	/// Current signal
-	cur: Option<T::SigKind>,
+	/// Current signal kind
+	cur_kind: Option<T::SigKind>,
 }
 
 impl<S, T: EnumSplitValue<S, W>, W: ReactiveWorld> Default for EffectFnInner<S, T, W> {
 	fn default() -> Self {
 		Self {
-			signals: T::SignalsStorage::default(),
-			cur:     None,
+			signals:  T::SignalsStorage::default(),
+			cur_kind: None,
 		}
 	}
 }
@@ -184,11 +187,11 @@ where
 
 		// Then update the current signal
 		let mut inner = self.inner.write();
-		let prev_cur = inner.cur.replace(new_value.kind());
+		let prev_kind = inner.cur_kind.replace(new_value.kind());
 		let update_ctx = EnumSplitValueUpdateCtx::new(self.signal.clone(), run_ctx.effect());
 		new_value.update(&mut inner.signals, update_ctx);
 
-		if prev_cur != inner.cur {
+		if prev_kind != inner.cur_kind {
 			drop(inner);
 			self.trigger.exec();
 		}
@@ -204,7 +207,7 @@ pub trait EnumSplitValue<S, W: ReactiveWorld = WorldDefault> {
 	type Signal;
 
 	/// Signal kind
-	type SigKind: PartialEq;
+	type SigKind: PartialEq + fmt::Debug;
 
 	/// Extracts a signal from storage
 	fn get_signal(storage: &Self::SignalsStorage, kind: &Self::SigKind) -> Option<Self::Signal>;
