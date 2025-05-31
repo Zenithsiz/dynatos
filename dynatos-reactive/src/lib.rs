@@ -24,7 +24,12 @@
 	stmt_expr_attributes,
 	proc_macro_hygiene,
 	type_alias_impl_trait,
-	macro_metavar_expr
+	macro_metavar_expr,
+	try_trait_v2,
+	try_trait_v2_residual,
+	assert_matches,
+	never_type,
+	unwrap_infallible
 )]
 
 // Modules
@@ -32,6 +37,7 @@ pub mod async_signal;
 pub mod derived;
 pub mod effect;
 pub mod enum_split;
+pub mod mapped_signal;
 pub mod memo;
 pub mod signal;
 pub mod trigger;
@@ -44,6 +50,7 @@ pub use self::{
 	derived::Derived,
 	effect::{Effect, EffectRun, EffectRunCtx, WeakEffect},
 	enum_split::{EnumSplitSignal, SignalEnumSplit},
+	mapped_signal::TryMappedSignal,
 	memo::Memo,
 	signal::{
 		Signal,
