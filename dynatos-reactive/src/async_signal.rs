@@ -10,7 +10,9 @@ use {
 		SignalBorrow,
 		SignalBorrowMut,
 		SignalGetClone,
+		SignalGetClonedDefaultImpl,
 		SignalGetCopy,
+		SignalGetDefaultImpl,
 		SignalSetDefaultImpl,
 		SignalUpdate,
 		SignalUpdateDefaultImpl,
@@ -506,6 +508,8 @@ where
 }
 
 impl<F: Loader, W: AsyncReactiveWorld<F>> SignalSetDefaultImpl for AsyncSignal<F, W> {}
+impl<F: Loader, W: AsyncReactiveWorld<F>> SignalGetDefaultImpl for AsyncSignal<F, W> {}
+impl<F: Loader, W: AsyncReactiveWorld<F>> SignalGetClonedDefaultImpl for AsyncSignal<F, W> {}
 
 // Note: We want to return an `Option<&T>` instead of `&Option<T>`,
 //       so we can't use the default impl

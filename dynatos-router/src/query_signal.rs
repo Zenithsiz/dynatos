@@ -256,6 +256,8 @@ where
 
 // Note: We want a broader set impl to allow setting `T`s in `Loadable<T, E>`s.
 impl<T: QueryParse> !signal::SignalSetDefaultImpl for QuerySignal<T> {}
+impl<T: QueryParse> signal::SignalGetDefaultImpl for QuerySignal<T> {}
+impl<T: QueryParse> signal::SignalGetClonedDefaultImpl for QuerySignal<T> {}
 impl<T: QueryParse> signal::SignalWithDefaultImpl for QuerySignal<T> {}
 impl<T: QueryParse> signal::SignalUpdateDefaultImpl for QuerySignal<T> {}
 

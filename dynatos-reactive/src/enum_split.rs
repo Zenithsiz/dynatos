@@ -22,6 +22,8 @@ use {
 		Signal,
 		SignalBorrow,
 		SignalGetCloned,
+		SignalGetClonedDefaultImpl,
+		SignalGetDefaultImpl,
 		SignalSet,
 		SignalWithDefaultImpl,
 		Trigger,
@@ -121,7 +123,24 @@ impl<S, T: EnumSplitValue<S, W>, W: EnumSplitWorld<S, T>> SignalBorrow for EnumS
 	}
 }
 
+impl<S, T: EnumSplitValue<S, W>, W: EnumSplitWorld<S, T>> SignalGetCloned for EnumSplitSignal<S, T, W> {
+	type Value = T::Signal;
+
+	fn get_cloned(&self) -> Self::Value {
+		self.borrow()
+	}
+
+	fn get_cloned_raw(&self) -> Self::Value {
+		self.borrow_raw()
+	}
+}
+
 impl<S, T: EnumSplitValue<S, W>, W: EnumSplitWorld<S, T>> SignalWithDefaultImpl for EnumSplitSignal<S, T, W> {}
+
+// Note: Since our `Borrow` impl doesn't return a reference, we implement
+//       `GetCloned` manually, so we don't want the default impl
+impl<S, T: EnumSplitValue<S, W>, W: EnumSplitWorld<S, T>> !SignalGetDefaultImpl for EnumSplitSignal<S, T, W> {}
+impl<S, T: EnumSplitValue<S, W>, W: EnumSplitWorld<S, T>> !SignalGetClonedDefaultImpl for EnumSplitSignal<S, T, W> {}
 
 /// Effect fn inner
 struct EffectFnInner<S, T: EnumSplitValue<S, W>, W: ReactiveWorld> {

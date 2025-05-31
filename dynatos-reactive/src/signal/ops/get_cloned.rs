@@ -6,6 +6,12 @@ use {
 	core::{any::TypeId, mem},
 };
 
+/// Auto trait implemented for all signals that want a default implementation of [`SignalGetCloned`]
+///
+/// If you are writing a signal type with type parameters, you should manually implement
+/// this auto trait, since those type parameters might disable it
+pub auto trait SignalGetClonedDefaultImpl {}
+
 /// Types which may be cloned by [`SignalGetCloned`]
 pub trait SignalGetClone: Sized {
 	type Value: 'static;
@@ -41,7 +47,7 @@ pub trait SignalGetCloned {
 
 impl<S> SignalGetCloned for S
 where
-	S: for<'a> SignalWith<Value<'a>: SignalGetClone> + 'static,
+	S: for<'a> SignalWith<Value<'a>: SignalGetClone> + 'static + SignalGetClonedDefaultImpl,
 {
 	type Value = <S::Value<'static> as SignalGetClone>::Value;
 

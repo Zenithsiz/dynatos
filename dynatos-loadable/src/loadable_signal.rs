@@ -13,7 +13,9 @@ use {
 		SignalBorrow,
 		SignalBorrowMut,
 		SignalGetClone,
+		SignalGetClonedDefaultImpl,
 		SignalGetCopy,
+		SignalGetDefaultImpl,
 		SignalSetDefaultImpl,
 		SignalUpdate,
 		SignalUpdateDefaultImpl,
@@ -343,6 +345,8 @@ where
 }
 
 impl<F: Loader> SignalSetDefaultImpl for LoadableSignal<F> {}
+impl<F: Loader> SignalGetDefaultImpl for LoadableSignal<F> {}
+impl<F: Loader> SignalGetClonedDefaultImpl for LoadableSignal<F> {}
 
 // Note: We want to return a `Loadable<&T>` instead of `&Loadable<T>`,
 //       so we can't use the default impl

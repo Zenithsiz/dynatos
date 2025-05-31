@@ -5,6 +5,8 @@ use {
 	crate::{
 		SignalBorrow,
 		SignalBorrowMut,
+		SignalGetClonedDefaultImpl,
+		SignalGetDefaultImpl,
 		SignalReplace,
 		SignalSet,
 		SignalSetDefaultImpl,
@@ -18,7 +20,7 @@ use {
 
 /// Wrapper for a `Signal<Option<T>>` with a default value
 #[derive(Clone, Debug)]
-pub struct WithDefault<S, T> {
+pub struct WithDefault<S, T: ?Sized> {
 	/// Inner signal
 	inner: S,
 
@@ -113,6 +115,11 @@ where
 //       efficiently and with less bounds since we don't need to update the
 //       value with the default, just to overwrite it afterwards.
 impl<S, T: ?Sized> !SignalSetDefaultImpl for WithDefault<S, T> {}
+
+// TODO: Do the defaults work? Or should we overwrite them?
+impl<S, T: ?Sized> SignalGetDefaultImpl for WithDefault<S, T> {}
+impl<S, T: ?Sized> SignalGetClonedDefaultImpl for WithDefault<S, T> {}
+
 
 // Note: We disable the default impl because we can impl `SignalWith<T>` for
 //       more signals (e.g. those that only impl `SignalWith` and not `SignalBorrow`)

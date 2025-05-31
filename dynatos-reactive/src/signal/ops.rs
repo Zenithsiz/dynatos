@@ -14,8 +14,8 @@ mod with;
 pub use self::{
 	borrow::SignalBorrow,
 	borrow_mut::SignalBorrowMut,
-	get::{SignalGet, SignalGetCopy},
-	get_cloned::{SignalGetClone, SignalGetCloned},
+	get::{SignalGet, SignalGetCopy, SignalGetDefaultImpl},
+	get_cloned::{SignalGetClone, SignalGetCloned, SignalGetClonedDefaultImpl},
 	replace::SignalReplace,
 	set::{SignalSet, SignalSetDefaultImpl, SignalSetWith},
 	update::{SignalUpdate, SignalUpdateDefaultImpl},

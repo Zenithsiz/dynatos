@@ -13,7 +13,9 @@ pub use ops::{
 	SignalGet,
 	SignalGetClone,
 	SignalGetCloned,
+	SignalGetClonedDefaultImpl,
 	SignalGetCopy,
+	SignalGetDefaultImpl,
 	SignalReplace,
 	SignalSet,
 	SignalSetDefaultImpl,
@@ -193,6 +195,8 @@ impl<T: ?Sized + 'static, W: ReactiveWorld> SignalBorrowMut for Signal<T, W> {
 
 
 impl<T: ?Sized, W: ReactiveWorld> SignalSetDefaultImpl for Signal<T, W> {}
+impl<T: ?Sized, W: ReactiveWorld> SignalGetDefaultImpl for Signal<T, W> {}
+impl<T: ?Sized, W: ReactiveWorld> SignalGetClonedDefaultImpl for Signal<T, W> {}
 impl<T: ?Sized, W: ReactiveWorld> SignalWithDefaultImpl for Signal<T, W> {}
 impl<T: ?Sized, W: ReactiveWorld> SignalUpdateDefaultImpl for Signal<T, W> {}
 

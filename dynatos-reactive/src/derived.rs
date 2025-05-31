@@ -33,7 +33,17 @@
 
 // Imports
 use {
-	crate::{Effect, EffectRun, EffectRunCtx, ReactiveWorld, SignalBorrow, SignalWithDefaultImpl, Trigger},
+	crate::{
+		Effect,
+		EffectRun,
+		EffectRunCtx,
+		ReactiveWorld,
+		SignalBorrow,
+		SignalGetClonedDefaultImpl,
+		SignalGetDefaultImpl,
+		SignalWithDefaultImpl,
+		Trigger,
+	},
 	core::{
 		fmt,
 		marker::{PhantomData, Unsize},
@@ -129,6 +139,8 @@ impl<T: 'static, F: ?Sized, W: DerivedWorld<T, F>> SignalBorrow for Derived<T, F
 }
 
 impl<T: 'static, F: ?Sized, W: DerivedWorld<T, F>> SignalWithDefaultImpl for Derived<T, F, W> {}
+impl<T: 'static, F: ?Sized, W: DerivedWorld<T, F>> SignalGetDefaultImpl for Derived<T, F, W> {}
+impl<T: 'static, F: ?Sized, W: DerivedWorld<T, F>> SignalGetClonedDefaultImpl for Derived<T, F, W> {}
 
 impl<T, F: ?Sized, W: DerivedWorld<T, F>> Clone for Derived<T, F, W> {
 	fn clone(&self) -> Self {
