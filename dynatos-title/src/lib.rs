@@ -27,7 +27,7 @@ impl Title {
 	where
 		S: Into<String>,
 	{
-		let title = title.into();
+		let title: String = title.into();
 
 		// If no title exists, add the current one
 		let mut stack = TITLE_STACK.borrow_mut();
