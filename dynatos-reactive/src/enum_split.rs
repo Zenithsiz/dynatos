@@ -74,6 +74,16 @@ impl<S, T: EnumSplitValue<S, W>, W: EnumSplitWorld<S, T>> EnumSplitSignal<S, T, 
 
 		Self { effect }
 	}
+
+	/// Converts this signal into an effect.
+	// TODO: This only serves to keep effects alive in html nodes,
+	//       can we simply do that some other way?
+	pub fn into_effect(self) -> Effect<impl EffectRun<W>, W>
+	where
+		S: SignalGetCloned<Value = T> + SignalSet<T> + Clone + 'static,
+	{
+		self.effect
+	}
 }
 
 impl<S, T: EnumSplitValue<S, W>, W: EnumSplitWorld<S, T>> Clone for EnumSplitSignal<S, T, W> {
