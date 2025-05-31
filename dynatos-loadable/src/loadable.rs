@@ -4,7 +4,7 @@
 use {
 	core::{
 		convert::Infallible,
-		ops::{ControlFlow, Deref, DerefMut, FromResidual, Try},
+		ops::{ControlFlow, Deref, DerefMut, FromResidual, Residual, Try},
 	},
 	dynatos_reactive::{
 		enum_split::{EnumSplitValue, EnumSplitValueUpdateCtx, SignalStorage},
@@ -326,6 +326,10 @@ impl<T, E> FromResidual<Option<Infallible>> for Loadable<T, E> {
 			None => Self::Empty,
 		}
 	}
+}
+
+impl<T, E> Residual<T> for Loadable<!, E> {
+	type TryType = Loadable<T, E>;
 }
 
 /// Collects an iterator of `Loadable<T, E>` into a `Loadable<C, E>`,
