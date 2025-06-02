@@ -50,7 +50,7 @@ pub use self::{
 	derived::Derived,
 	effect::{Effect, EffectRun, EffectRunCtx, WeakEffect},
 	enum_split::{EnumSplitSignal, SignalEnumSplit},
-	mapped_signal::TryMappedSignal,
+	mapped_signal::{MappedSignal, SignalMapped, TryMappedSignal},
 	memo::Memo,
 	signal::{
 		Signal,

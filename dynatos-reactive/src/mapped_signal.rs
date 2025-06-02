@@ -254,6 +254,34 @@ impl<T> SignalGetCloned for MappedSignal<T> {
 	}
 }
 
+/// Extension trait to add a map a signal
+#[extend::ext_sized(name = SignalMapped)]
+pub impl<S> S
+where
+	S: for<'a> SignalWith<Value<'a>: Sized> + for<'a> SignalUpdate<Value<'a>: Sized> + Clone + 'static,
+{
+	/// Maps this signal fallibly
+	fn try_mapped<T, TryGet, Set>(self, try_get: TryGet, set: Set) -> TryMappedSignal<T>
+	where
+		T: Try<Residual: Residual<Signal<T::Output>>> + 'static,
+		TryGet: Fn(<S as SignalWith>::Value<'_>) -> T + 'static,
+		Set: Fn(<S as SignalUpdate>::Value<'_>, &T::Output) + 'static,
+	{
+		TryMappedSignal::new(self, try_get, set)
+	}
+
+	/// Maps this signal
+	fn mapped<T, Get, Set>(self, get: Get, set: Set) -> MappedSignal<T>
+	where
+		T: 'static,
+		Get: Fn(<S as SignalWith>::Value<'_>) -> T + 'static,
+		Set: Fn(<S as SignalUpdate>::Value<'_>, &T) + 'static,
+	{
+		MappedSignal::new(self, get, set)
+	}
+}
+
+
 #[cfg(test)]
 mod test {
 	use {
