@@ -18,19 +18,19 @@ use dynatos_world::{World, WorldGlobal, WorldThreadLocal};
 /// Context world
 pub trait ContextWorld: World {
 	/// Context stack
-	type ContextStack<T: ?Sized>: ContextStack<T, Self>;
+	type ContextStack<T>: ContextStack<T, Self>;
 
 	/// Opaque context stack
 	type ContextStackOpaque: ContextStackOpaque<Self>;
 }
 
 impl ContextWorld for WorldThreadLocal {
-	type ContextStack<T: ?Sized> = ContextStackThreadLocal<T>;
+	type ContextStack<T> = ContextStackThreadLocal<T>;
 	type ContextStackOpaque = ContextStackThreadLocal<dyn core::any::Any>;
 }
 
 impl ContextWorld for WorldGlobal {
-	type ContextStack<T: ?Sized> = ContextStackGlobal<T>;
+	type ContextStack<T> = ContextStackGlobal<T>;
 	type ContextStackOpaque = ContextStackGlobal<dyn core::any::Any>;
 }
 
