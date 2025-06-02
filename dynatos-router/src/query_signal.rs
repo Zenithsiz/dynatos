@@ -66,6 +66,12 @@ impl<T: QueryParse> QuerySignal<T> {
 			update_effect: update,
 		}
 	}
+
+	/// Returns the query of this signal
+	#[must_use]
+	pub fn query(&self) -> &T {
+		&self.query
+	}
 }
 
 type UpdateEffect<T: QueryParse + 'static> = impl EffectRun;
