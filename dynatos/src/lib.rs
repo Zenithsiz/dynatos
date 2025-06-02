@@ -1,7 +1,7 @@
 //! Dynatos framework
 
 // Features
-#![feature(let_chains, unboxed_closures, unsize)]
+#![feature(let_chains, unboxed_closures, unsize, never_type)]
 
 // Modules
 mod element_dyn_attr;

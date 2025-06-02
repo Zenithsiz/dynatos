@@ -124,6 +124,7 @@ where
 /// - `Option<N>`
 /// - [`Signal`], [`Derived`], [`Memo`], [`WithDefault`]
 /// - `LazyCell<N, impl Fn() -> N>`
+/// - `!`
 ///
 /// Where `N` is any of the types above.
 pub trait ToDynNode {
@@ -198,5 +199,11 @@ where
 {
 	fn to_node(&self) -> Option<web_sys::Node> {
 		(**self).to_node()
+	}
+}
+
+impl ToDynNode for ! {
+	fn to_node(&self) -> Option<web_sys::Node> {
+		*self
 	}
 }
