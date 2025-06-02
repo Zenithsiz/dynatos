@@ -10,7 +10,11 @@
 #[cfg(debug_assertions)]
 use core::panic::Location;
 use {
-	crate::{world::EffectStack, ReactiveWorld, WeakTrigger},
+	crate::{
+		world::{EffectStack, ReactiveWorldInner},
+		ReactiveWorld,
+		WeakTrigger,
+	},
 	core::{
 		fmt,
 		hash::Hash,
@@ -419,7 +423,13 @@ impl<W: ReactiveWorld> Drop for EffectDepsGatherer<'_, W> {
 
 /// Returns the current running effect
 #[must_use]
-pub fn running<W: ReactiveWorld>() -> Option<Effect<W::F, W>> {
+pub fn running() -> Option<Effect<<WorldDefault as ReactiveWorldInner>::F>> {
+	self::running_in::<WorldDefault>()
+}
+
+/// Returns the current running effect in a world
+#[must_use]
+pub fn running_in<W: ReactiveWorld>() -> Option<Effect<W::F, W>> {
 	<W>::EffectStack::top()
 }
 
@@ -530,7 +540,7 @@ mod test {
 	fn get_running_100_none(bencher: &mut Bencher) {
 		bencher.iter(|| {
 			for _ in 0..100 {
-				let effect = effect::running::<WorldDefault>();
+				let effect = effect::running();
 				test::black_box(effect);
 			}
 		});
@@ -543,7 +553,7 @@ mod test {
 		effect.gather_dependencies(|| {
 			bencher.iter(|| {
 				for _ in 0..100 {
-					let effect = effect::running::<WorldDefault>();
+					let effect = effect::running();
 					test::black_box(effect);
 				}
 			});

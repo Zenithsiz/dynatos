@@ -177,7 +177,7 @@ impl<W: ReactiveWorld> Trigger<W> {
 	// TODO: Should we remove all existing subscribers before gathering them?
 	#[track_caller]
 	pub fn gather_subscribers(&self) {
-		match effect::running::<W>() {
+		match effect::running_in::<W>() {
 			Some(effect) => {
 				effect.add_dependency(self.downgrade());
 				self.add_subscriber(effect);

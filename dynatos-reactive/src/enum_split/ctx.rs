@@ -40,7 +40,7 @@ impl<'a, S, W: ReactiveWorld> EnumSplitValueUpdateCtx<'a, S, W> {
 	{
 		let signal = Signal::new(value);
 
-		let cur_effect = effect::running::<W>().expect("Missing running effect");
+		let cur_effect = effect::running_in::<W>().expect("Missing running effect");
 
 		// Create the write-back effect.
 		// Note: We don't want to run it and write into the outer at startup, so
