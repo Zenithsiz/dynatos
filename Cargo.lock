@@ -131,6 +131,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "derive_utils"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ccfae181bab5ab6c5478b2ccb69e4c68a02f8c3ec72f6616bfec9dbc599d2ee0"
+dependencies = [
+ "proc-macro2",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "displaydoc"
 version = "0.2.5"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -159,6 +170,7 @@ dependencies = [
  "duplicate",
  "dynatos-context",
  "dynatos-html",
+ "dynatos-macros",
  "dynatos-reactive",
  "dynatos-router",
  "dynatos-util",
@@ -247,6 +259,15 @@ dependencies = [
  "extend",
  "tracing",
  "zutil-cloned",
+]
+
+[[package]]
+name = "dynatos-macros"
+version = "0.1.0"
+dependencies = [
+ "derive_utils",
+ "quote",
+ "syn",
 ]
 
 [[package]]
