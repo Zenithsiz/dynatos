@@ -3,9 +3,12 @@
 // Imports
 use {
 	crate::ObjectAttachEffect,
-	core::cell::{LazyCell, RefCell},
+	core::{
+		cell::{LazyCell, RefCell},
+		ops::Deref,
+	},
 	dynatos_html::{html, WeakRef},
-	dynatos_reactive::Effect,
+	dynatos_reactive::{Derived, Effect, Memo, Signal, SignalWith, WithDefault},
 	dynatos_util::TryOrReturnExt,
 	std::sync::LazyLock,
 	wasm_bindgen::JsCast,
@@ -117,12 +120,12 @@ where
 ///
 /// This allows it to work with the following types:
 /// - `impl Fn() -> N`
-/// - `impl Fn() -> Option<N>`
-/// - `N`
+/// - `web_sys::{Node, Element, HtmlElement}`
 /// - `Option<N>`
+/// - [`Signal`], [`Derived`], [`Memo`], [`WithDefault`]
 /// - `LazyCell<N, impl Fn() -> N>`
 ///
-/// Where `N` is a node type.
+/// Where `N` is any of the types above.
 pub trait ToDynNode {
 	/// Retrieves / Computes the inner node
 	fn to_node(&self) -> Option<web_sys::Node>;
@@ -161,6 +164,20 @@ where
 {
 	fn to_node(&self) -> Option<web_sys::Node> {
 		self.as_ref().and_then(N::to_node)
+	}
+}
+
+// TODO: Allow impl for `impl SignalWith<Value: ToDynNode>`
+#[duplicate::duplicate_item(
+	Generics Ty;
+	[T] [Signal<T> where T: ToDynNode + 'static];
+	[T, F] [Derived<T, F> where T: ToDynNode + 'static, F: ?Sized + 'static];
+	[T, F] [Memo<T, F> where T: ToDynNode + 'static, F: ?Sized + 'static];
+	[S, T] [WithDefault<S, T> where Self: for<'a> SignalWith<Value<'a>: Sized + Deref<Target: ToDynNode>>];
+)]
+impl<Generics> ToDynNode for Ty {
+	fn to_node(&self) -> Option<web_sys::Node> {
+		self.with(|value| value.to_node())
 	}
 }
 
