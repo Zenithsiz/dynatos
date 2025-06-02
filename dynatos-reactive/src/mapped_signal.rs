@@ -51,6 +51,12 @@ use {
 /// outer.set(None);
 /// assert!(mapped.get_cloned().is_none());
 /// ```
+// TODO: Just have the inner signal keep alive this?
+///
+/// # Lifetime
+/// If you drop this signal, the relationship between
+/// the outer and inner signal will be broken, so keep
+/// this value alive while you use the inner signal
 pub struct TryMappedSignal<T>
 where
 	T: Try<Residual: Residual<Signal<T::Output>>>,
