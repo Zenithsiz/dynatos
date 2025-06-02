@@ -6,6 +6,7 @@ use {
 	core::ops::Deref,
 	dynatos_html::WeakRef,
 	dynatos_reactive::{Derived, Effect, Memo, Signal, SignalWith, WithDefault},
+	dynatos_router::{query_signal::QueryParse, QuerySignal},
 	dynatos_util::TryOrReturnExt,
 };
 
@@ -60,11 +61,12 @@ where
 ///
 /// This allows it to work with the following types:
 /// - `impl Fn() -> N`
-/// - `impl Fn() -> Option<N>`
-/// - `N`
+/// - `{str, &str, String}`
 /// - `Option<N>`
+/// - [`Signal`], [`Derived`], [`Memo`], [`WithDefault`]
+/// - `LazyCell<N, impl Fn() -> N>`
 ///
-/// Where `N` is a text type.
+/// Where `N` is any of the types above.
 pub trait WithDynText {
 	/// Calls `f` with the inner text
 	fn with_text<F, O>(&self, f: F) -> O
@@ -91,7 +93,7 @@ where
 #[duplicate::duplicate_item(
 	Ty;
 	[str];
-	[&'static str];
+	[&'_ str];
 	[String];
 )]
 impl WithDynText for Ty {
@@ -125,6 +127,7 @@ where
 	[T, F] [Derived<T, F> where T: WithDynText + 'static, F: ?Sized + 'static];
 	[T, F] [Memo<T, F> where T: WithDynText + 'static, F: ?Sized + 'static];
 	[S, T] [WithDefault<S, T> where Self: for<'a> SignalWith<Value<'a>: Sized + Deref<Target: WithDynText>>];
+	[T] [QuerySignal<T> where T: QueryParse<Value: WithDynText>]
 )]
 impl<Generics> WithDynText for Ty {
 	fn with_text<F2, O>(&self, f: F2) -> O
