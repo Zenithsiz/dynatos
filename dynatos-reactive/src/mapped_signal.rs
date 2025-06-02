@@ -202,6 +202,18 @@ where
 	}
 }
 
+impl<T, W> Clone for TryMappedSignal<T, W>
+where
+	T: Try<Residual: Residual<Signal<T::Output>>>,
+	W: ReactiveWorld,
+{
+	fn clone(&self) -> Self {
+		Self {
+			inner: self.inner.clone(),
+		}
+	}
+}
+
 impl<T, W> SignalGetCloned for TryMappedSignal<T, W>
 where
 	T: Try<Residual: Residual<Signal<T::Output>>>,
@@ -292,6 +304,12 @@ impl<T, W: ReactiveWorld> MappedSignal<T, W> {
 			move |value, new_value| set(value, new_value),
 			world,
 		))
+	}
+}
+
+impl<T, W: ReactiveWorld> Clone for MappedSignal<T, W> {
+	fn clone(&self) -> Self {
+		Self(self.0.clone())
 	}
 }
 
