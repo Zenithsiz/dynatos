@@ -177,9 +177,25 @@ impl<W: ReactiveWorld> Trigger<W> {
 	// TODO: Should we remove all existing subscribers before gathering them?
 	#[track_caller]
 	pub fn gather_subscribers(&self) {
-		if let Some(effect) = effect::running::<W>() {
-			effect.add_dependency(self.downgrade());
-			self.add_subscriber(effect);
+		match effect::running::<W>() {
+			Some(effect) => {
+				effect.add_dependency(self.downgrade());
+				self.add_subscriber(effect);
+			},
+
+			// TODO: Add some way to turn off this warning at a global
+			//       scale, with something like
+			//       `fn without_warning(f: impl FnOnce() -> O) -> O`
+			None => tracing::warn!(
+				trigger=?self,
+				location=%Location::caller(),
+				"No effect is being run when trigger was accessed. \
+				\nThis typically means that you're accessing reactive \
+				signals outside of an effect, which means the code won't \
+				be re-run when the signal changes. If this is intention, \
+				try to use one of the `_raw` methods that don't gather \
+				subscribers to make it intentional"
+			),
 		}
 	}
 
