@@ -3,7 +3,7 @@
 // Imports
 use {
 	super::{ReactiveWorld, ReactiveWorldInner},
-	crate::{EffectRun, WeakEffect},
+	crate::{Effect, EffectRun},
 	core::marker::Unsize,
 	dynatos_world::{IMut, IMutLike, WorldGlobal, WorldThreadLocal},
 };
@@ -12,7 +12,7 @@ use {
 // TODO: Require `W: ReactiveWorld` once that doesn't result in a cycle overflow.
 pub trait EffectStack<W>: Sized {
 	/// Pushes an effect to the stack.
-	fn push<F>(f: WeakEffect<F, W>)
+	fn push<F>(f: Effect<F, W>)
 	where
 		F: ?Sized + Unsize<W::F>,
 		W: ReactiveWorld;
@@ -21,13 +21,13 @@ pub trait EffectStack<W>: Sized {
 	fn pop();
 
 	/// Returns the top effect of the stack
-	fn top() -> Option<WeakEffect<W::F, W>>
+	fn top() -> Option<Effect<W::F, W>>
 	where
 		W: ReactiveWorld;
 }
 
 /// Effect stack impl
-type EffectStackImpl<F: ?Sized, W> = IMut<Vec<WeakEffect<F, W>>, W>;
+type EffectStackImpl<F: ?Sized, W> = IMut<Vec<Effect<F, W>>, W>;
 
 /// Thread-local effect stack, using `StdRc` and `StdRefCell`
 pub struct EffectStackThreadLocal;
@@ -38,7 +38,7 @@ static EFFECT_STACK_STD_RC: EffectStackImpl<dyn EffectRun<WorldThreadLocal>, Wor
 	EffectStackImpl::<_, WorldThreadLocal>::new(vec![]);
 
 impl EffectStack<WorldThreadLocal> for EffectStackThreadLocal {
-	fn push<F>(f: WeakEffect<F, WorldThreadLocal>)
+	fn push<F>(f: Effect<F, WorldThreadLocal>)
 	where
 		F: ?Sized + Unsize<<WorldThreadLocal as ReactiveWorldInner>::F>,
 	{
@@ -49,7 +49,7 @@ impl EffectStack<WorldThreadLocal> for EffectStackThreadLocal {
 		EFFECT_STACK_STD_RC.write().pop().expect("Missing added effect");
 	}
 
-	fn top() -> Option<WeakEffect<<WorldThreadLocal as ReactiveWorldInner>::F, WorldThreadLocal>> {
+	fn top() -> Option<Effect<<WorldThreadLocal as ReactiveWorldInner>::F, WorldThreadLocal>> {
 		EFFECT_STACK_STD_RC.read().last().cloned()
 	}
 }
@@ -63,7 +63,7 @@ static EFFECT_STACK_STD_ARC: EffectStackImpl<dyn EffectRun<WorldGlobal> + Send +
 
 
 impl EffectStack<WorldGlobal> for EffectStackGlobal {
-	fn push<F>(f: WeakEffect<F, WorldGlobal>)
+	fn push<F>(f: Effect<F, WorldGlobal>)
 	where
 		F: ?Sized + Unsize<<WorldGlobal as ReactiveWorldInner>::F>,
 	{
@@ -74,7 +74,7 @@ impl EffectStack<WorldGlobal> for EffectStackGlobal {
 		EFFECT_STACK_STD_ARC.write().pop().expect("Missing added effect");
 	}
 
-	fn top() -> Option<WeakEffect<<WorldGlobal as ReactiveWorldInner>::F, WorldGlobal>> {
+	fn top() -> Option<Effect<<WorldGlobal as ReactiveWorldInner>::F, WorldGlobal>> {
 		EFFECT_STACK_STD_ARC.read().last().cloned()
 	}
 }

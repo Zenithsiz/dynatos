@@ -179,7 +179,7 @@ impl<F: ?Sized, W: ReactiveWorld> Effect<F, W> {
 		F: Unsize<W::F> + 'static,
 	{
 		// Push the effect
-		W::EffectStack::push(self.downgrade());
+		W::EffectStack::push(self.clone());
 
 		// Then return the gatherer, which will pop the effect from the stack on drop
 		EffectDepsGatherer(PhantomData)
@@ -249,6 +249,11 @@ impl<F: ?Sized, W: ReactiveWorld> Effect<F, W> {
 	/// Returns whether the effect is suppressed
 	pub fn is_suppressed(&self) -> bool {
 		self.inner.suppressed.load(atomic::Ordering::Acquire)
+	}
+
+	/// Adds a dependency to this effect
+	pub(crate) fn add_dependency(&self, trigger: WeakTrigger<W>) {
+		self.inner.dependencies.write().insert(trigger);
 	}
 
 	/// Formats this effect into `s`
@@ -358,12 +363,6 @@ impl<F: ?Sized, W: ReactiveWorld> WeakEffect<F, W> {
 		effect.run();
 		true
 	}
-
-	/// Adds a dependency to this effect
-	pub(crate) fn add_dependency(&self, trigger: WeakTrigger<W>) {
-		let Some(effect) = self.upgrade() else { return };
-		effect.inner.dependencies.write().insert(trigger);
-	}
 }
 
 impl<F1: ?Sized, F2: ?Sized, W: ReactiveWorld> PartialEq<WeakEffect<F2, W>> for WeakEffect<F1, W> {
@@ -423,9 +422,8 @@ impl<W: ReactiveWorld> Drop for EffectDepsGatherer<'_, W> {
 }
 
 /// Returns the current running effect
-// TODO: Move this elsewhere
 #[must_use]
-pub fn running<W: ReactiveWorld>() -> Option<WeakEffect<W::F, W>> {
+pub fn running<W: ReactiveWorld>() -> Option<Effect<W::F, W>> {
 	<W>::EffectStack::top()
 }
 
@@ -491,7 +489,7 @@ mod test {
 	#[test]
 	fn running() {
 		#[thread_local]
-		static RUNNING: OnceCell<WeakEffect<dyn EffectRun, WorldDefault>> = OnceCell::new();
+		static RUNNING: OnceCell<Effect<dyn EffectRun, WorldDefault>> = OnceCell::new();
 
 		// Create an effect, and save the running effect within it to `RUNNING`.
 		let effect = Effect::new(move || {
@@ -501,12 +499,8 @@ mod test {
 		});
 
 		// Then ensure the running effect is the same as the one created.
-		let running = RUNNING
-			.get()
-			.expect("Running effect missing")
-			.upgrade()
-			.expect("Running effect was dropped");
-		assert_eq!(effect, running);
+		let running = RUNNING.get().expect("Running effect missing");
+		assert_eq!(effect, *running);
 	}
 
 	/// Ensures the function returned by `Effect::running` is the same as the future being run,
@@ -514,10 +508,10 @@ mod test {
 	#[test]
 	fn running_stacked() {
 		#[thread_local]
-		static RUNNING_TOP: OnceCell<WeakEffect<dyn EffectRun>> = OnceCell::new();
+		static RUNNING_TOP: OnceCell<Effect<dyn EffectRun>> = OnceCell::new();
 
 		#[thread_local]
-		static RUNNING_BOTTOM: OnceCell<WeakEffect<dyn EffectRun>> = OnceCell::new();
+		static RUNNING_BOTTOM: OnceCell<Effect<dyn EffectRun>> = OnceCell::new();
 
 		// Create 2 stacked effects, saving the running within each to `running1` and `running2`.
 		// `running1` contains the top-level effect, while `running2` contains the inner one.
@@ -533,25 +527,17 @@ mod test {
 			});
 
 			// Then ensure the bottom-level running effect is the same as the one created.
-			let running_bottom = RUNNING_BOTTOM
-				.get()
-				.expect("Running effect missing")
-				.upgrade()
-				.expect("Running effect was dropped");
-			assert_eq!(effect, running_bottom);
+			let running_bottom = RUNNING_BOTTOM.get().expect("Running effect missing");
+			assert_eq!(effect, *running_bottom);
 		});
 
 		// Then ensure the top-level running effect is the same as the one created.
-		let running_top = RUNNING_TOP
-			.get()
-			.expect("Running effect missing")
-			.upgrade()
-			.expect("Running effect was dropped");
-		assert_eq!(effect, running_top);
+		let running_top = RUNNING_TOP.get().expect("Running effect missing");
+		assert_eq!(effect, *running_top);
 
-		// And that the bottom-level running effect was already dropped
-		let running_bottom = RUNNING_BOTTOM.get().expect("Running effect missing").upgrade();
-		assert_eq!(running_bottom, None);
+		// And that the bottom-level running effect is already inert
+		let running_bottom = RUNNING_BOTTOM.get().expect("Running effect missing");
+		assert!(running_bottom.is_inert());
 	}
 
 	#[bench]
