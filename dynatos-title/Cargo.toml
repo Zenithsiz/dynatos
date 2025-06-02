@@ -1,21 +1,21 @@
 [package]
-name = "dynatos-title"
+name    = "dynatos-title"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 
-dynatos-html = { workspace = true }
+dynatos-html     = { workspace = true }
 dynatos-reactive = { workspace = true }
-dynatos-util = { workspace = true }
+dynatos-util     = { workspace = true }
 
-anyhow = { workspace = true }
-duplicate = { workspace = true }
-extend = { workspace = true }
-js-sys = { workspace = true }
-tracing = { workspace = true }
+anyhow       = { workspace = true }
+duplicate    = { workspace = true }
+extend       = { workspace = true }
+js-sys       = { workspace = true }
+tracing      = { workspace = true }
 wasm-bindgen = { workspace = true }
-web-sys = { workspace = true }
+web-sys      = { workspace = true }
 
 [lints]
 workspace = true

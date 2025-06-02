@@ -1,27 +1,27 @@
 [package]
-name = "dynatos-router"
+name    = "dynatos-router"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 
-dynatos-context = { workspace = true }
-dynatos-html = { workspace = true }
+dynatos-context  = { workspace = true }
+dynatos-html     = { workspace = true }
 dynatos-loadable = { workspace = true }
 dynatos-reactive = { workspace = true }
-dynatos-util = { workspace = true }
+dynatos-util     = { workspace = true }
 
 zutil-cloned = { workspace = true }
 
-anyhow = { workspace = true }
-duplicate = { workspace = true }
-extend = { workspace = true }
-js-sys = { workspace = true }
-thiserror = { workspace = true }
-tracing = { workspace = true }
-url = { workspace = true }
+anyhow       = { workspace = true }
+duplicate    = { workspace = true }
+extend       = { workspace = true }
+js-sys       = { workspace = true }
+thiserror    = { workspace = true }
+tracing      = { workspace = true }
+url          = { workspace = true }
 wasm-bindgen = { workspace = true }
-web-sys = { workspace = true, features = ["Location", "History"] }
+web-sys      = { workspace = true, features = ["History", "Location"] }
 
 [lints]
 workspace = true

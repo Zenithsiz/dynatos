@@ -1,13 +1,13 @@
 [package]
-name = "dynatos-util"
+name    = "dynatos-util"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 
-anyhow = { workspace = true }
+anyhow    = { workspace = true }
 duplicate = { workspace = true }
-extend = { workspace = true }
+extend    = { workspace = true }
 
 [lints]
 workspace = true

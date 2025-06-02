@@ -1,25 +1,25 @@
 [package]
-name = "counter"
+name    = "counter"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 
-dynatos = { workspace = true }
-dynatos-html = { workspace = true }
+dynatos          = { workspace = true }
+dynatos-html     = { workspace = true }
 dynatos-reactive = { workspace = true }
-dynatos-util = { workspace = true }
+dynatos-util     = { workspace = true }
 
 zutil-cloned = { workspace = true }
 
-anyhow = { workspace = true }
+anyhow                   = { workspace = true }
 console_error_panic_hook = { workspace = true }
-extend = { workspace = true }
-tracing = { workspace = true }
-tracing-subscriber = { workspace = true }
-tracing-web = { workspace = true }
-wasm-bindgen = { workspace = true }
-web-sys = { workspace = true }
+extend                   = { workspace = true }
+tracing                  = { workspace = true }
+tracing-subscriber       = { workspace = true }
+tracing-web              = { workspace = true }
+wasm-bindgen             = { workspace = true }
+web-sys                  = { workspace = true }
 
 [lints]
 workspace = true

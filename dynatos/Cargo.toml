@@ -1,23 +1,23 @@
 [package]
-name = "dynatos"
+name    = "dynatos"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 
-dynatos-context = { workspace = true }
-dynatos-html = { workspace = true }
-dynatos-macros = { workspace = true }
+dynatos-context  = { workspace = true }
+dynatos-html     = { workspace = true }
+dynatos-macros   = { workspace = true }
 dynatos-reactive = { workspace = true }
-dynatos-router = { workspace = true }
-dynatos-util = { workspace = true }
+dynatos-router   = { workspace = true }
+dynatos-util     = { workspace = true }
 
-duplicate = { workspace = true }
-extend = { workspace = true }
-js-sys = { workspace = true }
-tracing = { workspace = true }
+duplicate    = { workspace = true }
+extend       = { workspace = true }
+js-sys       = { workspace = true }
+tracing      = { workspace = true }
 wasm-bindgen = { workspace = true }
-web-sys = { workspace = true }
+web-sys      = { workspace = true }
 
 [lints]
 workspace = true

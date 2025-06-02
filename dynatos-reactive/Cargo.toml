@@ -1,27 +1,27 @@
 [package]
-name = "dynatos-reactive"
+name    = "dynatos-reactive"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 
 dynatos-context = { workspace = true }
-dynatos-util = { workspace = true }
-dynatos-world = { workspace = true }
+dynatos-util    = { workspace = true }
+dynatos-world   = { workspace = true }
 
-derive_more = { workspace = true, features = ["full"] }
-duplicate = { workspace = true }
-extend = { workspace = true }
-futures = { workspace = true }
-itertools = { workspace = true }
-parking_lot = { workspace = true }
-pin-project = { workspace = true }
-priority-queue = { workspace = true }
-scopeguard = { workspace = true }
-tokio = { workspace = true, features = ["sync"] }
-tracing = { workspace = true }
+derive_more          = { workspace = true, features = ["full"] }
+duplicate            = { workspace = true }
+extend               = { workspace = true }
+futures              = { workspace = true }
+itertools            = { workspace = true }
+parking_lot          = { workspace = true }
+pin-project          = { workspace = true }
+priority-queue       = { workspace = true }
+scopeguard           = { workspace = true }
+tokio                = { workspace = true, features = ["sync"] }
+tracing              = { workspace = true }
 wasm-bindgen-futures = { workspace = true }
-zutil-cloned = { workspace = true }
+zutil-cloned         = { workspace = true }
 
 [lints]
 workspace = true

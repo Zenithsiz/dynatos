@@ -1,17 +1,17 @@
 [package]
-name = "dynatos-loadable"
+name    = "dynatos-loadable"
 version = "0.1.0"
 edition = "2021"
 
 [dependencies]
 
 dynatos-reactive = { workspace = true }
-dynatos-util = { workspace = true }
+dynatos-util     = { workspace = true }
 
-anyhow = { workspace = true }
-duplicate = { workspace = true }
-extend = { workspace = true }
-tracing = { workspace = true }
+anyhow       = { workspace = true }
+duplicate    = { workspace = true }
+extend       = { workspace = true }
+tracing      = { workspace = true }
 zutil-cloned = { workspace = true }
 
 [lints]
