@@ -76,7 +76,7 @@ where
 /// If you drop this signal, the relationship between
 /// the outer and inner signal will be broken, so keep
 /// this value alive while you use the inner signal
-pub struct TryMappedSignal<T, W>
+pub struct TryMappedSignal<T, W = WorldDefault>
 where
 	T: Try<Residual: Residual<Signal<T::Output>>>,
 	W: ReactiveWorld,
@@ -274,7 +274,7 @@ where
 /// Mapped signal.
 ///
 /// Maps a signal, infallibly.
-pub struct MappedSignal<T, W: ReactiveWorld>(TryMappedSignal<Result<T, !>, W>);
+pub struct MappedSignal<T, W: ReactiveWorld = WorldDefault>(TryMappedSignal<Result<T, !>, W>);
 
 impl<T> MappedSignal<T, WorldDefault> {
 	/// Creates a new mapped signal from a fallible getter
