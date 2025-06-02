@@ -156,7 +156,7 @@ where
 	[T] [Signal<T> where T: WithDynAttr + 'static];
 	[T, F] [Derived<T, F> where T: WithDynAttr + 'static, F: ?Sized + 'static];
 	[T, F] [Memo<T, F> where T: WithDynAttr + 'static, F: ?Sized + 'static];
-	[S, T] [WithDefault<S, T> where Self: for<'a> SignalWith<Value<'a>: Sized + Deref<Target: WithDynAttr>>];
+	[S, T] [WithDefault<S, T> where Self: for<'a> SignalWith<Value<'a>: Deref<Target: WithDynAttr>>];
 )]
 impl<Generics> WithDynAttr for Ty {
 	fn with_attr<F2, O>(&self, f: F2) -> O
@@ -202,7 +202,7 @@ impl DynAttrPred for bool {
 	[T] [Signal<T> where T: DynAttrPred + 'static];
 	[T, F] [Derived<T, F> where T: DynAttrPred + 'static, F: ?Sized + 'static];
 	[T, F] [Memo<T, F> where T: DynAttrPred + 'static, F: ?Sized + 'static];
-	[S, T] [WithDefault<S, T> where Self: for<'a> SignalWith<Value<'a>: Sized + Deref<Target: DynAttrPred>>];
+	[S, T] [WithDefault<S, T> where Self: for<'a> SignalWith<Value<'a>: Deref<Target: DynAttrPred>>];
 )]
 impl<Generics> DynAttrPred for Ty {
 	fn eval(&self) -> bool {

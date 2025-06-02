@@ -126,7 +126,7 @@ where
 	[T] [Signal<T> where T: WithDynText + 'static];
 	[T, F] [Derived<T, F> where T: WithDynText + 'static, F: ?Sized + 'static];
 	[T, F] [Memo<T, F> where T: WithDynText + 'static, F: ?Sized + 'static];
-	[S, T] [WithDefault<S, T> where Self: for<'a> SignalWith<Value<'a>: Sized + Deref<Target: WithDynText>>];
+	[S, T] [WithDefault<S, T> where Self: for<'a> SignalWith<Value<'a>: Deref<Target: WithDynText>>];
 	[T] [QuerySignal<T> where T: QueryParse<Value: WithDynText>]
 )]
 impl<Generics> WithDynText for Ty {

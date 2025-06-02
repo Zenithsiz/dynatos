@@ -83,7 +83,7 @@ where
 	pub fn new<S, TryGet, Set>(input: S, try_get: TryGet, set: Set) -> Self
 	where
 		T: 'static,
-		S: for<'a> SignalWith<Value<'a>: Sized> + for<'a> SignalUpdate<Value<'a>: Sized> + Clone + 'static,
+		S: SignalWith + SignalUpdate + Clone + 'static,
 		TryGet: Fn(<S as SignalWith>::Value<'_>) -> T + 'static,
 		Set: Fn(<S as SignalUpdate>::Value<'_>, &T::Output) + 'static,
 	{
@@ -230,7 +230,7 @@ impl<T> MappedSignal<T> {
 	pub fn new<S, Get, Set>(input: S, get: Get, set: Set) -> Self
 	where
 		T: 'static,
-		S: for<'a> SignalWith<Value<'a>: Sized> + for<'a> SignalUpdate<Value<'a>: Sized> + Clone + 'static,
+		S: SignalWith + SignalUpdate + Clone + 'static,
 		Get: Fn(<S as SignalWith>::Value<'_>) -> T + 'static,
 		Set: Fn(<S as SignalUpdate>::Value<'_>, &T) + 'static,
 	{
@@ -258,7 +258,7 @@ impl<T> SignalGetCloned for MappedSignal<T> {
 #[extend::ext_sized(name = SignalMapped)]
 pub impl<S> S
 where
-	S: for<'a> SignalWith<Value<'a>: Sized> + for<'a> SignalUpdate<Value<'a>: Sized> + Clone + 'static,
+	S: SignalWith + SignalUpdate + Clone + 'static,
 {
 	/// Maps this signal fallibly
 	fn try_mapped<T, TryGet, Set>(self, try_get: TryGet, set: Set) -> TryMappedSignal<T>

@@ -151,7 +151,7 @@ impl ToDynProp for Ty {
 	[T] [Signal<T> where T: ToDynProp + 'static];
 	[T, F] [Derived<T, F> where T: ToDynProp + 'static, F: ?Sized + 'static];
 	[T, F] [Memo<T, F> where T: ToDynProp + 'static, F: ?Sized + 'static];
-	[S, T] [WithDefault<S, T> where Self: for<'a> SignalWith<Value<'a>: Sized + Deref<Target: ToDynProp>>];
+	[S, T] [WithDefault<S, T> where Self: for<'a> SignalWith<Value<'a>: Deref<Target: ToDynProp>>];
 )]
 impl<Generics> ToDynProp for Ty {
 	fn to_prop(&self) -> Option<JsValue> {

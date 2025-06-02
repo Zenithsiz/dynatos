@@ -174,7 +174,7 @@ where
 	[T] [Signal<T> where T: ToDynNode + 'static];
 	[T, F] [Derived<T, F> where T: ToDynNode + 'static, F: ?Sized + 'static];
 	[T, F] [Memo<T, F> where T: ToDynNode + 'static, F: ?Sized + 'static];
-	[S, T] [WithDefault<S, T> where Self: for<'a> SignalWith<Value<'a>: Sized + Deref<Target: ToDynNode>>];
+	[S, T] [WithDefault<S, T> where Self: for<'a> SignalWith<Value<'a>: Deref<Target: ToDynNode>>];
 )]
 impl<Generics> ToDynNode for Ty {
 	fn to_node(&self) -> Option<web_sys::Node> {

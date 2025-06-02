@@ -12,7 +12,7 @@ pub auto trait SignalUpdateDefaultImpl {}
 /// Signal update
 pub trait SignalUpdate {
 	/// Value type
-	type Value<'a>: ?Sized;
+	type Value<'a>;
 
 	/// Updates the signal value
 	#[track_caller]

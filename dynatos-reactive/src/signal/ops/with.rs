@@ -12,7 +12,7 @@ pub auto trait SignalWithDefaultImpl {}
 /// Signal with
 pub trait SignalWith {
 	/// Value type
-	type Value<'a>: ?Sized;
+	type Value<'a>;
 
 	/// Uses the signal value
 	#[track_caller]
