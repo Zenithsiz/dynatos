@@ -3,7 +3,7 @@
 // Imports
 use {
 	super::{EnumSplitValue, SignalStorage},
-	crate::{Effect, ReactiveWorld, Signal, SignalGetCloned, SignalSet, SignalWith},
+	crate::{effect, Effect, ReactiveWorld, Signal, SignalGetCloned, SignalSet, SignalWith},
 	core::marker::PhantomData,
 	zutil_cloned::cloned,
 };
@@ -13,23 +13,24 @@ pub struct EnumSplitValueUpdateCtx<'a, S, W: ReactiveWorld> {
 	/// Outer signal
 	outer_signal: S,
 
-	/// Effect currently running
-	this_effect: Effect<W::F, W>,
-
-	_phantom: PhantomData<&'a ()>,
+	_phantom: PhantomData<(&'a (), W)>,
 }
 
 impl<'a, S, W: ReactiveWorld> EnumSplitValueUpdateCtx<'a, S, W> {
-	/// Creates a new context
-	pub(crate) const fn new(outer_signal: S, this_effect: Effect<W::F, W>) -> Self {
+	/// Creates a new context.
+	pub(crate) const fn new(outer_signal: S) -> Self {
 		Self {
 			outer_signal,
-			this_effect,
 			_phantom: PhantomData,
 		}
 	}
 
-	/// Creates signal storage from a value
+	/// Creates signal storage from a value.
+	///
+	/// Must be run from inside of an effect.
+	/// Suppresses the current effect during
+	/// the write-back effect of the signal storage
+	/// created, to avoid recursion
 	pub fn create_signal_storage<T, V, F>(&self, value: V, into_t: F) -> SignalStorage<V>
 	where
 		T: EnumSplitValue<S, W>,
@@ -39,13 +40,15 @@ impl<'a, S, W: ReactiveWorld> EnumSplitValueUpdateCtx<'a, S, W> {
 	{
 		let signal = Signal::new(value);
 
+		let cur_effect = effect::running::<W>().expect("Missing running effect");
+
 		// Create the write-back effect.
 		// Note: We don't want to run it and write into the outer at startup, so
 		//       we create it raw and add dependencies manually.
-		#[cloned(inner_signal = signal, this_effect = self.this_effect, outer_signal = self.outer_signal)]
+		#[cloned(inner_signal = signal, outer_signal = self.outer_signal)]
 		let write_back_effect = Effect::new_raw(move || {
 			let value = inner_signal.get_cloned();
-			this_effect.suppressed(|| outer_signal.set(into_t(value)));
+			cur_effect.suppressed(|| outer_signal.set(into_t(value)));
 		});
 		write_back_effect.gather_dependencies(|| {
 			signal.with(|_| ());

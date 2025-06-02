@@ -221,11 +221,7 @@ impl<F: ?Sized, W: ReactiveWorld> Effect<F, W> {
 		}
 
 		// Otherwise, run it
-		let ctx = EffectRunCtx {
-			// TODO: Not have to clone the effect each time we run?
-			effect:   W::unsize_effect(self.clone()),
-			_phantom: PhantomData,
-		};
+		let ctx = EffectRunCtx { _phantom: PhantomData };
 		let _gatherer = self.deps_gatherer();
 		self.inner.run.run(ctx);
 	}
@@ -436,17 +432,7 @@ pub trait EffectRun<W: ReactiveWorld = WorldDefault> {
 
 /// Effect run context
 pub struct EffectRunCtx<'a, W: ReactiveWorld> {
-	/// Effect
-	effect: Effect<W::F, W>,
-
-	_phantom: PhantomData<&'a ()>,
-}
-
-impl<'a, W: ReactiveWorld> EffectRunCtx<'a, W> {
-	/// Returns the effect running this
-	pub fn effect(&self) -> Effect<W::F, W> {
-		self.effect.clone()
-	}
+	_phantom: PhantomData<(&'a (), W)>,
 }
 
 impl<F, W> EffectRun<W> for F

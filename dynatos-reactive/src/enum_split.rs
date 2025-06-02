@@ -191,14 +191,14 @@ where
 	S: SignalGetCloned<Value = T> + SignalSet<T> + Clone + 'static,
 	W: EnumSplitWorld<S, T>,
 {
-	fn run(&self, run_ctx: EffectRunCtx<'_, W>) {
+	fn run(&self, _run_ctx: EffectRunCtx<'_, W>) {
 		// Get the new value
 		let new_value = self.signal.get_cloned();
 
 		// Then update the current signal
 		let mut inner = self.inner.write();
 		let prev_kind = inner.cur_kind.replace(new_value.kind());
-		let update_ctx = EnumSplitValueUpdateCtx::new(self.signal.clone(), run_ctx.effect());
+		let update_ctx = EnumSplitValueUpdateCtx::new(self.signal.clone());
 		new_value.update(&mut inner.signals, update_ctx);
 
 		if prev_kind != inner.cur_kind {
