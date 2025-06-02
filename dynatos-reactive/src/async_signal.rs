@@ -297,9 +297,18 @@ impl<F: Loader, W: AsyncReactiveWorld<F>> AsyncSignal<F, W> {
 
 	/// Borrows the value, without loading it
 	#[must_use]
+	#[track_caller]
 	pub fn borrow_unloaded(&self) -> Option<BorrowRef<'_, F, W>> {
 		let inner = self.inner.read();
 		inner.trigger.gather_subscribers();
+		inner.value.is_some().then(|| BorrowRef(inner))
+	}
+
+	/// Borrows the value, without loading it or gathering subscribers
+	#[must_use]
+	#[track_caller]
+	pub fn borrow_unloaded_raw(&self) -> Option<BorrowRef<'_, F, W>> {
+		let inner = self.inner.read();
 		inner.value.is_some().then(|| BorrowRef(inner))
 	}
 }
@@ -379,8 +388,6 @@ impl<F: Loader, W: AsyncReactiveWorld<F>> SignalBorrow for AsyncSignal<F, W> {
 
 	fn borrow_raw(&self) -> Self::Ref<'_> {
 		// Start loading on borrow
-		// TODO: Should we start loading here?
-		//       If so, we need to add a `borrow_raw_unloaded` method too.
 		let mut inner = self.inner.write();
 		inner.start_loading(Rc::<_, W>::clone(&self.inner));
 

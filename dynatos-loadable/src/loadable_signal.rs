@@ -92,8 +92,23 @@ where
 {
 	/// Borrows the value, without loading it
 	#[must_use]
+	#[track_caller]
 	pub fn borrow_unloaded(&self) -> Loadable<BorrowRef<'_, F>, E> {
 		let res = self.inner.borrow_unloaded();
+		match res {
+			Some(res) => match &*res {
+				Ok(_) => Loadable::Loaded(BorrowRef(res)),
+				Err(err) => Loadable::Err(err.clone()),
+			},
+			None => Loadable::Empty,
+		}
+	}
+
+	/// Borrows the value, without loading it or gathering subscribers
+	#[must_use]
+	#[track_caller]
+	pub fn borrow_unloaded_raw(&self) -> Loadable<BorrowRef<'_, F>, E> {
+		let res = self.inner.borrow_unloaded_raw();
 		match res {
 			Some(res) => match &*res {
 				Ok(_) => Loadable::Loaded(BorrowRef(res)),
