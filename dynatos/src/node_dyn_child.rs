@@ -179,6 +179,7 @@ where
 impl<Generics> ToDynNode for Ty {
 	fn to_node(&self) -> Option<web_sys::Node> {
 		#[allow(
+			clippy::allow_attributes,
 			clippy::redundant_closure_for_method_calls,
 			reason = "In some branches it isn't redundant"
 		)]

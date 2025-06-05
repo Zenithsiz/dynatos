@@ -239,8 +239,8 @@ where
 	type Signal = Option<Signal<T>>;
 	type SignalsStorage = Option<SignalStorage<T>>;
 
-	fn get_signal(storage: &Self::SignalsStorage, cur: &Self::SigKind) -> Option<Self::Signal> {
-		let signal = match cur {
+	fn get_signal(storage: &Self::SignalsStorage, kind: &Self::SigKind) -> Option<Self::Signal> {
+		let signal = match kind {
 			Some(()) => Some(storage.as_ref()?.signal()),
 			None => None,
 		};
@@ -288,7 +288,7 @@ mod tests {
 
 	#[test]
 	fn exec() {
-		let input = Signal::new(Either2::<i32, ()>::T2(()));
+		let input = Signal::new(Either2::<usize, ()>::T2(()));
 
 		#[cloned(input)]
 		let signal = EnumSplitSignal::new(input);
@@ -363,7 +363,7 @@ mod tests {
 	#[test]
 	fn write_back() {
 		// Start with `T1`
-		let outer = Signal::new(Either2::<i32, &'static str>::T1(5));
+		let outer = Signal::new(Either2::<usize, &'static str>::T1(5));
 		#[thread_local]
 		static TIMES_RUN_OUTER: Cell<usize> = Cell::new(0);
 		#[cloned(outer)]

@@ -16,9 +16,9 @@ pub use self::{
 
 // Imports
 use {
+	core::fmt,
 	itertools::Itertools,
 	js_sys::Reflect,
-	std::fmt,
 	wasm_bindgen::{JsCast, JsValue},
 };
 

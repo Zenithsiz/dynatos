@@ -221,7 +221,7 @@ impl<T: ?Sized + fmt::Debug, W: ReactiveWorld> fmt::Debug for Signal<T, W> {
 mod test {
 	// Imports
 	extern crate test;
-	use {super::*, crate::Effect, test::Bencher, zutil_cloned::cloned};
+	use {super::*, crate::Effect, core::array, test::Bencher, zutil_cloned::cloned};
 
 	#[test]
 	fn multiple_mut() {
@@ -240,7 +240,7 @@ mod test {
 
 	#[bench]
 	fn clone_100(bencher: &mut Bencher) {
-		let signals = core::array::from_fn::<_, 100, _>(|_| Signal::new(0_i32));
+		let signals = array::from_fn::<_, 100, _>(|_| Signal::new(0_i32));
 		bencher.iter(|| {
 			for signal in &signals {
 				let signal = test::black_box(signal.clone());
@@ -252,7 +252,7 @@ mod test {
 	/// Reference for [`access_100`]
 	#[bench]
 	fn access_100_value(bencher: &mut Bencher) {
-		let values = core::array::from_fn::<_, 100, _>(|_| 123_usize);
+		let values = array::from_fn::<_, 100, _>(|_| 123_usize);
 		bencher.iter(|| {
 			for value in &values {
 				test::black_box(*value);
@@ -262,7 +262,7 @@ mod test {
 
 	#[bench]
 	fn access_100(bencher: &mut Bencher) {
-		let signals = core::array::from_fn::<_, 100, _>(|_| Signal::new(123_usize));
+		let signals = array::from_fn::<_, 100, _>(|_| Signal::new(123_usize));
 		bencher.iter(|| {
 			for signal in &signals {
 				test::black_box(signal.get());
@@ -273,7 +273,7 @@ mod test {
 	/// Reference for `update_100_*`
 	#[bench]
 	fn update_100_value(bencher: &mut Bencher) {
-		let mut values = core::array::from_fn::<_, 100, _>(|_| 123_usize);
+		let mut values = array::from_fn::<_, 100, _>(|_| 123_usize);
 		bencher.iter(|| {
 			for value in &mut values {
 				*value += 1;
@@ -284,7 +284,7 @@ mod test {
 
 	#[bench]
 	fn update_100_empty(bencher: &mut Bencher) {
-		let signals = core::array::from_fn::<_, 100, _>(|_| Signal::new(123_usize));
+		let signals = array::from_fn::<_, 100, _>(|_| Signal::new(123_usize));
 		bencher.iter(|| {
 			for signal in &signals {
 				signal.update(|value| *value += 1);

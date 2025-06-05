@@ -13,7 +13,10 @@ pub mod context_stack;
 pub use self::context_stack::{ContextStack, ContextStackGlobal, ContextStackOpaque, ContextStackThreadLocal};
 
 // Imports
-use dynatos_world::{World, WorldGlobal, WorldThreadLocal};
+use {
+	core::any::Any as StdAny,
+	dynatos_world::{World, WorldGlobal, WorldThreadLocal},
+};
 
 /// Context world
 pub trait ContextWorld: World {
@@ -26,12 +29,12 @@ pub trait ContextWorld: World {
 
 impl ContextWorld for WorldThreadLocal {
 	type ContextStack<T> = ContextStackThreadLocal<T>;
-	type ContextStackOpaque = ContextStackThreadLocal<dyn core::any::Any>;
+	type ContextStackOpaque = ContextStackThreadLocal<dyn StdAny>;
 }
 
 impl ContextWorld for WorldGlobal {
 	type ContextStack<T> = ContextStackGlobal<T>;
-	type ContextStackOpaque = ContextStackGlobal<dyn core::any::Any>;
+	type ContextStackOpaque = ContextStackGlobal<dyn StdAny>;
 }
 
 /// Handle type for the world's context stack

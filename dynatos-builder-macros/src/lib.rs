@@ -363,6 +363,7 @@ impl Prop {
 						let ident = name_value.path.get_ident().expect("Expected identifier");
 						match ident.to_string().as_str() {
 							"name" => match name_value.value {
+								#[expect(clippy::shadow_unrelated, reason = "It's related")]
 								syn::Expr::Path(ref path) if let Some(ident) = path.path.get_ident() => {
 									prop_ident = Some(ident.clone());
 								},

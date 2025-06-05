@@ -156,6 +156,7 @@ impl ToDynProp for Ty {
 impl<Generics> ToDynProp for Ty {
 	fn to_prop(&self) -> Option<JsValue> {
 		#[allow(
+			clippy::allow_attributes,
 			clippy::redundant_closure_for_method_calls,
 			reason = "In some branches it isn't redundant"
 		)]

@@ -1,5 +1,8 @@
 //! Context stack
 
+// Lints
+#![expect(clippy::as_conversions, reason = "We need to unsize items and there's no other way")]
+
 // Imports
 use {
 	crate::ContextWorld,

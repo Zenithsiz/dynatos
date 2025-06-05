@@ -5,6 +5,7 @@ use {
 	crate::WeakRef,
 	dynatos_util::TryOrReturnExt,
 	wasm_bindgen::{closure::Closure, convert::FromWasmAbi, JsCast},
+	web_sys::js_sys,
 };
 
 /// Extension trait to define an event listener on an event target with a closure
@@ -21,7 +22,7 @@ where
 		// Build the closure
 		let closure = Closure::<dyn Fn(E::Event)>::new(f)
 			.into_js_value()
-			.dyn_into::<web_sys::js_sys::Function>()
+			.dyn_into::<js_sys::Function>()
 			.expect("Should be a valid function");
 
 		// Then add it

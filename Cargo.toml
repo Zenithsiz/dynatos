@@ -71,12 +71,18 @@ web-sys              = "0.3.77"
 
 [workspace.lints]
 
-clippy.nursery  = { level = "warn", priority = -1 }
-clippy.pedantic = { level = "warn", priority = -1 }
+clippy.nursery     = { level = "warn", priority = -1 }
+clippy.pedantic    = { level = "warn", priority = -1 }
+clippy.restriction = { level = "warn", priority = -1 }
+
+# We enable restriction group and then allow any we don't care
+clippy.blanket_clippy_restriction_lints = "allow"
 
 # Styling
+clippy.implicit_return    = "allow"
 clippy.match_bool         = "allow"
 clippy.option_if_let_else = "allow"
+clippy.ref_patterns       = "allow"
 clippy.single_match_else  = "allow"
 
 # It's easier to define them before their first usage
@@ -88,9 +94,59 @@ clippy.future_not_send = "allow"
 
 # Most times, the panics are internal assertions that the user can't trigger
 clippy.missing_panics_doc = "allow"
+clippy.unwrap_in_result   = "allow"
+
+# Shadowing is fine
+# TODO: Turn off `unrelated` every once in a while?
+clippy.shadow_reuse     = "allow"
+clippy.shadow_same      = "allow"
+clippy.shadow_unrelated = "allow"
+
+# We want to use match ergonomics
+clippy.pattern_type_mismatch = "allow"
+
+# We sometimes need to explicitly panic
+clippy.panic       = "allow"
+clippy.unreachable = "allow"
+
+# Misc.
+clippy.arbitrary_source_item_ordering = "allow"
+clippy.arithmetic_side_effects        = "allow"
+clippy.exhaustive_enums               = "allow"
+clippy.exhaustive_structs             = "allow"
+clippy.expect_used                    = "allow"
+clippy.impl_trait_in_params           = "allow"
+clippy.indexing_slicing               = "allow"
+clippy.mem_forget                     = "allow"
+clippy.min_ident_chars                = "allow"
+clippy.missing_docs_in_private_items  = "allow"
+clippy.module_name_repetitions        = "allow"
+clippy.pub_use                        = "allow"
+clippy.pub_with_shorthand             = "allow"
+clippy.question_mark_used             = "allow"
+clippy.self_named_module_files        = "allow"
+clippy.separated_literal_suffix       = "allow"
+clippy.single_call_fn                 = "allow"
+clippy.single_char_lifetime_names     = "allow"
+clippy.string_slice                   = "allow"
+clippy.unused_trait_names             = "allow"
+clippy.wildcard_enum_match_arm        = "allow"
+
+# False positives for tests in `tests/`.
+clippy.tests_outside_test_module = "allow"
 
 # TODO: Should we document all errors?
 clippy.missing_errors_doc = "allow"
+
+# TODO: Should we mark all of them as inline
+clippy.missing_inline_in_public_items = "allow"
+
+# TODO: Should we turn this off every once a while to check if we're missing any
+#       default items we can implement better?
+clippy.missing_trait_methods = "allow"
+
+# TODO: Should we move to `alloc`?
+clippy.std_instead_of_alloc = "allow"
 
 # Until `wasm_bindgen` themselves fix it upstream, we can't fix ourselves
 rust.wasm_c_abi = "allow"

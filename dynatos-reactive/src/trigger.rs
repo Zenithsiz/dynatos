@@ -10,8 +10,9 @@ use {
 		borrow::Borrow,
 		fmt,
 		hash::{Hash, Hasher},
-		marker::PhantomData,
+		marker::{PhantomData, Unsize},
 		ops::CoerceUnsized,
+		ptr,
 	},
 	dynatos_world::{IMut, IMutLike, Rc, RcLike, Weak, WeakLike, WorldDefault},
 	std::collections::{hash_map, HashMap},
@@ -304,7 +305,7 @@ impl<W: ReactiveWorld + Default> Default for Trigger<W> {
 
 impl<W: ReactiveWorld> PartialEq for Trigger<W> {
 	fn eq(&self, other: &Self) -> bool {
-		core::ptr::eq(Rc::<_, W>::as_ptr(&self.inner), Rc::<_, W>::as_ptr(&other.inner))
+		ptr::eq(Rc::<_, W>::as_ptr(&self.inner), Rc::<_, W>::as_ptr(&other.inner))
 	}
 }
 
@@ -348,7 +349,7 @@ impl<W: ReactiveWorld> WeakTrigger<W> {
 
 impl<W: ReactiveWorld> PartialEq for WeakTrigger<W> {
 	fn eq(&self, other: &Self) -> bool {
-		core::ptr::eq(Weak::<_, W>::as_ptr(&self.inner), Weak::<_, W>::as_ptr(&other.inner))
+		ptr::eq(Weak::<_, W>::as_ptr(&self.inner), Weak::<_, W>::as_ptr(&other.inner))
 	}
 }
 
@@ -402,7 +403,7 @@ impl<W: ReactiveWorld> IntoSubscriber<W> for Subscriber<W> {
 )]
 impl<F, W> IntoSubscriber<W> for T<F, W>
 where
-	F: ?Sized + core::marker::Unsize<W::F>,
+	F: ?Sized + Unsize<W::F>,
 	W: ReactiveWorld,
 	WeakEffect<F, W>: CoerceUnsized<WeakEffect<W::F, W>>,
 {
@@ -472,7 +473,7 @@ mod test {
 	extern crate test;
 	use {
 		super::*,
-		core::{cell::Cell, mem},
+		core::{array, cell::Cell, mem},
 		test::Bencher,
 	};
 
@@ -568,7 +569,7 @@ mod test {
 
 	#[bench]
 	fn clone_100(bencher: &mut Bencher) {
-		let triggers = core::array::from_fn::<Trigger, 100, _>(|_| Trigger::new());
+		let triggers = array::from_fn::<Trigger, 100, _>(|_| Trigger::new());
 		bencher.iter(|| {
 			for trigger in &triggers {
 				let trigger = test::black_box(trigger.clone());
@@ -580,7 +581,7 @@ mod test {
 	/// Benches triggering a trigger with `N` no-op effects.
 	fn trigger_noop_n<const N: usize>(bencher: &mut Bencher) {
 		let trigger = Trigger::new();
-		let effects = core::array::from_fn::<_, N, _>(|_| Effect::new(|| ()));
+		let effects = array::from_fn::<_, N, _>(|_| Effect::new(|| ()));
 		for effect in &effects {
 			trigger.add_subscriber(effect);
 		}

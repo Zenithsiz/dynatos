@@ -9,6 +9,7 @@ use {
 #[test]
 fn create_unsized() {
 	let value: i32 = 5;
+	#[expect(clippy::as_conversions, reason = "We need to unsize it")]
 	let sig = Signal::<i32>::new(value) as Signal<dyn Any>;
 
 	sig.with(|dyn_value| {

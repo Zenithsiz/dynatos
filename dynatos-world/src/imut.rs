@@ -1,7 +1,10 @@
 //! Inner-mutability types
 
 // Imports
-use core::{cell::RefCell, ops};
+use core::{
+	cell::{self, RefCell},
+	ops,
+};
 
 /// Inner mutability family
 pub trait IMutFamily: Sized {
@@ -65,7 +68,7 @@ impl IMutFamily for StdRefcell {
 
 impl<T: ?Sized> IMutLike<T> for RefCell<T> {
 	type Ref<'a>
-		= core::cell::Ref<'a, T>
+		= cell::Ref<'a, T>
 	where
 		Self: 'a;
 	type RefMut<'a>
@@ -103,7 +106,7 @@ impl<T: ?Sized> IMutLike<T> for RefCell<T> {
 	}
 }
 
-impl<'a, T: ?Sized> IMutRefLike<'a, T> for core::cell::Ref<'a, T> {
+impl<'a, T: ?Sized> IMutRefLike<'a, T> for cell::Ref<'a, T> {
 	type IMut = RefCell<T>;
 }
 
@@ -114,7 +117,7 @@ pub struct RefCellRefMut<'a, T: ?Sized> {
 	/// Borrow
 	#[deref(forward)]
 	#[deref_mut]
-	borrow: core::cell::RefMut<'a, T>,
+	borrow: cell::RefMut<'a, T>,
 
 	/// Original refcell
 	// Note: This field is necessary for downgrading.

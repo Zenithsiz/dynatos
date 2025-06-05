@@ -26,7 +26,7 @@ use {
 		ops::{Deref, DerefMut},
 	},
 	dynatos_world::{IMut, IMutLike, IMutRef, IMutRefMut, IMutRefMutLike, Rc, RcLike, WorldDefault},
-	futures::stream::AbortHandle,
+	futures::{future, stream::AbortHandle},
 	tokio::sync::Notify,
 };
 
@@ -87,7 +87,7 @@ impl<F: Loader, W: AsyncReactiveWorld<F>> Inner<F, W> {
 
 		// Then spawn the future
 		// TODO: Allow using something other than `wasm_bindgen_futures`?
-		let (fut, handle) = futures::future::abortable(self.loader.load());
+		let (fut, handle) = future::abortable(self.loader.load());
 		wasm_bindgen_futures::spawn_local(async move {
 			// Load the value
 			// Note: If we get aborted, just remove the handle

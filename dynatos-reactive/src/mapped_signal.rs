@@ -364,7 +364,7 @@ mod test {
 
 	#[test]
 	fn basic() {
-		let outer = Signal::new(Ok::<_, ()>(5));
+		let outer = Signal::new(Ok::<usize, ()>(5));
 
 		// Counts the number of times that `outer` was written to
 		#[thread_local]
@@ -407,7 +407,7 @@ mod test {
 
 	#[test]
 	fn effects() {
-		let outer = Signal::new(Ok::<_, i32>(5));
+		let outer = Signal::new(Ok::<usize, usize>(5));
 		let mapped = TryMappedSignal::new(outer.clone(), |opt| *opt, |opt, &value| *opt = Ok(value));
 
 		// Counts the times that the mapped signal was run

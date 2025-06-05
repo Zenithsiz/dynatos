@@ -17,9 +17,10 @@ use {
 	},
 	core::{
 		fmt,
-		hash::Hash,
+		hash::{Hash, Hasher},
 		marker::{PhantomData, Unsize},
 		ops::CoerceUnsized,
+		ptr,
 		sync::atomic::{self, AtomicBool},
 	},
 	dynatos_world::{IMut, IMutLike, Rc, RcLike, Weak, WeakLike, WorldDefault},
@@ -288,7 +289,7 @@ impl<F: ?Sized, W: ReactiveWorld> Effect<F, W> {
 
 impl<F1: ?Sized, F2: ?Sized, W: ReactiveWorld> PartialEq<Effect<F2, W>> for Effect<F1, W> {
 	fn eq(&self, other: &Effect<F2, W>) -> bool {
-		core::ptr::eq(self.inner_ptr(), other.inner_ptr())
+		ptr::eq(self.inner_ptr(), other.inner_ptr())
 	}
 }
 
@@ -303,7 +304,7 @@ impl<F: ?Sized, W: ReactiveWorld> Clone for Effect<F, W> {
 }
 
 impl<F: ?Sized, W: ReactiveWorld> Hash for Effect<F, W> {
-	fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+	fn hash<H: Hasher>(&self, state: &mut H) {
 		Rc::<_, W>::as_ptr(&self.inner).hash(state);
 	}
 }
@@ -367,7 +368,7 @@ impl<F: ?Sized, W: ReactiveWorld> WeakEffect<F, W> {
 
 impl<F1: ?Sized, F2: ?Sized, W: ReactiveWorld> PartialEq<WeakEffect<F2, W>> for WeakEffect<F1, W> {
 	fn eq(&self, other: &WeakEffect<F2, W>) -> bool {
-		core::ptr::eq(self.inner_ptr(), other.inner_ptr())
+		ptr::eq(self.inner_ptr(), other.inner_ptr())
 	}
 }
 
@@ -383,7 +384,7 @@ impl<F: ?Sized, W: ReactiveWorld> Clone for WeakEffect<F, W> {
 
 
 impl<F: ?Sized, W: ReactiveWorld> Hash for WeakEffect<F, W> {
-	fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+	fn hash<H: Hasher>(&self, state: &mut H) {
 		self.inner_ptr().hash(state);
 	}
 }
@@ -539,7 +540,7 @@ mod test {
 	#[bench]
 	fn get_running_100_none(bencher: &mut Bencher) {
 		bencher.iter(|| {
-			for _ in 0..100 {
+			for _ in 0_usize..100 {
 				let effect = effect::running();
 				test::black_box(effect);
 			}
@@ -552,7 +553,7 @@ mod test {
 
 		effect.gather_dependencies(|| {
 			bencher.iter(|| {
-				for _ in 0..100 {
+				for _ in 0_usize..100 {
 					let effect = effect::running();
 					test::black_box(effect);
 				}
@@ -563,7 +564,7 @@ mod test {
 	#[bench]
 	fn create_10(bencher: &mut Bencher) {
 		bencher.iter(|| {
-			for _ in 0..10 {
+			for _ in 0_usize..10 {
 				let effect = Effect::new(move || ());
 				test::black_box(&effect);
 				mem::forget(effect);

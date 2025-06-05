@@ -1,7 +1,10 @@
 //! Reference-counted pointer
 
 // Imports
-use core::ops;
+use {
+	core::ops,
+	std::{rc, sync},
+};
 
 /// Reference-counted pointer family
 pub trait RcFamily: Sized {
@@ -51,11 +54,11 @@ pub trait WeakLike<T: ?Sized>: Clone {
 pub struct StdArc;
 
 impl RcFamily for StdArc {
-	type Rc<T: ?Sized> = std::sync::Arc<T>;
-	type Weak<T: ?Sized> = std::sync::Weak<T>;
+	type Rc<T: ?Sized> = sync::Arc<T>;
+	type Weak<T: ?Sized> = sync::Weak<T>;
 }
 
-impl<T: ?Sized> RcLike<T> for std::sync::Arc<T> {
+impl<T: ?Sized> RcLike<T> for sync::Arc<T> {
 	type Family = StdArc;
 
 	fn new(value: T) -> Self
@@ -82,7 +85,7 @@ impl<T: ?Sized> RcLike<T> for std::sync::Arc<T> {
 	}
 }
 
-impl<T: ?Sized> WeakLike<T> for std::sync::Weak<T> {
+impl<T: ?Sized> WeakLike<T> for sync::Weak<T> {
 	type Family = StdArc;
 
 	fn upgrade(&self) -> Option<<Self::Family as RcFamily>::Rc<T>> {
@@ -98,11 +101,11 @@ impl<T: ?Sized> WeakLike<T> for std::sync::Weak<T> {
 pub struct StdRc;
 
 impl RcFamily for StdRc {
-	type Rc<T: ?Sized> = std::rc::Rc<T>;
-	type Weak<T: ?Sized> = std::rc::Weak<T>;
+	type Rc<T: ?Sized> = rc::Rc<T>;
+	type Weak<T: ?Sized> = rc::Weak<T>;
 }
 
-impl<T: ?Sized> RcLike<T> for std::rc::Rc<T> {
+impl<T: ?Sized> RcLike<T> for rc::Rc<T> {
 	type Family = StdRc;
 
 	fn new(value: T) -> Self
@@ -129,7 +132,7 @@ impl<T: ?Sized> RcLike<T> for std::rc::Rc<T> {
 	}
 }
 
-impl<T: ?Sized> WeakLike<T> for std::rc::Weak<T> {
+impl<T: ?Sized> WeakLike<T> for rc::Weak<T> {
 	type Family = StdRc;
 
 	fn upgrade(&self) -> Option<<Self::Family as RcFamily>::Rc<T>> {

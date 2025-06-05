@@ -425,8 +425,8 @@ where
 	type Signal = Loadable<Signal<T>, Signal<E>>;
 	type SignalsStorage = SplitValueStorage<T, E>;
 
-	fn get_signal(storage: &Self::SignalsStorage, cur: &Self::SigKind) -> Option<Self::Signal> {
-		let signal = match cur {
+	fn get_signal(storage: &Self::SignalsStorage, kind: &Self::SigKind) -> Option<Self::Signal> {
+		let signal = match kind {
 			Loadable::Empty => Loadable::Empty,
 			Loadable::Err(()) => Loadable::Err(storage.err.as_ref()?.signal()),
 			Loadable::Loaded(()) => Loadable::Loaded(storage.loaded.as_ref()?.signal()),

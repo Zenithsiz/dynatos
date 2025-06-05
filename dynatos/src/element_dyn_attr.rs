@@ -207,6 +207,7 @@ impl DynAttrPred for bool {
 impl<Generics> DynAttrPred for Ty {
 	fn eval(&self) -> bool {
 		#[allow(
+			clippy::allow_attributes,
 			clippy::redundant_closure_for_method_calls,
 			reason = "In some branches it isn't redundant"
 		)]

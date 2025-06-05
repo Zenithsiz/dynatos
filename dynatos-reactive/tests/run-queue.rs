@@ -13,8 +13,8 @@ use {
 /// Ensures that the run queue is breadth-first
 #[test]
 fn breadth_first() {
-	let a = Signal::new(5);
-	let b = Signal::new(6);
+	let a = Signal::new(5_usize);
+	let b = Signal::new(6_usize);
 
 	#[thread_local]
 	static ORDER: RefCell<Vec<&'static str>> = RefCell::new(vec![]);

@@ -285,76 +285,76 @@ mod test {
 
 	#[test]
 	fn simple() {
-		let handle = crate::provide::<i32>(5);
+		let handle = crate::provide::<usize>(5);
 
-		assert_eq!(crate::get::<i32>(), Some(5));
+		assert_eq!(crate::get::<usize>(), Some(5));
 		assert_eq!(handle.take(), 5);
-		assert_eq!(crate::get::<i32>(), None);
+		assert_eq!(crate::get::<usize>(), None);
 	}
 
 	#[test]
 	fn stacked() {
-		let handle1 = crate::provide::<i32>(5);
-		let handle2 = crate::provide::<i32>(4);
+		let handle1 = crate::provide::<usize>(5);
+		let handle2 = crate::provide::<usize>(4);
 
-		assert_eq!(crate::get::<i32>(), Some(4));
+		assert_eq!(crate::get::<usize>(), Some(4));
 		assert_eq!(handle2.take(), 4);
-		assert_eq!(crate::get::<i32>(), Some(5));
+		assert_eq!(crate::get::<usize>(), Some(5));
 		assert_eq!(handle1.take(), 5);
-		assert_eq!(crate::get::<i32>(), None);
+		assert_eq!(crate::get::<usize>(), None);
 	}
 
 	#[test]
 	fn stacked_swapped() {
-		let handle1 = crate::provide::<i32>(5);
-		let handle2 = crate::provide::<i32>(4);
+		let handle1 = crate::provide::<usize>(5);
+		let handle2 = crate::provide::<usize>(4);
 
-		assert_eq!(crate::get::<i32>(), Some(4));
+		assert_eq!(crate::get::<usize>(), Some(4));
 		assert_eq!(handle1.take(), 5);
-		assert_eq!(crate::get::<i32>(), Some(4));
+		assert_eq!(crate::get::<usize>(), Some(4));
 		assert_eq!(handle2.take(), 4);
-		assert_eq!(crate::get::<i32>(), None);
+		assert_eq!(crate::get::<usize>(), None);
 	}
 
 	#[test]
 	fn stacked_triple() {
-		let handle1 = crate::provide::<i32>(5);
-		let handle2 = crate::provide::<i32>(4);
-		let handle3 = crate::provide::<i32>(3);
+		let handle1 = crate::provide::<usize>(5);
+		let handle2 = crate::provide::<usize>(4);
+		let handle3 = crate::provide::<usize>(3);
 
-		assert_eq!(crate::get::<i32>(), Some(3));
+		assert_eq!(crate::get::<usize>(), Some(3));
 		assert_eq!(handle2.take(), 4);
 		assert_eq!(handle3.take(), 3);
-		assert_eq!(crate::get::<i32>(), Some(5));
+		assert_eq!(crate::get::<usize>(), Some(5));
 		assert_eq!(handle1.take(), 5);
-		assert_eq!(crate::get::<i32>(), None);
+		assert_eq!(crate::get::<usize>(), None);
 	}
 
 	#[test]
 	fn opaque() {
-		let handle1 = crate::provide::<i32>(5).into_opaque();
-		let handle2 = crate::provide::<i32>(4).into_opaque();
+		let handle1 = crate::provide::<usize>(5).into_opaque();
+		let handle2 = crate::provide::<usize>(4).into_opaque();
 
-		assert_eq!(crate::get::<i32>(), Some(4));
-		assert_eq!(*handle2.take().downcast::<i32>().expect("Handle had wrong type"), 4);
-		assert_eq!(crate::get::<i32>(), Some(5));
-		assert_eq!(*handle1.take().downcast::<i32>().expect("Handle had wrong type"), 5);
-		assert_eq!(crate::get::<i32>(), None);
+		assert_eq!(crate::get::<usize>(), Some(4));
+		assert_eq!(*handle2.take().downcast::<usize>().expect("Handle had wrong type"), 4);
+		assert_eq!(crate::get::<usize>(), Some(5));
+		assert_eq!(*handle1.take().downcast::<usize>().expect("Handle had wrong type"), 5);
+		assert_eq!(crate::get::<usize>(), None);
 	}
 
 	#[test]
 	fn stress() {
 		let handles_len = 100;
-		let mut handles = (0..handles_len).map(crate::provide::<i32>).collect::<Vec<_>>();
+		let mut handles = (0..handles_len).map(crate::provide::<usize>).collect::<Vec<_>>();
 
 		for value in (0..handles_len).rev() {
-			assert_eq!(crate::get::<i32>(), Some(value));
+			assert_eq!(crate::get::<usize>(), Some(value));
 
 			let handle = handles.pop().expect("Should have handle");
 			assert_eq!(handle.get(), value);
 			assert_eq!(handle.take(), value);
 		}
-		assert_eq!(crate::get::<i32>(), None);
+		assert_eq!(crate::get::<usize>(), None);
 	}
 
 	// Type and value to test for the accesses
