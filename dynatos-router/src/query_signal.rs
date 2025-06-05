@@ -172,7 +172,7 @@ where
 	T: QueryParse + QueryWriteValue + 'static,
 	T::Value: 'static;
 
-impl<'a, T> fmt::Debug for WriteQueryOnDrop<'a, T>
+impl<T> fmt::Debug for WriteQueryOnDrop<'_, T>
 where
 	T: QueryParse + QueryWriteValue + 'static,
 {
@@ -212,7 +212,7 @@ where
 	write_query_on_drop: Option<WriteQueryOnDrop<'a, T>>,
 }
 
-impl<'a, T> fmt::Debug for BorrowRefMut<'a, T>
+impl<T> fmt::Debug for BorrowRefMut<'_, T>
 where
 	T: QueryParse + QueryWriteValue + 'static,
 	T::Value: fmt::Debug,

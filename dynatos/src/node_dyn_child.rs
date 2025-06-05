@@ -178,6 +178,10 @@ where
 )]
 impl<Generics> ToDynNode for Ty {
 	fn to_node(&self) -> Option<web_sys::Node> {
+		#[allow(
+			clippy::redundant_closure_for_method_calls,
+			reason = "In some branches it isn't redundant"
+		)]
 		self.with(|value| value.to_node())
 	}
 }

@@ -445,6 +445,7 @@ impl<W: ReactiveWorld> Drop for TriggerExec<W> {
 				effect.defined_loc(),
 				match info.defined_locs.is_empty() {
 					true => "[]".to_owned(),
+					#[expect(clippy::format_collect, reason = "TODO")]
 					false => info
 						.defined_locs
 						.iter()

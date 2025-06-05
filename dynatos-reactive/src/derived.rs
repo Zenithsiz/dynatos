@@ -105,7 +105,7 @@ pub struct BorrowRef<'a, T: 'a, F: ?Sized, W: DerivedWorld<T, F> = WorldDefault>
 	PhantomData<fn(F)>,
 );
 
-impl<'a, T, F: ?Sized, W: DerivedWorld<T, F>> Deref for BorrowRef<'a, T, F, W> {
+impl<T, F: ?Sized, W: DerivedWorld<T, F>> Deref for BorrowRef<'_, T, F, W> {
 	type Target = T;
 
 	fn deref(&self) -> &Self::Target {
@@ -113,7 +113,7 @@ impl<'a, T, F: ?Sized, W: DerivedWorld<T, F>> Deref for BorrowRef<'a, T, F, W> {
 	}
 }
 
-impl<'a, T: fmt::Debug, F: ?Sized, W: DerivedWorld<T, F>> fmt::Debug for BorrowRef<'a, T, F, W> {
+impl<T: fmt::Debug, F: ?Sized, W: DerivedWorld<T, F>> fmt::Debug for BorrowRef<'_, T, F, W> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		(*self.0).fmt(f)
 	}

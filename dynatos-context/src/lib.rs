@@ -157,6 +157,10 @@ where
 	T: Copy + 'static,
 	W: ContextWorld,
 {
+	#[expect(
+		clippy::redundant_closure_for_method_calls,
+		reason = "Can't use `Option::copied` due to inference issues"
+	)]
 	self::with_in::<T, _, _, W>(|value| value.copied())
 }
 
@@ -197,6 +201,10 @@ where
 	T: Clone + 'static,
 	W: ContextWorld,
 {
+	#[expect(
+		clippy::redundant_closure_for_method_calls,
+		reason = "Can't use `Option::cloned` due to inference issues"
+	)]
 	self::with_in::<T, _, _, W>(|value| value.cloned())
 }
 

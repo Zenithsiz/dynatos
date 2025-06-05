@@ -112,6 +112,7 @@ impl Node {
 	/// Parses a node `node` from an html node.
 	///
 	/// Returns `None` is `node` is an empty text element.
+	#[expect(clippy::too_many_lines, reason = "TODO")]
 	fn from_html(node: &XHtmlNode) -> Option<Self> {
 		let node = match node {
 			// If it's an element with an empty name, this is an expression
@@ -233,7 +234,7 @@ impl Node {
 						ty:   NodeTy::Text,
 						expr: syn::parse_quote! { dynatos_html::text(#text) },
 					});
-				};
+				}
 
 				// Otherwise, we'll format a string with dynamic text
 				let fmt = args

@@ -206,6 +206,10 @@ impl DynAttrPred for bool {
 )]
 impl<Generics> DynAttrPred for Ty {
 	fn eval(&self) -> bool {
+		#[allow(
+			clippy::redundant_closure_for_method_calls,
+			reason = "In some branches it isn't redundant"
+		)]
 		self.with(|value| value.eval())
 	}
 }

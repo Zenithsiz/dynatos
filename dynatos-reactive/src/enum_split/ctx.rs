@@ -16,7 +16,7 @@ pub struct EnumSplitValueUpdateCtx<'a, S, W: ReactiveWorld> {
 	_phantom: PhantomData<(&'a (), W)>,
 }
 
-impl<'a, S, W: ReactiveWorld> EnumSplitValueUpdateCtx<'a, S, W> {
+impl<S, W: ReactiveWorld> EnumSplitValueUpdateCtx<'_, S, W> {
 	/// Creates a new context.
 	pub(crate) const fn new(outer_signal: S) -> Self {
 		Self {

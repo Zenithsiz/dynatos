@@ -12,6 +12,7 @@ use {
 };
 
 #[proc_macro_attribute]
+#[expect(clippy::too_many_lines, reason = "TODO")]
 pub fn builder(_attr: TokenStream, input: TokenStream) -> TokenStream {
 	let input = syn::parse_macro_input!(input as syn::ItemFn);
 

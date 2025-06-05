@@ -370,7 +370,7 @@ impl<T: Clone + 'static, E: 'static> SignalGetClone for Loadable<&'_ T, E> {
 	type Value = Loadable<T, E>;
 
 	fn clone_value(self) -> Loadable<T, E> {
-		self.map(|value| value.clone())
+		self.map(T::clone)
 	}
 }
 

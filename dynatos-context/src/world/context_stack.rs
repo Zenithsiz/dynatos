@@ -353,7 +353,7 @@ where
 		.expect("Value was already taken");
 
 	// Then remove any empty entries from the end
-	while stack.last().is_some_and(|value| value.is_none()) {
+	while stack.last().is_some_and(Option::is_none) {
 		stack.pop().expect("Should have a value at the end");
 	}
 
