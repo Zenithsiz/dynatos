@@ -15,7 +15,6 @@
 	fn_traits,
 	test,
 	thread_local,
-	cfg_match,
 	trait_alias,
 	once_cell_try,
 	async_fn_traits,
