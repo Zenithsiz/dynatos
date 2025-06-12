@@ -29,7 +29,7 @@ use {
 #[derive(Debug)]
 pub struct Subscriber {
 	/// Effect
-	effect: WeakEffect<dyn EffectRun>,
+	effect: WeakEffect,
 }
 
 impl Clone for Subscriber {
@@ -54,8 +54,8 @@ impl Hash for Subscriber {
 	}
 }
 
-impl Borrow<WeakEffect<dyn EffectRun>> for Subscriber {
-	fn borrow(&self) -> &WeakEffect<dyn EffectRun> {
+impl Borrow<WeakEffect> for Subscriber {
+	fn borrow(&self) -> &WeakEffect {
 		&self.effect
 	}
 }

@@ -5,7 +5,7 @@
 
 // Imports
 use {
-	crate::{Effect, EffectRun, Signal, SignalGetCloned, SignalSet, SignalUpdate, SignalWith, Trigger, WeakEffect},
+	crate::{Effect, Signal, SignalGetCloned, SignalSet, SignalUpdate, SignalWith, Trigger, WeakEffect},
 	core::{
 		cell::{OnceCell, RefCell},
 		ops::{ControlFlow, FromResidual, Residual, Try},
@@ -23,10 +23,10 @@ where
 
 	// TODO: Make the effects not dynamic?
 	/// Get effect
-	_get_effect: Effect<dyn EffectRun>,
+	_get_effect: Effect,
 
 	/// Set effect
-	_set_effect: Effect<dyn EffectRun>,
+	_set_effect: Effect,
 
 	/// Trigger
 	trigger: Trigger,
@@ -91,7 +91,7 @@ where
 
 		// Weak reference to the `set_effect`, to ensure that we don't end
 		// up with a loop and leak memory
-		let set_weak_effect = Rc::new(OnceCell::<WeakEffect<dyn EffectRun>>::new());
+		let set_weak_effect = Rc::new(OnceCell::<WeakEffect>::new());
 
 		// The getter effect that sets the output signal
 		#[cloned(input, output_sig, trigger, set_weak_effect)]

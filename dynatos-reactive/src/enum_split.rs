@@ -268,10 +268,10 @@ mod tests {
 		let signal = EnumSplitSignal::new(input);
 
 		#[thread_local]
-		static EFFECT_SOME: OnceCell<Effect<dyn EffectRun>> = OnceCell::new();
+		static EFFECT_SOME: OnceCell<Effect> = OnceCell::new();
 
 		#[thread_local]
-		static EFFECT_NONE: OnceCell<Effect<dyn EffectRun>> = OnceCell::new();
+		static EFFECT_NONE: OnceCell<Effect> = OnceCell::new();
 
 		#[thread_local]
 		static TIMES_CHANGED_SOME: Cell<usize> = Cell::new(0);

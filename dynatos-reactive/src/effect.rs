@@ -43,7 +43,7 @@ pub(crate) struct Inner<F: ?Sized> {
 }
 
 /// Effect
-pub struct Effect<F: ?Sized> {
+pub struct Effect<F: ?Sized = dyn EffectRun> {
 	/// Inner
 	inner: Rc<Inner<F>>,
 }
@@ -291,7 +291,7 @@ where
 /// Weak effect
 ///
 /// Used to break ownership between a signal and it's subscribers
-pub struct WeakEffect<F: ?Sized> {
+pub struct WeakEffect<F: ?Sized = dyn EffectRun> {
 	/// Inner
 	inner: Weak<Inner<F>>,
 }
@@ -389,7 +389,7 @@ impl Drop for EffectDepsGatherer<'_> {
 
 /// Returns the current running effect
 #[must_use]
-pub fn running() -> Option<Effect<dyn EffectRun>> {
+pub fn running() -> Option<Effect> {
 	effect_stack::top()
 }
 
@@ -444,7 +444,7 @@ mod tests {
 	#[test]
 	fn running() {
 		#[thread_local]
-		static RUNNING: OnceCell<Effect<dyn EffectRun>> = OnceCell::new();
+		static RUNNING: OnceCell<Effect> = OnceCell::new();
 
 		// Create an effect, and save the running effect within it to `RUNNING`.
 		let effect = Effect::new(move || {
@@ -463,10 +463,10 @@ mod tests {
 	#[test]
 	fn running_stacked() {
 		#[thread_local]
-		static RUNNING_TOP: OnceCell<Effect<dyn EffectRun>> = OnceCell::new();
+		static RUNNING_TOP: OnceCell<Effect> = OnceCell::new();
 
 		#[thread_local]
-		static RUNNING_BOTTOM: OnceCell<Effect<dyn EffectRun>> = OnceCell::new();
+		static RUNNING_BOTTOM: OnceCell<Effect> = OnceCell::new();
 
 		// Create 2 stacked effects, saving the running within each to `running1` and `running2`.
 		// `running1` contains the top-level effect, while `running2` contains the inner one.

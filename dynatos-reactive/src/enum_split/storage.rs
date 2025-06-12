@@ -1,7 +1,7 @@
 //! Storage
 
 // Imports
-use crate::{Effect, EffectRun, Signal, SignalSet};
+use crate::{Effect, Signal, SignalSet};
 
 /// Signal storage.
 #[derive(Debug)]
@@ -12,12 +12,12 @@ pub struct SignalStorage<T> {
 
 	/// Write-back effect
 	// TODO: Not use dynamic dispatch here
-	write_back_effect: Effect<dyn EffectRun>,
+	write_back_effect: Effect,
 }
 
 impl<T> SignalStorage<T> {
 	/// Creates a new signal storage
-	pub(crate) fn new(signal: Signal<T>, write_back_effect: Effect<dyn EffectRun>) -> Self {
+	pub(crate) fn new(signal: Signal<T>, write_back_effect: Effect) -> Self {
 		Self {
 			signal,
 			write_back_effect,

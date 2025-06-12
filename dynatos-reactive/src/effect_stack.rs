@@ -27,6 +27,6 @@ pub fn pop() {
 }
 
 /// Returns the top effect of the stack
-pub fn top() -> Option<Effect<dyn EffectRun>> {
+pub fn top() -> Option<Effect> {
 	EFFECT_STACK.borrow().last().cloned()
 }
