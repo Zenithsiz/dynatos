@@ -169,3 +169,17 @@ where
 		self.trigger.exec();
 	}
 }
+
+#[cfg(test)]
+mod tests {
+	use super::*;
+
+	#[test]
+	fn unsize() {
+		let f1 = Derived::new(|| 1_usize);
+		let f2: Derived<usize, dyn Fn() -> usize> = f1.clone();
+
+		assert_eq!(&f1.effect, &f2.effect);
+		assert_eq!(*f2.borrow(), 1);
+	}
+}
