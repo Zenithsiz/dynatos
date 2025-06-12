@@ -10,12 +10,9 @@
 #[cfg(debug_assertions)]
 use core::panic::Location;
 use {
-	crate::{
-		world::{EffectStack, ReactiveWorldInner},
-		ReactiveWorld,
-		WeakTrigger,
-	},
+	crate::{effect_stack, WeakTrigger},
 	core::{
+		cell::RefCell,
 		fmt,
 		hash::{Hash, Hasher},
 		marker::{PhantomData, Unsize},
@@ -23,12 +20,14 @@ use {
 		ptr,
 		sync::atomic::{self, AtomicBool},
 	},
-	dynatos_world::{IMut, IMutLike, Rc, RcLike, Weak, WeakLike, WorldDefault},
-	std::collections::HashSet,
+	std::{
+		collections::HashSet,
+		rc::{Rc, Weak},
+	},
 };
 
 /// Effect inner
-pub(crate) struct Inner<F: ?Sized, W: ReactiveWorld> {
+pub(crate) struct Inner<F: ?Sized> {
 	/// Whether this effect is currently suppressed
 	suppressed: AtomicBool,
 
@@ -37,28 +36,34 @@ pub(crate) struct Inner<F: ?Sized, W: ReactiveWorld> {
 	defined_loc: &'static Location<'static>,
 
 	/// All dependencies of this effect
-	dependencies: IMut<HashSet<WeakTrigger<W>>, W>,
+	dependencies: RefCell<HashSet<WeakTrigger>>,
 
 	/// Effect runner
 	run: F,
 }
 
 /// Effect
-pub struct Effect<F: ?Sized, W: ReactiveWorld = WorldDefault> {
+pub struct Effect<F: ?Sized> {
 	/// Inner
-	inner: Rc<Inner<F, W>, W>,
+	inner: Rc<Inner<F>>,
 }
 
-impl<F> Effect<F, WorldDefault> {
+impl<F> Effect<F> {
 	/// Creates a new computed effect.
 	///
 	/// Runs the effect once to gather dependencies.
 	#[track_caller]
 	pub fn new(run: F) -> Self
 	where
-		F: EffectRun<WorldDefault> + 'static,
+		F: EffectRun + 'static,
 	{
-		Self::new_in(run, WorldDefault::default())
+		// Create the effect
+		let effect = Self::new_raw(run);
+
+		// And run it once to gather dependencies.
+		effect.run();
+
+		effect
 	}
 
 	/// Crates a new raw computed effect.
@@ -67,7 +72,15 @@ impl<F> Effect<F, WorldDefault> {
 	/// dependencies manually.
 	#[track_caller]
 	pub fn new_raw(run: F) -> Self {
-		Self::new_raw_in(run, WorldDefault::default())
+		let inner = Inner {
+			suppressed: AtomicBool::new(false),
+			#[cfg(debug_assertions)]
+			defined_loc: Location::caller(),
+			dependencies: RefCell::new(HashSet::new()),
+			run,
+		};
+
+		Self { inner: Rc::new(inner) }
 	}
 
 	/// Tries to create a new effect.
@@ -76,58 +89,9 @@ impl<F> Effect<F, WorldDefault> {
 	#[track_caller]
 	pub fn try_new(run: F) -> Option<Self>
 	where
-		F: EffectRun<WorldDefault> + 'static,
+		F: EffectRun + 'static,
 	{
-		Self::try_new_in(run, WorldDefault::default())
-	}
-}
-
-impl<F, W: ReactiveWorld> Effect<F, W> {
-	/// Creates a new computed effect within a world.
-	///
-	/// Runs the effect once to gather dependencies.
-	#[track_caller]
-	pub fn new_in(run: F, world: W) -> Self
-	where
-		F: EffectRun<W> + Unsize<W::F> + 'static,
-	{
-		// Create the effect
-		let effect = Self::new_raw_in(run, world);
-
-		// And run it once to gather dependencies.
-		effect.run();
-
-		effect
-	}
-
-	/// Crates a new raw computed effect within a world.
-	///
-	/// The effect won't be run, and instead you must gather
-	/// dependencies manually.
-	#[track_caller]
-	pub fn new_raw_in(run: F, _world: W) -> Self {
-		let inner = Inner {
-			suppressed: AtomicBool::new(false),
-			#[cfg(debug_assertions)]
-			defined_loc: Location::caller(),
-			dependencies: IMut::<_, W>::new(HashSet::new()),
-			run,
-		};
-
-		Self {
-			inner: Rc::<_, W>::new(inner),
-		}
-	}
-
-	/// Tries to create a new effect within a world.
-	///
-	/// If the effects ends up being inert, returns `None`
-	#[track_caller]
-	pub fn try_new_in(run: F, world: W) -> Option<Self>
-	where
-		F: EffectRun<W> + Unsize<W::F> + 'static,
-	{
-		let effect = Self::new_in(run, world);
+		let effect = Self::new(run);
 		match effect.is_inert() {
 			true => None,
 			false => Some(effect),
@@ -135,7 +99,7 @@ impl<F, W: ReactiveWorld> Effect<F, W> {
 	}
 }
 
-impl<F: ?Sized, W: ReactiveWorld> Effect<F, W> {
+impl<F: ?Sized> Effect<F> {
 	/// Accesses the inner function
 	#[must_use]
 	pub fn inner_fn(&self) -> &F {
@@ -150,9 +114,9 @@ impl<F: ?Sized, W: ReactiveWorld> Effect<F, W> {
 
 	/// Downgrades this effect
 	#[must_use]
-	pub fn downgrade(&self) -> WeakEffect<F, W> {
+	pub fn downgrade(&self) -> WeakEffect<F> {
 		WeakEffect {
-			inner: Rc::<_, W>::downgrade(&self.inner),
+			inner: Rc::downgrade(&self.inner),
 		}
 	}
 
@@ -163,7 +127,7 @@ impl<F: ?Sized, W: ReactiveWorld> Effect<F, W> {
 	/// or [`WeakEffect`]s exist that point to it.
 	#[must_use]
 	pub fn is_inert(&self) -> bool {
-		Rc::<_, W>::strong_count(&self.inner) == 1 && Rc::<_, W>::weak_count(&self.inner) == 0
+		Rc::strong_count(&self.inner) == 1 && Rc::weak_count(&self.inner) == 0
 	}
 
 	/// Returns the pointer of this effect
@@ -171,7 +135,7 @@ impl<F: ?Sized, W: ReactiveWorld> Effect<F, W> {
 	/// This can be used for creating maps based on equality
 	#[must_use]
 	pub fn inner_ptr(&self) -> *const () {
-		Rc::<_, W>::as_ptr(&self.inner).cast()
+		Rc::as_ptr(&self.inner).cast()
 	}
 
 	/// Creates an effect dependency gatherer
@@ -179,12 +143,12 @@ impl<F: ?Sized, W: ReactiveWorld> Effect<F, W> {
 	/// While this type lives, all signals used will be gathered as dependencies
 	/// for this effect.
 	#[must_use]
-	pub fn deps_gatherer(&self) -> EffectDepsGatherer<W>
+	pub fn deps_gatherer(&self) -> EffectDepsGatherer
 	where
-		F: Unsize<W::F> + 'static,
+		F: Unsize<dyn EffectRun> + 'static,
 	{
 		// Push the effect
-		W::EffectStack::push(self.clone());
+		effect_stack::push(self.clone());
 
 		// Then return the gatherer, which will pop the effect from the stack on drop
 		EffectDepsGatherer(PhantomData)
@@ -195,7 +159,7 @@ impl<F: ?Sized, W: ReactiveWorld> Effect<F, W> {
 	/// All signals used within `gather` will have this effect as a dependency.
 	pub fn gather_dependencies<G, O>(&self, gather: G) -> O
 	where
-		F: Unsize<W::F> + 'static,
+		F: Unsize<dyn EffectRun> + 'static,
 		G: FnOnce() -> O,
 	{
 		let _gatherer = self.deps_gatherer();
@@ -208,7 +172,7 @@ impl<F: ?Sized, W: ReactiveWorld> Effect<F, W> {
 	#[track_caller]
 	pub fn run(&self)
 	where
-		F: EffectRun<W> + Unsize<W::F> + 'static,
+		F: EffectRun + Unsize<dyn EffectRun> + 'static,
 	{
 		// If we're suppressed, don't do anything
 		// TODO: Should we clear our dependencies in this case?
@@ -220,9 +184,9 @@ impl<F: ?Sized, W: ReactiveWorld> Effect<F, W> {
 
 		// Clear the dependencies before running
 		#[expect(clippy::iter_over_hash_type, reason = "We don't care about the order here")]
-		for dep in self.inner.dependencies.write().drain() {
+		for dep in self.inner.dependencies.borrow_mut().drain() {
 			let Some(trigger) = dep.upgrade() else { continue };
-			trigger.remove_subscriber(W::unsize_effect(self.clone()).downgrade());
+			trigger.remove_subscriber(self.downgrade());
 		}
 
 		// Otherwise, run it
@@ -248,13 +212,14 @@ impl<F: ?Sized, W: ReactiveWorld> Effect<F, W> {
 	}
 
 	/// Returns whether the effect is suppressed
+	#[must_use]
 	pub fn is_suppressed(&self) -> bool {
 		self.inner.suppressed.load(atomic::Ordering::Acquire)
 	}
 
 	/// Adds a dependency to this effect
-	pub(crate) fn add_dependency(&self, trigger: WeakTrigger<W>) {
-		self.inner.dependencies.write().insert(trigger);
+	pub(crate) fn add_dependency(&self, trigger: WeakTrigger) {
+		self.inner.dependencies.borrow_mut().insert(trigger);
 	}
 
 	/// Formats this effect into `s`
@@ -267,7 +232,7 @@ impl<F: ?Sized, W: ReactiveWorld> Effect<F, W> {
 		s.field_with("dependencies", |f| {
 			let mut s = f.debug_list();
 
-			let Some(deps) = self.inner.dependencies.try_read() else {
+			let Ok(deps) = self.inner.dependencies.try_borrow() else {
 				return s.finish_non_exhaustive();
 			};
 			#[expect(clippy::iter_over_hash_type, reason = "We don't care about the order")]
@@ -287,40 +252,38 @@ impl<F: ?Sized, W: ReactiveWorld> Effect<F, W> {
 	}
 }
 
-impl<F1: ?Sized, F2: ?Sized, W: ReactiveWorld> PartialEq<Effect<F2, W>> for Effect<F1, W> {
-	fn eq(&self, other: &Effect<F2, W>) -> bool {
+impl<F1: ?Sized, F2: ?Sized> PartialEq<Effect<F2>> for Effect<F1> {
+	fn eq(&self, other: &Effect<F2>) -> bool {
 		ptr::eq(self.inner_ptr(), other.inner_ptr())
 	}
 }
 
-impl<F: ?Sized, W: ReactiveWorld> Eq for Effect<F, W> {}
+impl<F: ?Sized> Eq for Effect<F> {}
 
-impl<F: ?Sized, W: ReactiveWorld> Clone for Effect<F, W> {
+impl<F: ?Sized> Clone for Effect<F> {
 	fn clone(&self) -> Self {
 		Self {
-			inner: Rc::<_, W>::clone(&self.inner),
+			inner: Rc::clone(&self.inner),
 		}
 	}
 }
 
-impl<F: ?Sized, W: ReactiveWorld> Hash for Effect<F, W> {
+impl<F: ?Sized> Hash for Effect<F> {
 	fn hash<H: Hasher>(&self, state: &mut H) {
-		Rc::<_, W>::as_ptr(&self.inner).hash(state);
+		Rc::as_ptr(&self.inner).hash(state);
 	}
 }
 
-impl<F: ?Sized, W: ReactiveWorld> fmt::Debug for Effect<F, W> {
+impl<F: ?Sized> fmt::Debug for Effect<F> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		self.fmt_debug(f.debug_struct("Effect"))
 	}
 }
 
-impl<F1, F2, W> CoerceUnsized<Effect<F2, W>> for Effect<F1, W>
+impl<F1, F2> CoerceUnsized<Effect<F2>> for Effect<F1>
 where
 	F1: ?Sized + Unsize<F2>,
 	F2: ?Sized,
-	W: ReactiveWorld,
-	Rc<Inner<F1, W>, W>: CoerceUnsized<Rc<Inner<F2, W>, W>>,
 {
 }
 
@@ -328,15 +291,15 @@ where
 /// Weak effect
 ///
 /// Used to break ownership between a signal and it's subscribers
-pub struct WeakEffect<F: ?Sized, W: ReactiveWorld = WorldDefault> {
+pub struct WeakEffect<F: ?Sized> {
 	/// Inner
-	inner: Weak<Inner<F, W>, W>,
+	inner: Weak<Inner<F>>,
 }
 
-impl<F: ?Sized, W: ReactiveWorld> WeakEffect<F, W> {
+impl<F: ?Sized> WeakEffect<F> {
 	/// Upgrades this effect
 	#[must_use]
-	pub fn upgrade(&self) -> Option<Effect<F, W>> {
+	pub fn upgrade(&self) -> Option<Effect<F>> {
 		self.inner.upgrade().map(|inner| Effect { inner })
 	}
 
@@ -345,16 +308,20 @@ impl<F: ?Sized, W: ReactiveWorld> WeakEffect<F, W> {
 	/// This can be used for creating maps based on equality
 	#[must_use]
 	pub fn inner_ptr(&self) -> *const () {
-		Weak::<_, W>::as_ptr(&self.inner).cast()
+		Weak::as_ptr(&self.inner).cast()
 	}
 
 	/// Runs this effect, if it exists.
 	///
 	/// Returns if the effect still existed
 	#[track_caller]
+	#[expect(
+		clippy::must_use_candidate,
+		reason = "The user may not care whether we actually ran or not"
+	)]
 	pub fn try_run(&self) -> bool
 	where
-		F: EffectRun<W> + Unsize<W::F> + 'static,
+		F: EffectRun + Unsize<dyn EffectRun> + 'static,
 	{
 		// Try to upgrade, else return that it was missing
 		let Some(effect) = self.upgrade() else {
@@ -366,30 +333,30 @@ impl<F: ?Sized, W: ReactiveWorld> WeakEffect<F, W> {
 	}
 }
 
-impl<F1: ?Sized, F2: ?Sized, W: ReactiveWorld> PartialEq<WeakEffect<F2, W>> for WeakEffect<F1, W> {
-	fn eq(&self, other: &WeakEffect<F2, W>) -> bool {
+impl<F1: ?Sized, F2: ?Sized> PartialEq<WeakEffect<F2>> for WeakEffect<F1> {
+	fn eq(&self, other: &WeakEffect<F2>) -> bool {
 		ptr::eq(self.inner_ptr(), other.inner_ptr())
 	}
 }
 
-impl<F: ?Sized, W: ReactiveWorld> Eq for WeakEffect<F, W> {}
+impl<F: ?Sized> Eq for WeakEffect<F> {}
 
-impl<F: ?Sized, W: ReactiveWorld> Clone for WeakEffect<F, W> {
+impl<F: ?Sized> Clone for WeakEffect<F> {
 	fn clone(&self) -> Self {
 		Self {
-			inner: Weak::<_, W>::clone(&self.inner),
+			inner: Weak::clone(&self.inner),
 		}
 	}
 }
 
 
-impl<F: ?Sized, W: ReactiveWorld> Hash for WeakEffect<F, W> {
+impl<F: ?Sized> Hash for WeakEffect<F> {
 	fn hash<H: Hasher>(&self, state: &mut H) {
 		self.inner_ptr().hash(state);
 	}
 }
 
-impl<F: ?Sized, W: ReactiveWorld> fmt::Debug for WeakEffect<F, W> {
+impl<F: ?Sized> fmt::Debug for WeakEffect<F> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		let mut s = f.debug_struct("WeakEffect");
 
@@ -400,12 +367,10 @@ impl<F: ?Sized, W: ReactiveWorld> fmt::Debug for WeakEffect<F, W> {
 	}
 }
 
-impl<F1, F2, W> CoerceUnsized<WeakEffect<F2, W>> for WeakEffect<F1, W>
+impl<F1, F2> CoerceUnsized<WeakEffect<F2>> for WeakEffect<F1>
 where
 	F1: ?Sized + Unsize<F2>,
 	F2: ?Sized,
-	W: ReactiveWorld,
-	Weak<Inner<F1, W>, W>: CoerceUnsized<Weak<Inner<F2, W>, W>>,
 {
 }
 
@@ -413,45 +378,38 @@ where
 ///
 /// While this type is alive, any signals used will
 /// be added as a dependency.
-pub struct EffectDepsGatherer<'a, W: ReactiveWorld = WorldDefault>(PhantomData<(&'a (), W)>);
+pub struct EffectDepsGatherer<'a>(PhantomData<&'a ()>);
 
-impl<W: ReactiveWorld> Drop for EffectDepsGatherer<'_, W> {
+impl Drop for EffectDepsGatherer<'_> {
 	fn drop(&mut self) {
 		// Pop our effect from the stack
-		W::EffectStack::pop();
+		effect_stack::pop();
 	}
 }
 
 /// Returns the current running effect
 #[must_use]
-pub fn running() -> Option<Effect<<WorldDefault as ReactiveWorldInner>::F>> {
-	self::running_in::<WorldDefault>()
-}
-
-/// Returns the current running effect in a world
-#[must_use]
-pub fn running_in<W: ReactiveWorld>() -> Option<Effect<W::F, W>> {
-	<W>::EffectStack::top()
+pub fn running() -> Option<Effect<dyn EffectRun>> {
+	effect_stack::top()
 }
 
 /// Effect run
-pub trait EffectRun<W: ReactiveWorld = WorldDefault> {
+pub trait EffectRun {
 	/// Runs the effect
 	#[track_caller]
-	fn run(&self, ctx: EffectRunCtx<'_, W>);
+	fn run(&self, ctx: EffectRunCtx<'_>);
 }
 
 /// Effect run context
-pub struct EffectRunCtx<'a, W: ReactiveWorld> {
-	_phantom: PhantomData<(&'a (), W)>,
+pub struct EffectRunCtx<'a> {
+	_phantom: PhantomData<&'a ()>,
 }
 
-impl<F, W> EffectRun<W> for F
+impl<F> EffectRun for F
 where
 	F: Fn(),
-	W: ReactiveWorld,
 {
-	fn run(&self, _ctx: EffectRunCtx<'_, W>) {
+	fn run(&self, _ctx: EffectRunCtx<'_>) {
 		self();
 	}
 }
@@ -486,7 +444,7 @@ mod test {
 	#[test]
 	fn running() {
 		#[thread_local]
-		static RUNNING: OnceCell<Effect<dyn EffectRun, WorldDefault>> = OnceCell::new();
+		static RUNNING: OnceCell<Effect<dyn EffectRun>> = OnceCell::new();
 
 		// Create an effect, and save the running effect within it to `RUNNING`.
 		let effect = Effect::new(move || {

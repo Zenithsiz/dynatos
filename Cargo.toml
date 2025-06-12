@@ -14,7 +14,6 @@ members = [
 	"dynatos-router",
 	"dynatos-title",
 	"dynatos-util",
-	"dynatos-world",
 ]
 resolver = "2"
 
@@ -34,7 +33,6 @@ dynatos-reactive       = { path = "dynatos-reactive" }
 dynatos-router         = { path = "dynatos-router" }
 dynatos-title          = { path = "dynatos-title" }
 dynatos-util           = { path = "dynatos-util" }
-dynatos-world          = { path = "dynatos-world" }
 
 # zutil
 zutil-cloned = { git = "https://github.com/Zenithsiz/zutil", rev = "978fa5df733d59fc691812ce2fa6072bf901dc7f" }

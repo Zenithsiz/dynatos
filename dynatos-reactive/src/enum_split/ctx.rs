@@ -3,20 +3,20 @@
 // Imports
 use {
 	super::{EnumSplitValue, SignalStorage},
-	crate::{effect, Effect, ReactiveWorld, Signal, SignalGetCloned, SignalSet, SignalWith},
+	crate::{effect, Effect, Signal, SignalGetCloned, SignalSet, SignalWith},
 	core::marker::PhantomData,
 	zutil_cloned::cloned,
 };
 
 /// Context for [`EnumSplitValue::update`]
-pub struct EnumSplitValueUpdateCtx<'a, S, W: ReactiveWorld> {
+pub struct EnumSplitValueUpdateCtx<'a, S> {
 	/// Outer signal
 	outer_signal: S,
 
-	_phantom: PhantomData<(&'a (), W)>,
+	_phantom: PhantomData<&'a ()>,
 }
 
-impl<S, W: ReactiveWorld> EnumSplitValueUpdateCtx<'_, S, W> {
+impl<S> EnumSplitValueUpdateCtx<'_, S> {
 	/// Creates a new context.
 	pub(crate) const fn new(outer_signal: S) -> Self {
 		Self {
@@ -33,14 +33,14 @@ impl<S, W: ReactiveWorld> EnumSplitValueUpdateCtx<'_, S, W> {
 	/// created, to avoid recursion
 	pub fn create_signal_storage<T, V, F>(&self, value: V, into_t: F) -> SignalStorage<V>
 	where
-		T: EnumSplitValue<S, W>,
+		T: EnumSplitValue<S>,
 		S: SignalSet<T> + Clone + 'static,
 		V: Clone + 'static,
 		F: Fn(V) -> T + 'static,
 	{
 		let signal = Signal::new(value);
 
-		let cur_effect = effect::running_in::<W>().expect("Missing running effect");
+		let cur_effect = effect::running().expect("Missing running effect");
 
 		// Create the write-back effect.
 		// Note: We don't want to run it and write into the outer at startup, so

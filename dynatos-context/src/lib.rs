@@ -4,37 +4,30 @@
 #![feature(try_blocks, thread_local, test, negative_impls, decl_macro, unsize)]
 
 // Modules
-pub mod world;
-
-// Exports
-pub use self::world::ContextWorld;
+pub mod context_stack;
 
 // Imports
-use {
-	self::world::{ContextStack, ContextStackOpaque},
-	core::{any, marker::Unsize, mem},
-	dynatos_world::WorldDefault,
+use core::{
+	any::{self, Any},
+	mem,
 };
 
 /// A handle to a context value.
 ///
 /// When dropped, the context value is also dropped.
 #[must_use = "The handle object keeps a value in context. If dropped, the context is also dropped"]
-pub struct Handle<T: 'static, W: ContextWorld = WorldDefault> {
+pub struct Handle<T: 'static> {
 	/// Handle
-	handle: world::Handle<T, W>,
+	handle: context_stack::Handle<T>,
 }
 
-impl<T: 'static, W: ContextWorld> Handle<T, W> {
+impl<T: 'static> Handle<T> {
 	/// Converts this handle to an opaque handle
-	pub fn into_opaque(self) -> OpaqueHandle<W>
-	where
-		W::ContextStack<T>: ContextStackOpaque<W>,
-	{
+	pub fn into_opaque(self) -> OpaqueHandle {
 		// Create the opaque handle and forget ourselves
 		// Note: This is to ensure we don't try to take the value in the [`Drop`] impl
 		let handle = OpaqueHandle {
-			handle: W::ContextStack::<T>::to_opaque(self.handle),
+			handle: context_stack::to_opaque(self.handle),
 		};
 		mem::forget(self);
 
@@ -55,7 +48,7 @@ impl<T: 'static, W: ContextWorld> Handle<T, W> {
 	where
 		F: FnOnce(&T) -> O,
 	{
-		W::ContextStack::<T>::with::<_, O>(self.handle, f)
+		context_stack::with(self.handle, f)
 	}
 
 	/// Takes the value this handle is providing a context for.
@@ -71,11 +64,11 @@ impl<T: 'static, W: ContextWorld> Handle<T, W> {
 
 	/// Inner method for [`take`](Self::take), and the [`Drop`] impl.
 	fn take_inner(&self) -> T {
-		W::ContextStack::<T>::take(self.handle)
+		context_stack::take(self.handle)
 	}
 }
 
-impl<T: 'static, W: ContextWorld> Drop for Handle<T, W> {
+impl<T: 'static> Drop for Handle<T> {
 	#[track_caller]
 	fn drop(&mut self) {
 		let _: T = self.take_inner();
@@ -86,23 +79,23 @@ impl<T: 'static, W: ContextWorld> Drop for Handle<T, W> {
 ///
 /// When dropped, the context value is also dropped.
 #[must_use = "The handle object keeps a value in context. If dropped, the context is also dropped"]
-pub struct OpaqueHandle<W: ContextWorld = WorldDefault> {
+pub struct OpaqueHandle {
 	/// Handle
-	handle: world::OpaqueHandle<W>,
+	handle: context_stack::OpaqueHandle,
 }
 
-impl<W: ContextWorld> OpaqueHandle<W> {
+impl OpaqueHandle {
 	/// Uses the value from this handle
 	pub fn with<F, O>(&self, f: F) -> O
 	where
-		F: FnOnce(&world::Any<W>) -> O,
+		F: FnOnce(&dyn Any) -> O,
 	{
-		W::ContextStackOpaque::with_opaque(self.handle, f)
+		context_stack::with_opaque(self.handle, f)
 	}
 
 	/// Takes the value this handle is providing a context for.
 	#[must_use = "If you only wish to drop the context, consider dropping the handle"]
-	pub fn take(self) -> Box<world::Any<W>> {
+	pub fn take(self) -> Box<dyn Any> {
 		// Get the value and forget ourselves
 		// Note: This is to ensure we don't try to take the value in the [`Drop`] impl
 		let value = self.take_inner();
@@ -112,31 +105,25 @@ impl<W: ContextWorld> OpaqueHandle<W> {
 	}
 
 	/// Inner method for [`take`](Self::take), and the [`Drop`] impl.
-	fn take_inner(&self) -> Box<world::Any<W>> {
-		W::ContextStackOpaque::take_opaque(self.handle)
+	fn take_inner(&self) -> Box<dyn Any> {
+		context_stack::take_opaque(self.handle)
 	}
 }
 
-impl<W: ContextWorld> Drop for OpaqueHandle<W> {
+impl Drop for OpaqueHandle {
 	#[track_caller]
 	fn drop(&mut self) {
-		let _: Box<world::Any<W>> = self.take_inner();
+		let _: Box<dyn Any> = self.take_inner();
 	}
 }
 
 /// Provides a value of `T` to the current context.
-pub fn provide<T>(value: T) -> Handle<T> {
-	self::provide_in::<T, WorldDefault>(value)
-}
-
-/// Provides a value of `T` to the current context in world `W`.
-pub fn provide_in<T, W>(value: T) -> Handle<T, W>
+pub fn provide<T>(value: T) -> Handle<T>
 where
-	T: Unsize<world::Bounds<T, W>>,
-	W: ContextWorld,
+	T: Any,
 {
 	// Push the value onto the stack
-	let handle = W::ContextStack::<T>::push(value);
+	let handle = context_stack::push(value);
 
 	Handle { handle }
 }
@@ -147,21 +134,11 @@ pub fn get<T>() -> Option<T>
 where
 	T: Copy + 'static,
 {
-	self::get_in::<T, WorldDefault>()
-}
-
-/// Gets a value of `T` on the current context in world `W`.
-#[must_use]
-pub fn get_in<T, W>() -> Option<T>
-where
-	T: Copy + 'static,
-	W: ContextWorld,
-{
 	#[expect(
 		clippy::redundant_closure_for_method_calls,
 		reason = "Can't use `Option::copied` due to inference issues"
 	)]
-	self::with_in::<T, _, _, W>(|value| value.copied())
+	self::with::<T, _, _>(|value| value.copied())
 }
 
 /// Expects a value of `T` on the current context.
@@ -171,18 +148,7 @@ pub fn expect<T>() -> T
 where
 	T: Copy + 'static,
 {
-	self::expect_in::<T, WorldDefault>()
-}
-
-/// Expects a value of `T` on the current context in world `W`.
-#[must_use]
-#[track_caller]
-pub fn expect_in<T, W>() -> T
-where
-	T: Copy + 'static,
-	W: ContextWorld,
-{
-	self::with_in::<T, _, _, W>(|value| *value.unwrap_or_else(self::on_missing_context::<T, _>))
+	self::with::<T, _, _>(|value| *value.unwrap_or_else(self::on_missing_context::<T, _>))
 }
 
 /// Gets a cloned value of `T` on the current context.
@@ -191,21 +157,11 @@ pub fn get_cloned<T>() -> Option<T>
 where
 	T: Clone + 'static,
 {
-	self::get_cloned_in::<T, WorldDefault>()
-}
-
-/// Gets a cloned value of `T` on the current context.
-#[must_use]
-pub fn get_cloned_in<T, W>() -> Option<T>
-where
-	T: Clone + 'static,
-	W: ContextWorld,
-{
 	#[expect(
 		clippy::redundant_closure_for_method_calls,
 		reason = "Can't use `Option::cloned` due to inference issues"
 	)]
-	self::with_in::<T, _, _, W>(|value| value.cloned())
+	self::with::<T, _, _>(|value| value.cloned())
 }
 
 /// Expects a cloned value of `T` on the current context.
@@ -215,18 +171,7 @@ pub fn expect_cloned<T>() -> T
 where
 	T: Clone + 'static,
 {
-	self::expect_cloned_in::<T, WorldDefault>()
-}
-
-/// Expects a cloned value of `T` on the current context in world `W`.
-#[must_use]
-#[track_caller]
-pub fn expect_cloned_in<T, W>() -> T
-where
-	T: Clone + 'static,
-	W: ContextWorld,
-{
-	self::with_in::<T, _, _, W>(|value| value.unwrap_or_else(self::on_missing_context::<T, _>).clone())
+	self::with::<T, _, _>(|value| value.unwrap_or_else(self::on_missing_context::<T, _>).clone())
 }
 
 /// Uses a value of `T` on the current context.
@@ -235,17 +180,7 @@ where
 	T: 'static,
 	F: FnOnce(Option<&T>) -> O,
 {
-	self::with_in::<T, F, O, WorldDefault>(f)
-}
-
-/// Uses a value of `T` on the current context in world `W`.
-pub fn with_in<T, F, O, W>(f: F) -> O
-where
-	T: 'static,
-	F: FnOnce(Option<&T>) -> O,
-	W: ContextWorld,
-{
-	W::ContextStack::<T>::with_top(f)
+	context_stack::with_top(f)
 }
 
 /// Uses a value of `T` on the current context, expecting it.
@@ -255,18 +190,7 @@ where
 	T: 'static,
 	F: FnOnce(&T) -> O,
 {
-	self::with_expect_in::<T, F, O, WorldDefault>(f)
-}
-
-/// Uses a value of `T` on the current context, expecting it in world `W`.
-#[track_caller]
-pub fn with_expect_in<T, F, O, W>(f: F) -> O
-where
-	T: 'static,
-	F: FnOnce(&T) -> O,
-	W: ContextWorld,
-{
-	self::with_in::<T, _, _, W>(|value| value.map(f)).unwrap_or_else(self::on_missing_context::<T, _>)
+	self::with::<T, _, _>(|value| value.map(f)).unwrap_or_else(self::on_missing_context::<T, _>)
 }
 
 /// Called when context for type `T` was missing.

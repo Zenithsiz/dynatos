@@ -6,7 +6,6 @@ use {
 		Effect,
 		EffectRun,
 		EffectRunCtx,
-		ReactiveWorld,
 		SignalBorrow,
 		SignalGetClonedDefaultImpl,
 		SignalGetDefaultImpl,
@@ -14,25 +13,22 @@ use {
 		Trigger,
 	},
 	core::{
+		cell::{self, RefCell},
 		fmt,
 		marker::{PhantomData, Unsize},
 		ops::{CoerceUnsized, Deref},
 	},
-	dynatos_world::{IMut, IMutLike, IMutRef, WorldDefault},
 };
-
-/// World for [`Memo`]
-pub trait MemoWorld<T, F: ?Sized> = ReactiveWorld where IMut<Option<T>, Self>: Sized;
 
 /// Memo signal.
 ///
 /// See the module documentation for more information.
-pub struct Memo<T, F: ?Sized, W: MemoWorld<T, F> = WorldDefault> {
+pub struct Memo<T, F: ?Sized> {
 	/// Effect
-	effect: Effect<EffectFn<T, F, W>, W>,
+	effect: Effect<EffectFn<T, F>>,
 }
 
-impl<T, F> Memo<T, F, WorldDefault> {
+impl<T, F> Memo<T, F> {
 	/// Creates a new memo'd signal
 	#[track_caller]
 	pub fn new(f: F) -> Self
@@ -40,44 +36,21 @@ impl<T, F> Memo<T, F, WorldDefault> {
 		T: PartialEq + 'static,
 		F: Fn() -> T + 'static,
 	{
-		Self::new_in(f, WorldDefault::default())
-	}
-}
-
-impl<T, F, W: MemoWorld<T, F>> Memo<T, F, W> {
-	/// Creates a new memo'd signal in a world
-	#[track_caller]
-	#[expect(private_bounds, reason = "We can't *not* leak some implementation details currently")]
-	pub fn new_in(f: F, world: W) -> Self
-	where
-		T: PartialEq + 'static,
-		F: Fn() -> T + 'static,
-		EffectFn<T, F, W>: Unsize<W::F>,
-	{
-		let value = IMut::<_, W>::new(None);
-		let effect = Effect::new_in(
-			EffectFn {
-				trigger: Trigger::new_in(world.clone()),
-				value,
-				f,
-			},
-			world,
-		);
+		let value = RefCell::new(None);
+		let effect = Effect::new(EffectFn {
+			trigger: Trigger::new(),
+			value,
+			f,
+		});
 
 		Self { effect }
 	}
 }
 
-/// World for [`BorrowRef`]
-pub trait BorrowRefWorld<'a, T, F: ?Sized> = MemoWorld<T, F> where IMut<Option<T>, Self>: 'a;
-
 /// Reference type for [`SignalBorrow`] impl
-pub struct BorrowRef<'a, T: 'a, F: ?Sized, W: BorrowRefWorld<'a, T, F> = WorldDefault>(
-	IMutRef<'a, Option<T>, W>,
-	PhantomData<fn(F)>,
-);
+pub struct BorrowRef<'a, T: 'a, F: ?Sized>(cell::Ref<'a, Option<T>>, PhantomData<fn(F)>);
 
-impl<'a, T, F: ?Sized, W: BorrowRefWorld<'a, T, F>> Deref for BorrowRef<'a, T, F, W> {
+impl<T, F: ?Sized> Deref for BorrowRef<'_, T, F> {
 	type Target = T;
 
 	fn deref(&self) -> &Self::Target {
@@ -85,15 +58,15 @@ impl<'a, T, F: ?Sized, W: BorrowRefWorld<'a, T, F>> Deref for BorrowRef<'a, T, F
 	}
 }
 
-impl<'a, T: fmt::Debug, F: ?Sized, W: BorrowRefWorld<'a, T, F>> fmt::Debug for BorrowRef<'a, T, F, W> {
+impl<T: fmt::Debug, F: ?Sized> fmt::Debug for BorrowRef<'_, T, F> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		(*self.0).fmt(f)
 	}
 }
 
-impl<T: 'static, F: ?Sized, W: MemoWorld<T, F>> SignalBorrow for Memo<T, F, W> {
+impl<T: 'static, F: ?Sized> SignalBorrow for Memo<T, F> {
 	type Ref<'a>
-		= BorrowRef<'a, T, F, W>
+		= BorrowRef<'a, T, F>
 	where
 		Self: 'a;
 
@@ -105,16 +78,16 @@ impl<T: 'static, F: ?Sized, W: MemoWorld<T, F>> SignalBorrow for Memo<T, F, W> {
 
 	fn borrow_raw(&self) -> Self::Ref<'_> {
 		let effect_fn = self.effect.inner_fn();
-		let value = effect_fn.value.read();
+		let value = effect_fn.value.borrow();
 		BorrowRef(value, PhantomData)
 	}
 }
 
-impl<T: 'static, F: ?Sized, W: MemoWorld<T, F>> SignalWithDefaultImpl for Memo<T, F, W> {}
-impl<T: 'static, F: ?Sized, W: MemoWorld<T, F>> SignalGetDefaultImpl for Memo<T, F, W> {}
-impl<T: 'static, F: ?Sized, W: MemoWorld<T, F>> SignalGetClonedDefaultImpl for Memo<T, F, W> {}
+impl<T: 'static, F: ?Sized> SignalWithDefaultImpl for Memo<T, F> {}
+impl<T: 'static, F: ?Sized> SignalGetDefaultImpl for Memo<T, F> {}
+impl<T: 'static, F: ?Sized> SignalGetClonedDefaultImpl for Memo<T, F> {}
 
-impl<T, F: ?Sized, W: MemoWorld<T, F>> Clone for Memo<T, F, W> {
+impl<T, F: ?Sized> Clone for Memo<T, F> {
 	fn clone(&self) -> Self {
 		Self {
 			effect: self.effect.clone(),
@@ -122,47 +95,44 @@ impl<T, F: ?Sized, W: MemoWorld<T, F>> Clone for Memo<T, F, W> {
 	}
 }
 
-impl<T: fmt::Debug, F: ?Sized, W: MemoWorld<T, F>> fmt::Debug for Memo<T, F, W> {
+impl<T: fmt::Debug, F: ?Sized> fmt::Debug for Memo<T, F> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		let effect_fn = self.effect.inner_fn();
 		let mut debug = f.debug_struct("Memo");
-		match effect_fn.value.try_read() {
-			Some(value) => debug.field("value", &*value).finish(),
-			None => debug.finish_non_exhaustive(),
+		match effect_fn.value.try_borrow() {
+			Ok(value) => debug.field("value", &*value).finish(),
+			Err(_) => debug.finish_non_exhaustive(),
 		}
 	}
 }
 
-impl<T, F1, F2, W> CoerceUnsized<Memo<T, F2, W>> for Memo<T, F1, W>
+impl<T, F1, F2> CoerceUnsized<Memo<T, F2>> for Memo<T, F1>
 where
 	F1: ?Sized + Unsize<F2>,
 	F2: ?Sized,
-	W: MemoWorld<T, F1> + MemoWorld<T, F2>,
-	Effect<EffectFn<T, F1, W>, W>: CoerceUnsized<Effect<EffectFn<T, F2, W>, W>>,
 {
 }
 
 /// Effect function
-struct EffectFn<T, F: ?Sized, W: MemoWorld<T, F>> {
+struct EffectFn<T, F: ?Sized> {
 	/// Trigger
-	trigger: Trigger<W>,
+	trigger: Trigger,
 
 	/// Value
-	value: IMut<Option<T>, W>,
+	value: RefCell<Option<T>>,
 
 	/// Function
 	f: F,
 }
 
-impl<T, F, W> EffectRun<W> for EffectFn<T, F, W>
+impl<T, F> EffectRun for EffectFn<T, F>
 where
 	T: PartialEq + 'static,
 	F: Fn() -> T,
-	W: MemoWorld<T, F>,
 {
-	fn run(&self, _ctx: EffectRunCtx<'_, W>) {
+	fn run(&self, _ctx: EffectRunCtx<'_>) {
 		let new_value = (self.f)();
-		let mut value = self.value.write();
+		let mut value = self.value.borrow_mut();
 
 		// Write the new value, if it's different from the previous
 		// Note: Since we're comparing against `Some(_)`, any `None` values

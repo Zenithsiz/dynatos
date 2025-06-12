@@ -1,30 +1,16 @@
 //! Mapped signal
 
-// TODO: Support other worlds
-
 // Lints
 #![expect(type_alias_bounds, reason = "We can't use `T::Residual` without the bound")]
 
 // Imports
 use {
-	crate::{
-		world::ReactiveWorldInner,
-		Effect,
-		EffectRun,
-		ReactiveWorld,
-		Signal,
-		SignalGetCloned,
-		SignalSet,
-		SignalUpdate,
-		SignalWith,
-		Trigger,
-		WeakEffect,
-	},
+	crate::{Effect, EffectRun, Signal, SignalGetCloned, SignalSet, SignalUpdate, SignalWith, Trigger, WeakEffect},
 	core::{
-		cell::OnceCell,
+		cell::{OnceCell, RefCell},
 		ops::{ControlFlow, FromResidual, Residual, Try},
 	},
-	dynatos_world::{IMut, IMutLike, Rc, RcLike, WorldDefault},
+	std::rc::Rc,
 	zutil_cloned::cloned,
 };
 
@@ -76,16 +62,15 @@ where
 /// If you drop this signal, the relationship between
 /// the outer and inner signal will be broken, so keep
 /// this value alive while you use the inner signal
-pub struct TryMappedSignal<T, W = WorldDefault>
+pub struct TryMappedSignal<T>
 where
 	T: Try<Residual: Residual<Signal<T::Output>>>,
-	W: ReactiveWorld,
 {
 	/// Inner
-	inner: Rc<Inner<T>, W>,
+	inner: Rc<Inner<T>>,
 }
 
-impl<T> TryMappedSignal<T, WorldDefault>
+impl<T> TryMappedSignal<T>
 where
 	T: Try<Residual: Residual<Signal<T::Output>>>,
 {
@@ -97,25 +82,8 @@ where
 		TryGet: Fn(<S as SignalWith>::Value<'_>) -> T + 'static,
 		Set: Fn(<S as SignalUpdate>::Value<'_>, &T::Output) + 'static,
 	{
-		Self::new_in(input, try_get, set, WorldDefault::default())
-	}
-}
-
-impl<T, W> TryMappedSignal<T, W>
-where
-	T: Try<Residual: Residual<Signal<T::Output>>>,
-	W: ReactiveWorld,
-{
-	/// Creates a new mapped signal from a fallible getter
-	pub fn new_in<S, TryGet, Set>(input: S, try_get: TryGet, set: Set, _world: W) -> Self
-	where
-		T: 'static,
-		S: SignalWith + SignalUpdate + Clone + 'static,
-		TryGet: Fn(<S as SignalWith>::Value<'_>) -> T + 'static,
-		Set: Fn(<S as SignalUpdate>::Value<'_>, &T::Output) + 'static,
-	{
 		// Output signal
-		let output_sig = Rc::<_, WorldDefault>::new(IMut::<_, WorldDefault>::new(None::<SignalTry<T>>));
+		let output_sig = Rc::new(RefCell::new(None::<SignalTry<T>>));
 
 		// Trigger for gathering dependencies on retrieving the output signal,
 		// but *not* on output signal changes.
@@ -123,9 +91,7 @@ where
 
 		// Weak reference to the `set_effect`, to ensure that we don't end
 		// up with a loop and leak memory
-		let set_weak_effect = Rc::<_, WorldDefault>::new(OnceCell::<
-			WeakEffect<<WorldDefault as ReactiveWorldInner>::F, WorldDefault>,
-		>::new());
+		let set_weak_effect = Rc::new(OnceCell::<WeakEffect<dyn EffectRun>>::new());
 
 		// The getter effect that sets the output signal
 		#[cloned(input, output_sig, trigger, set_weak_effect)]
@@ -133,7 +99,7 @@ where
 			input.with(|input| {
 				let value = try_get(input);
 
-				let mut output = output_sig.write();
+				let mut output = output_sig.borrow_mut();
 				let (new_output, needs_trigger) = match value.branch() {
 					// If the value was ok, check whether we already had a value or not
 					ControlFlow::Continue(value) => match output.take().map(Try::branch) {
@@ -192,7 +158,7 @@ where
 			.set(set_effect.downgrade())
 			.expect("Set effect should be uninitialized");
 
-		let inner = Rc::<_, W>::new(Inner {
+		let inner = Rc::new(Inner {
 			output: output_sig,
 			_get_effect: get_effect,
 			_set_effect: set_effect,
@@ -202,22 +168,21 @@ where
 	}
 }
 
-impl<T, W> Clone for TryMappedSignal<T, W>
+impl<T> Clone for TryMappedSignal<T>
 where
 	T: Try<Residual: Residual<Signal<T::Output>>>,
-	W: ReactiveWorld,
 {
 	fn clone(&self) -> Self {
 		Self {
-			inner: self.inner.clone(),
+			inner: Rc::clone(&self.inner),
 		}
 	}
 }
 
-impl<T, W> SignalGetCloned for TryMappedSignal<T, W>
+impl<T> SignalGetCloned for TryMappedSignal<T>
 where
 	T: Try<Residual: Residual<Signal<T::Output>>>,
-	W: ReactiveWorld,
+
 	SignalTry<T>: Clone,
 {
 	type Value = SignalTry<T>;
@@ -226,7 +191,7 @@ where
 		self.inner.trigger.gather_subscribers();
 		self.inner
 			.output
-			.read()
+			.borrow()
 			.as_ref()
 			.expect("Output signal was missing")
 			.clone()
@@ -235,7 +200,7 @@ where
 	fn get_cloned_raw(&self) -> Self::Value {
 		self.inner
 			.output
-			.read()
+			.borrow()
 			.as_ref()
 			.expect("Output signal was missing")
 			.clone()
@@ -243,7 +208,7 @@ where
 }
 
 /// Output signal type
-type OutputSignal<T> = Rc<IMut<Option<SignalTry<T>>, WorldDefault>, WorldDefault>;
+type OutputSignal<T> = Rc<RefCell<Option<SignalTry<T>>>>;
 
 /// Signal try type
 type SignalTry<T: Try> = <T::Residual as Residual<Signal<T::Output>>>::TryType;
@@ -257,7 +222,7 @@ where
 	T: Try<Residual: Residual<Signal<T::Output>>>,
 	F: FnOnce(&Signal<T::Output>),
 {
-	let mut output = output_sig.write();
+	let mut output = output_sig.borrow_mut();
 
 	// Take the existing type and branch on it
 	let new_output = match output.take().expect("Output signal was missing").branch() {
@@ -274,9 +239,9 @@ where
 /// Mapped signal.
 ///
 /// Maps a signal, infallibly.
-pub struct MappedSignal<T, W: ReactiveWorld = WorldDefault>(TryMappedSignal<Result<T, !>, W>);
+pub struct MappedSignal<T>(TryMappedSignal<Result<T, !>>);
 
-impl<T> MappedSignal<T, WorldDefault> {
+impl<T> MappedSignal<T> {
 	/// Creates a new mapped signal from a fallible getter
 	pub fn new<S, Get, Set>(input: S, get: Get, set: Set) -> Self
 	where
@@ -285,35 +250,21 @@ impl<T> MappedSignal<T, WorldDefault> {
 		Get: Fn(<S as SignalWith>::Value<'_>) -> T + 'static,
 		Set: Fn(<S as SignalUpdate>::Value<'_>, &T) + 'static,
 	{
-		Self::new_in(input, get, set, WorldDefault::default())
-	}
-}
-
-impl<T, W: ReactiveWorld> MappedSignal<T, W> {
-	/// Creates a new mapped signal from a fallible getter
-	pub fn new_in<S, Get, Set>(input: S, get: Get, set: Set, world: W) -> Self
-	where
-		T: 'static,
-		S: SignalWith + SignalUpdate + Clone + 'static,
-		Get: Fn(<S as SignalWith>::Value<'_>) -> T + 'static,
-		Set: Fn(<S as SignalUpdate>::Value<'_>, &T) + 'static,
-	{
-		Self(TryMappedSignal::new_in(
+		Self(TryMappedSignal::new(
 			input,
 			move |value| Ok(get(value)),
 			move |value, new_value| set(value, new_value),
-			world,
 		))
 	}
 }
 
-impl<T, W: ReactiveWorld> Clone for MappedSignal<T, W> {
+impl<T> Clone for MappedSignal<T> {
 	fn clone(&self) -> Self {
 		Self(self.0.clone())
 	}
 }
 
-impl<T, W: ReactiveWorld> SignalGetCloned for MappedSignal<T, W> {
+impl<T> SignalGetCloned for MappedSignal<T> {
 	type Value = Signal<T>;
 
 	fn get_cloned(&self) -> Self::Value {
@@ -326,14 +277,13 @@ impl<T, W: ReactiveWorld> SignalGetCloned for MappedSignal<T, W> {
 }
 
 /// Extension trait to add a map a signal
-// TODO: Add this for other worlds
 #[extend::ext_sized(name = SignalMapped)]
 pub impl<S> S
 where
 	S: SignalWith + SignalUpdate + Clone + 'static,
 {
 	/// Maps this signal fallibly
-	fn try_mapped<T, TryGet, Set>(self, try_get: TryGet, set: Set) -> TryMappedSignal<T, WorldDefault>
+	fn try_mapped<T, TryGet, Set>(self, try_get: TryGet, set: Set) -> TryMappedSignal<T>
 	where
 		T: Try<Residual: Residual<Signal<T::Output>>> + 'static,
 		TryGet: Fn(<S as SignalWith>::Value<'_>) -> T + 'static,
@@ -343,7 +293,7 @@ where
 	}
 
 	/// Maps this signal
-	fn mapped<T, Get, Set>(self, get: Get, set: Set) -> MappedSignal<T, WorldDefault>
+	fn mapped<T, Get, Set>(self, get: Get, set: Set) -> MappedSignal<T>
 	where
 		T: 'static,
 		Get: Fn(<S as SignalWith>::Value<'_>) -> T + 'static,

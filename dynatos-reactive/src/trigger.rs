@@ -5,17 +5,19 @@
 
 // Imports
 use {
-	crate::{effect, world::RunQueue, Effect, ReactiveWorld, WeakEffect},
+	crate::{effect, run_queue, Effect, EffectRun, WeakEffect},
 	core::{
 		borrow::Borrow,
+		cell::RefCell,
 		fmt,
 		hash::{Hash, Hasher},
-		marker::{PhantomData, Unsize},
-		ops::CoerceUnsized,
+		marker::Unsize,
 		ptr,
 	},
-	dynatos_world::{IMut, IMutLike, Rc, RcLike, Weak, WeakLike, WorldDefault},
-	std::collections::{hash_map, HashMap},
+	std::{
+		collections::{hash_map, HashMap},
+		rc::{Rc, Weak},
+	},
 };
 #[cfg(debug_assertions)]
 use {
@@ -25,12 +27,12 @@ use {
 
 /// Subscribers
 #[derive(Debug)]
-pub struct Subscriber<W: ReactiveWorld> {
+pub struct Subscriber {
 	/// Effect
-	effect: WeakEffect<W::F, W>,
+	effect: WeakEffect<dyn EffectRun>,
 }
 
-impl<W: ReactiveWorld> Clone for Subscriber<W> {
+impl Clone for Subscriber {
 	fn clone(&self) -> Self {
 		Self {
 			effect: self.effect.clone(),
@@ -38,22 +40,22 @@ impl<W: ReactiveWorld> Clone for Subscriber<W> {
 	}
 }
 
-impl<W: ReactiveWorld> PartialEq for Subscriber<W> {
+impl PartialEq for Subscriber {
 	fn eq(&self, other: &Self) -> bool {
 		self.effect == other.effect
 	}
 }
 
-impl<W: ReactiveWorld> Eq for Subscriber<W> {}
+impl Eq for Subscriber {}
 
-impl<W: ReactiveWorld> Hash for Subscriber<W> {
+impl Hash for Subscriber {
 	fn hash<H: Hasher>(&self, state: &mut H) {
 		self.effect.hash(state);
 	}
 }
 
-impl<W: ReactiveWorld> Borrow<WeakEffect<W::F, W>> for Subscriber<W> {
-	fn borrow(&self) -> &WeakEffect<W::F, W> {
+impl Borrow<WeakEffect<dyn EffectRun>> for Subscriber {
+	fn borrow(&self) -> &WeakEffect<dyn EffectRun> {
 		&self.effect
 	}
 }
@@ -107,7 +109,7 @@ impl Default for SubscriberInfo {
 }
 
 /// Trigger inner
-struct Inner<W: ReactiveWorld> {
+struct Inner {
 	/// Subscribers
 	#[cfg_attr(
 		not(debug_assertions),
@@ -116,7 +118,7 @@ struct Inner<W: ReactiveWorld> {
 			reason = "It isn't zero-sized with `debug_assertions`"
 		)
 	)]
-	subscribers: IMut<HashMap<Subscriber<W>, SubscriberInfo>, W>,
+	subscribers: RefCell<HashMap<Subscriber, SubscriberInfo>>,
 
 	#[cfg(debug_assertions)]
 	/// Where this trigger was defined
@@ -124,25 +126,16 @@ struct Inner<W: ReactiveWorld> {
 }
 
 /// Trigger
-pub struct Trigger<W: ReactiveWorld = WorldDefault> {
+pub struct Trigger {
 	/// Inner
-	inner: Rc<Inner<W>, W>,
+	inner: Rc<Inner>,
 }
 
-impl Trigger<WorldDefault> {
+impl Trigger {
 	/// Creates a new trigger
 	#[must_use]
 	#[track_caller]
 	pub fn new() -> Self {
-		Self::new_in(WorldDefault::default())
-	}
-}
-
-impl<W: ReactiveWorld> Trigger<W> {
-	/// Creates a new trigger in a world
-	#[must_use]
-	#[track_caller]
-	pub fn new_in(_world: W) -> Self {
 		let inner = Inner {
 			#[cfg_attr(
 				not(debug_assertions),
@@ -151,20 +144,18 @@ impl<W: ReactiveWorld> Trigger<W> {
 					reason = "It isn't zero-sized with `debug_assertions`"
 				)
 			)]
-			subscribers: IMut::<_, W>::new(HashMap::new()),
+			subscribers: RefCell::new(HashMap::new()),
 			#[cfg(debug_assertions)]
 			defined_loc: Location::caller(),
 		};
-		Self {
-			inner: Rc::<_, W>::new(inner),
-		}
+		Self { inner: Rc::new(inner) }
 	}
 
 	/// Downgrades this trigger
 	#[must_use]
-	pub fn downgrade(&self) -> WeakTrigger<W> {
+	pub fn downgrade(&self) -> WeakTrigger {
 		WeakTrigger {
-			inner: Rc::<_, W>::downgrade(&self.inner),
+			inner: Rc::downgrade(&self.inner),
 		}
 	}
 
@@ -178,7 +169,7 @@ impl<W: ReactiveWorld> Trigger<W> {
 	// TODO: Should we remove all existing subscribers before gathering them?
 	#[track_caller]
 	pub fn gather_subscribers(&self) {
-		match effect::running_in::<W>() {
+		match effect::running() {
 			Some(effect) => {
 				effect.add_dependency(self.downgrade());
 				self.add_subscriber(effect);
@@ -204,8 +195,8 @@ impl<W: ReactiveWorld> Trigger<W> {
 	///
 	/// Returns if the subscriber already existed.
 	#[track_caller]
-	fn add_subscriber<S: IntoSubscriber<W>>(&self, subscriber: S) -> bool {
-		let mut subscribers = self.inner.subscribers.write();
+	fn add_subscriber<S: IntoSubscriber>(&self, subscriber: S) -> bool {
+		let mut subscribers = self.inner.subscribers.borrow_mut();
 		match (*subscribers).entry(subscriber.into_subscriber()) {
 			hash_map::Entry::Occupied(mut entry) => {
 				entry.get_mut().update();
@@ -222,14 +213,14 @@ impl<W: ReactiveWorld> Trigger<W> {
 	///
 	/// Returns if the subscriber existed
 	#[track_caller]
-	pub(crate) fn remove_subscriber<S: IntoSubscriber<W>>(&self, subscriber: S) -> bool {
+	pub(crate) fn remove_subscriber<S: IntoSubscriber>(&self, subscriber: S) -> bool {
 		Self::remove_subscriber_inner(&self.inner, subscriber)
 	}
 
 	/// Inner function for [`Self::remove_subscriber`]
 	#[track_caller]
-	fn remove_subscriber_inner<S: IntoSubscriber<W>>(inner: &Inner<W>, subscriber: S) -> bool {
-		let mut subscribers = inner.subscribers.write();
+	fn remove_subscriber_inner<S: IntoSubscriber>(inner: &Inner, subscriber: S) -> bool {
+		let mut subscribers = inner.subscribers.borrow_mut();
 		subscribers.remove(&subscriber.into_subscriber()).is_some()
 	}
 
@@ -239,7 +230,11 @@ impl<W: ReactiveWorld> Trigger<W> {
 	/// executor is dropped, and there are no other executors alive,
 	/// all queues effects are run.
 	#[track_caller]
-	pub fn exec(&self) -> TriggerExec<W> {
+	#[expect(
+		clippy::must_use_candidate,
+		reason = "The user can just immediately drop the value to execute if they don't care"
+	)]
+	pub fn exec(&self) -> TriggerExec {
 		self.exec_inner(
 			#[cfg(debug_assertions)]
 			Location::caller(),
@@ -250,11 +245,11 @@ impl<W: ReactiveWorld> Trigger<W> {
 	pub(crate) fn exec_inner(
 		&self,
 		#[cfg(debug_assertions)] exec_defined_loc: &'static Location<'static>,
-	) -> TriggerExec<W> {
-		let subscribers = self.inner.subscribers.read();
+	) -> TriggerExec {
+		let subscribers = self.inner.subscribers.borrow();
 
 		// Increase the ref count
-		W::RunQueue::inc_ref();
+		run_queue::inc_ref();
 
 		// Then all all of our subscribers
 		// TODO: Should we care about the order? Randomizing it is probably good, since
@@ -272,7 +267,7 @@ impl<W: ReactiveWorld> Trigger<W> {
 			}
 
 			// TODO: Should the run queue use strong effects?
-			W::RunQueue::push(subscriber.clone(), info.clone());
+			run_queue::push(subscriber.clone(), info.clone());
 		}
 
 		TriggerExec {
@@ -280,7 +275,6 @@ impl<W: ReactiveWorld> Trigger<W> {
 			trigger_defined_loc: self.inner.defined_loc,
 			#[cfg(debug_assertions)]
 			exec_defined_loc,
-			_phantom: PhantomData,
 		}
 	}
 
@@ -297,79 +291,79 @@ impl<W: ReactiveWorld> Trigger<W> {
 	}
 }
 
-impl<W: ReactiveWorld + Default> Default for Trigger<W> {
+impl Default for Trigger {
 	fn default() -> Self {
-		Self::new_in(W::default())
+		Self::new()
 	}
 }
 
-impl<W: ReactiveWorld> PartialEq for Trigger<W> {
+impl PartialEq for Trigger {
 	fn eq(&self, other: &Self) -> bool {
-		ptr::eq(Rc::<_, W>::as_ptr(&self.inner), Rc::<_, W>::as_ptr(&other.inner))
+		ptr::eq(Rc::as_ptr(&self.inner), Rc::as_ptr(&other.inner))
 	}
 }
 
-impl<W: ReactiveWorld> Eq for Trigger<W> {}
+impl Eq for Trigger {}
 
 
-impl<W: ReactiveWorld> Clone for Trigger<W> {
+impl Clone for Trigger {
 	fn clone(&self) -> Self {
 		Self {
-			inner: Rc::<_, W>::clone(&self.inner),
+			inner: Rc::clone(&self.inner),
 		}
 	}
 }
 
-impl<W: ReactiveWorld> Hash for Trigger<W> {
+impl Hash for Trigger {
 	fn hash<H: Hasher>(&self, state: &mut H) {
-		Rc::<_, W>::as_ptr(&self.inner).hash(state);
+		Rc::as_ptr(&self.inner).hash(state);
 	}
 }
 
-impl<W: ReactiveWorld> fmt::Debug for Trigger<W> {
+impl fmt::Debug for Trigger {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		self.fmt_debug(f.debug_struct("Trigger"))
 	}
 }
 
 /// Weak trigger
-pub struct WeakTrigger<W: ReactiveWorld> {
+pub struct WeakTrigger {
 	/// Inner
-	inner: Weak<Inner<W>, W>,
+	inner: Weak<Inner>,
 }
 
-impl<W: ReactiveWorld> WeakTrigger<W> {
+impl WeakTrigger {
 	/// Upgrades this weak trigger
 	#[must_use]
-	pub fn upgrade(&self) -> Option<Trigger<W>> {
+	pub fn upgrade(&self) -> Option<Trigger> {
 		let inner = self.inner.upgrade()?;
 		Some(Trigger { inner })
 	}
 }
 
-impl<W: ReactiveWorld> PartialEq for WeakTrigger<W> {
+impl PartialEq for WeakTrigger {
 	fn eq(&self, other: &Self) -> bool {
-		ptr::eq(Weak::<_, W>::as_ptr(&self.inner), Weak::<_, W>::as_ptr(&other.inner))
+		ptr::eq(Weak::as_ptr(&self.inner), Weak::as_ptr(&other.inner))
 	}
 }
 
-impl<W: ReactiveWorld> Eq for WeakTrigger<W> {}
+impl Eq for WeakTrigger {}
 
-impl<W: ReactiveWorld> Clone for WeakTrigger<W> {
+impl Clone for WeakTrigger {
 	fn clone(&self) -> Self {
 		Self {
-			inner: Weak::<_, W>::clone(&self.inner),
+			inner: Weak::clone(&self.inner),
 		}
 	}
 }
 
-impl<W: ReactiveWorld> Hash for WeakTrigger<W> {
+impl Hash for WeakTrigger {
 	fn hash<H: Hasher>(&self, state: &mut H) {
-		Weak::<_, W>::as_ptr(&self.inner).hash(state);
+		Weak::as_ptr(&self.inner).hash(state);
 	}
 }
 
-impl<W: ReactiveWorld> fmt::Debug for WeakTrigger<W> {
+impl fmt::Debug for WeakTrigger {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		let mut s = f.debug_struct("WeakTrigger");
 
@@ -381,13 +375,13 @@ impl<W: ReactiveWorld> fmt::Debug for WeakTrigger<W> {
 }
 
 /// Types that may be converted into a subscriber
-pub trait IntoSubscriber<W: ReactiveWorld> {
+pub trait IntoSubscriber {
 	/// Converts this type into a weak effect.
 	#[track_caller]
-	fn into_subscriber(self) -> Subscriber<W>;
+	fn into_subscriber(self) -> Subscriber;
 }
 
-impl<W: ReactiveWorld> IntoSubscriber<W> for Subscriber<W> {
+impl IntoSubscriber for Subscriber {
 	fn into_subscriber(self) -> Self {
 		self
 	}
@@ -401,19 +395,17 @@ impl<W: ReactiveWorld> IntoSubscriber<W> for Subscriber<W> {
 	[ &'_ Effect ] [ self.downgrade() ];
 	[ WeakEffect ] [ self ];
 )]
-impl<F, W> IntoSubscriber<W> for T<F, W>
+impl<F> IntoSubscriber for T<F>
 where
-	F: ?Sized + Unsize<W::F>,
-	W: ReactiveWorld,
-	WeakEffect<F, W>: CoerceUnsized<WeakEffect<W::F, W>>,
+	F: ?Sized + Unsize<dyn EffectRun>,
 {
-	fn into_subscriber(self) -> Subscriber<W> {
+	fn into_subscriber(self) -> Subscriber {
 		Subscriber { effect: effect_value }
 	}
 }
 
 /// Trigger executor
-pub struct TriggerExec<W: ReactiveWorld> {
+pub struct TriggerExec {
 	/// Trigger defined location
 	#[cfg(debug_assertions)]
 	trigger_defined_loc: &'static Location<'static>,
@@ -421,21 +413,18 @@ pub struct TriggerExec<W: ReactiveWorld> {
 	/// Execution defined location
 	#[cfg(debug_assertions)]
 	exec_defined_loc: &'static Location<'static>,
-
-	/// Phantom
-	_phantom: PhantomData<W>,
 }
 
-impl<W: ReactiveWorld> Drop for TriggerExec<W> {
+impl Drop for TriggerExec {
 	fn drop(&mut self) {
 		// Decrease the reference count, and if we weren't the last, quit
-		let Some(_exec_guard) = W::RunQueue::dec_ref() else {
+		let Some(_exec_guard) = run_queue::dec_ref() else {
 			return;
 		};
 
 		// If we were the last, keep popping effects and running them until
 		// the run queue is empty
-		while let Some((subscriber, info)) = W::RunQueue::pop() {
+		while let Some((subscriber, info)) = run_queue::pop() {
 			let Some(effect) = subscriber.effect.upgrade() else {
 				continue;
 			};

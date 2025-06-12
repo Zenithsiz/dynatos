@@ -194,9 +194,6 @@ dependencies = [
 [[package]]
 name = "dynatos-context"
 version = "0.1.0"
-dependencies = [
- "dynatos-world",
-]
 
 [[package]]
 name = "dynatos-html"
@@ -263,7 +260,6 @@ dependencies = [
  "duplicate",
  "dynatos-context",
  "dynatos-util",
- "dynatos-world",
  "extend",
  "futures",
  "itertools",
@@ -305,14 +301,6 @@ dependencies = [
  "anyhow",
  "duplicate",
  "extend",
-]
-
-[[package]]
-name = "dynatos-world"
-version = "0.1.0"
-dependencies = [
- "derive_more",
- "parking_lot",
 ]
 
 [[package]]

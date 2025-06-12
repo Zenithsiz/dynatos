@@ -8,7 +8,6 @@ use {
 	},
 	dynatos_reactive::{
 		enum_split::{EnumSplitValue, EnumSplitValueUpdateCtx, SignalStorage},
-		ReactiveWorld,
 		Signal,
 		SignalGetClone,
 		SignalGetCopy,
@@ -414,12 +413,11 @@ impl<T, E> Default for SplitValueStorage<T, E> {
 	}
 }
 
-impl<T, E, S, W> EnumSplitValue<S, W> for Loadable<T, E>
+impl<T, E, S> EnumSplitValue<S> for Loadable<T, E>
 where
 	T: Clone + 'static,
 	E: Clone + 'static,
 	S: SignalSet<Self> + Clone + 'static,
-	W: ReactiveWorld,
 {
 	type SigKind = Loadable<(), ()>;
 	type Signal = Loadable<Signal<T>, Signal<E>>;
@@ -439,7 +437,7 @@ where
 		self.as_ref().map(|_| ()).map_err(|_| ())
 	}
 
-	fn update(self, storage: &mut Self::SignalsStorage, ctx: EnumSplitValueUpdateCtx<'_, S, W>) {
+	fn update(self, storage: &mut Self::SignalsStorage, ctx: EnumSplitValueUpdateCtx<'_, S>) {
 		match self {
 			Self::Loaded(new_value) => match &storage.loaded {
 				Some(storage) => storage.set(new_value),

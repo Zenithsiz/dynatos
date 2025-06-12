@@ -6,7 +6,6 @@ use core::panic::Location;
 use {
 	crate::{
 		trigger::TriggerExec,
-		ReactiveWorld,
 		SignalBorrow,
 		SignalBorrowMut,
 		SignalGetClone,
@@ -21,21 +20,18 @@ use {
 		Trigger,
 	},
 	core::{
+		cell::{self, RefCell},
 		fmt,
 		future::Future,
 		ops::{Deref, DerefMut},
 	},
-	dynatos_world::{IMut, IMutLike, IMutRef, IMutRefMut, IMutRefMutLike, Rc, RcLike, WorldDefault},
 	futures::{future, stream::AbortHandle},
+	std::rc::Rc,
 	tokio::sync::Notify,
 };
 
-/// World for [`AsyncSignal`]
-#[expect(private_bounds, reason = "We can't *not* leak some implementation details currently")]
-pub trait AsyncReactiveWorld<F: Loader> = ReactiveWorld where IMut<Inner<F, Self>, Self>: Sized;
-
 /// Inner
-struct Inner<F: Loader, W: AsyncReactiveWorld<F>> {
+struct Inner<F: Loader> {
 	/// Value
 	value: Option<F::Output>,
 
@@ -46,13 +42,13 @@ struct Inner<F: Loader, W: AsyncReactiveWorld<F>> {
 	handle: Option<AbortHandle>,
 
 	/// Trigger
-	trigger: Rc<Trigger<W>, W>,
+	trigger: Rc<Trigger>,
 
 	/// Notify
-	notify: Rc<Notify, W>,
+	notify: Rc<Notify>,
 }
 
-impl<F: Loader, W: AsyncReactiveWorld<F>> Inner<F, W> {
+impl<F: Loader> Inner<F> {
 	/// Stops loading the value.
 	///
 	/// Returns if the loader had a future.
@@ -73,7 +69,7 @@ impl<F: Loader, W: AsyncReactiveWorld<F>> Inner<F, W> {
 	///
 	/// Returns whether this created the loader's future.
 	#[track_caller]
-	pub fn start_loading(&mut self, this: Rc<IMut<Self, W>, W>) -> bool
+	pub fn start_loading(&mut self, this: Rc<RefCell<Self>>) -> bool
 	where
 		F: Loader,
 	{
@@ -92,16 +88,16 @@ impl<F: Loader, W: AsyncReactiveWorld<F>> Inner<F, W> {
 			// Load the value
 			// Note: If we get aborted, just remove the handle
 			let Ok(value) = fut.await else {
-				this.write().handle = None;
+				this.borrow_mut().handle = None;
 				return;
 			};
 
 			// Then write it and remove the handle
-			let mut inner = this.write();
+			let mut inner = this.borrow_mut();
 			inner.value = Some(value);
 			inner.handle = None;
-			let trigger = inner.trigger.clone();
-			let notify = Rc::<_, W>::clone(&inner.notify);
+			let trigger = Rc::clone(&inner.trigger);
+			let notify = Rc::clone(&inner.notify);
 			drop(inner);
 
 			// Finally trigger and awake all waiters.
@@ -124,7 +120,7 @@ impl<F: Loader, W: AsyncReactiveWorld<F>> Inner<F, W> {
 	///
 	/// Returns whether a future existed before
 	#[track_caller]
-	pub fn restart_loading(&mut self, this: Rc<IMut<Self, W>, W>) -> bool
+	pub fn restart_loading(&mut self, this: Rc<RefCell<Self>>) -> bool
 	where
 		F: Loader,
 	{
@@ -145,32 +141,23 @@ impl<F: Loader, W: AsyncReactiveWorld<F>> Inner<F, W> {
 }
 
 /// Async signal
-pub struct AsyncSignal<F: Loader, W: AsyncReactiveWorld<F> = WorldDefault> {
+pub struct AsyncSignal<F: Loader> {
 	/// Inner
-	inner: Rc<IMut<Inner<F, W>, W>, W>,
+	inner: Rc<RefCell<Inner<F>>>,
 }
 
-impl<F: Loader> AsyncSignal<F, WorldDefault> {
+impl<F: Loader> AsyncSignal<F> {
 	/// Creates a new async signal with a loader
 	#[track_caller]
 	#[must_use]
 	pub fn new(loader: F) -> Self {
-		Self::new_in(loader, WorldDefault::default())
-	}
-}
-
-impl<F: Loader, W: AsyncReactiveWorld<F>> AsyncSignal<F, W> {
-	/// Creates a new async signal with a loader in a world
-	#[track_caller]
-	#[must_use]
-	pub fn new_in(loader: F, world: W) -> Self {
 		Self {
-			inner: Rc::<_, W>::new(IMut::<_, W>::new(Inner {
+			inner: Rc::new(RefCell::new(Inner {
 				value: None,
 				loader,
 				handle: None,
-				trigger: Rc::<_, W>::new(Trigger::new_in(world)),
-				notify: Rc::<_, W>::new(Notify::new()),
+				trigger: Rc::new(Trigger::new()),
+				notify: Rc::new(Notify::new()),
 			})),
 		}
 	}
@@ -178,8 +165,12 @@ impl<F: Loader, W: AsyncReactiveWorld<F>> AsyncSignal<F, W> {
 	/// Stops loading the value.
 	///
 	/// Returns if the loader had a future.
+	#[expect(
+		clippy::must_use_candidate,
+		reason = "The user may not care whether the future existed"
+	)]
 	pub fn stop_loading(&self) -> bool {
-		self.inner.write().stop_loading()
+		self.inner.borrow_mut().stop_loading()
 	}
 
 	/// Starts loading the value.
@@ -188,11 +179,15 @@ impl<F: Loader, W: AsyncReactiveWorld<F>> AsyncSignal<F, W> {
 	///
 	/// Returns whether this created the loader's future.
 	#[track_caller]
+	#[expect(
+		clippy::must_use_candidate,
+		reason = "The user may not care whether we started the future"
+	)]
 	pub fn start_loading(&self) -> bool
 	where
 		F: Loader,
 	{
-		self.inner.write().start_loading(Rc::<_, W>::clone(&self.inner))
+		self.inner.borrow_mut().start_loading(Rc::clone(&self.inner))
 	}
 
 	/// Restarts the loading.
@@ -202,11 +197,15 @@ impl<F: Loader, W: AsyncReactiveWorld<F>> AsyncSignal<F, W> {
 	///
 	/// Returns whether a future existed before
 	#[track_caller]
+	#[expect(
+		clippy::must_use_candidate,
+		reason = "The user may not care whether the future existed"
+	)]
 	pub fn restart_loading(&self) -> bool
 	where
 		F: Loader,
 	{
-		self.inner.write().restart_loading(Rc::<_, W>::clone(&self.inner))
+		self.inner.borrow_mut().restart_loading(Rc::clone(&self.inner))
 	}
 
 	/// Returns if loading.
@@ -214,14 +213,14 @@ impl<F: Loader, W: AsyncReactiveWorld<F>> AsyncSignal<F, W> {
 	/// This is considered loading if the loader has an active future.
 	#[must_use]
 	pub fn is_loading(&self) -> bool {
-		self.inner.read().is_loading()
+		self.inner.borrow().is_loading()
 	}
 
 	/// Waits for the value to be loaded.
 	///
 	/// If not loading, waits until the loading starts, but does not start it.
-	pub async fn wait(&self) -> BorrowRef<'_, F, W> {
-		let inner = self.inner.read();
+	pub async fn wait(&self) -> BorrowRef<'_, F> {
+		let inner = self.inner.borrow();
 		self.wait_inner(inner).await
 	}
 
@@ -233,17 +232,23 @@ impl<F: Loader, W: AsyncReactiveWorld<F>> AsyncSignal<F, W> {
 	///
 	/// If this future is dropped before completion, the loading
 	/// will be cancelled.
-	pub async fn load(&self) -> BorrowRef<'_, F, W> {
+	pub async fn load(&self) -> BorrowRef<'_, F> {
+		#![expect(
+			clippy::await_holding_refcell_ref,
+			reason = "False positive, we drop it when awaiting"
+		)]
+
 		// If the value is loaded, return it
-		let mut inner = self.inner.write();
+		let mut inner = self.inner.borrow_mut();
 		if inner.value.is_some() {
-			return BorrowRef(IMutRefMut::<_, W>::downgrade(inner));
+			drop(inner);
+			return BorrowRef(self.inner.borrow());
 		}
 
 		// Else start loading, and setup a defer to stop loading if we get cancelled.
 		// Note: Stopping loading is a no-op if `wait` successfully returns, we only
 		//       care if we're dropped early.
-		let created_loader = inner.start_loading(Rc::<_, W>::clone(&self.inner));
+		let created_loader = inner.start_loading(Rc::clone(&self.inner));
 		scopeguard::defer! {
 			if created_loader {
 				self.stop_loading();
@@ -251,13 +256,19 @@ impl<F: Loader, W: AsyncReactiveWorld<F>> AsyncSignal<F, W> {
 		}
 
 		// Then wait for the value
-		self.wait_inner(IMutRefMut::<_, W>::downgrade(inner)).await
+		drop(inner);
+		self.wait_inner(self.inner.borrow()).await
 	}
 
-	async fn wait_inner<'a>(&'a self, mut inner: IMutRef<'a, Inner<F, W>, W>) -> BorrowRef<'a, F, W> {
+	async fn wait_inner<'a>(&'a self, mut inner: cell::Ref<'a, Inner<F>>) -> BorrowRef<'a, F> {
+		#![expect(
+			clippy::await_holding_refcell_ref,
+			reason = "False positive, we drop it when awaiting"
+		)]
+
 		loop {
 			// Register a handle to be notified
-			let notify = Rc::<_, W>::clone(&inner.notify);
+			let notify = Rc::clone(&inner.notify);
 			let notified = notify.notified();
 			drop(inner);
 
@@ -266,7 +277,7 @@ impl<F: Loader, W: AsyncReactiveWorld<F>> AsyncSignal<F, W> {
 
 			// Finally return the value
 			// Note: If in the meantime the value got overwritten, we wait again
-			inner = self.inner.read();
+			inner = self.inner.borrow();
 			if inner.value.is_some() {
 				break BorrowRef(inner);
 			}
@@ -298,8 +309,8 @@ impl<F: Loader, W: AsyncReactiveWorld<F>> AsyncSignal<F, W> {
 	/// Borrows the value, without loading it
 	#[must_use]
 	#[track_caller]
-	pub fn borrow_unloaded(&self) -> Option<BorrowRef<'_, F, W>> {
-		let inner = self.inner.read();
+	pub fn borrow_unloaded(&self) -> Option<BorrowRef<'_, F>> {
+		let inner = self.inner.borrow();
 		inner.trigger.gather_subscribers();
 		inner.value.is_some().then(|| BorrowRef(inner))
 	}
@@ -307,21 +318,21 @@ impl<F: Loader, W: AsyncReactiveWorld<F>> AsyncSignal<F, W> {
 	/// Borrows the value, without loading it or gathering subscribers
 	#[must_use]
 	#[track_caller]
-	pub fn borrow_unloaded_raw(&self) -> Option<BorrowRef<'_, F, W>> {
-		let inner = self.inner.read();
+	pub fn borrow_unloaded_raw(&self) -> Option<BorrowRef<'_, F>> {
+		let inner = self.inner.borrow();
 		inner.value.is_some().then(|| BorrowRef(inner))
 	}
 }
 
-impl<F: Loader, W: AsyncReactiveWorld<F>> Clone for AsyncSignal<F, W> {
+impl<F: Loader> Clone for AsyncSignal<F> {
 	fn clone(&self) -> Self {
 		Self {
-			inner: Rc::<_, W>::clone(&self.inner),
+			inner: Rc::clone(&self.inner),
 		}
 	}
 }
 
-impl<F: Loader, W: AsyncReactiveWorld<F>> fmt::Debug for AsyncSignal<F, W>
+impl<F: Loader> fmt::Debug for AsyncSignal<F>
 where
 	F::Output: fmt::Debug,
 {
@@ -332,9 +343,9 @@ where
 }
 
 /// Reference type for [`SignalBorrow`] impl
-pub struct BorrowRef<'a, F: Loader, W: AsyncReactiveWorld<F> = WorldDefault>(IMutRef<'a, Inner<F, W>, W>);
+pub struct BorrowRef<'a, F: Loader>(cell::Ref<'a, Inner<F>>);
 
-impl<F: Loader, W: AsyncReactiveWorld<F>> fmt::Debug for BorrowRef<'_, F, W>
+impl<F: Loader> fmt::Debug for BorrowRef<'_, F>
 where
 	F::Output: fmt::Debug,
 {
@@ -343,7 +354,7 @@ where
 	}
 }
 
-impl<F: Loader, W: AsyncReactiveWorld<F>> Deref for BorrowRef<'_, F, W> {
+impl<F: Loader> Deref for BorrowRef<'_, F> {
 	type Target = F::Output;
 
 	fn deref(&self) -> &Self::Target {
@@ -351,7 +362,7 @@ impl<F: Loader, W: AsyncReactiveWorld<F>> Deref for BorrowRef<'_, F, W> {
 	}
 }
 
-impl<F: Loader<Output: Copy>, W: AsyncReactiveWorld<F>> SignalGetCopy for Option<BorrowRef<'_, F, W>> {
+impl<F: Loader<Output: Copy>> SignalGetCopy for Option<BorrowRef<'_, F>> {
 	type Value = Option<F::Output>;
 
 	fn copy_value(self) -> Self::Value {
@@ -359,7 +370,7 @@ impl<F: Loader<Output: Copy>, W: AsyncReactiveWorld<F>> SignalGetCopy for Option
 	}
 }
 
-impl<F: Loader<Output: Clone>, W: AsyncReactiveWorld<F>> SignalGetClone for Option<BorrowRef<'_, F, W>> {
+impl<F: Loader<Output: Clone>> SignalGetClone for Option<BorrowRef<'_, F>> {
 	type Value = Option<F::Output>;
 
 	fn clone_value(self) -> Self::Value {
@@ -367,39 +378,39 @@ impl<F: Loader<Output: Clone>, W: AsyncReactiveWorld<F>> SignalGetClone for Opti
 	}
 }
 
-impl<F: Loader, W: AsyncReactiveWorld<F>> SignalBorrow for AsyncSignal<F, W> {
+impl<F: Loader> SignalBorrow for AsyncSignal<F> {
 	type Ref<'a>
-		= Option<BorrowRef<'a, F, W>>
+		= Option<BorrowRef<'a, F>>
 	where
 		Self: 'a;
 
 	fn borrow(&self) -> Self::Ref<'_> {
 		// Start loading on borrow
-		let mut inner = self.inner.write();
-		inner.start_loading(Rc::<_, W>::clone(&self.inner));
+		let mut inner = self.inner.borrow_mut();
+		inner.start_loading(Rc::clone(&self.inner));
 
 		// Then get the value
 		inner.trigger.gather_subscribers();
-		inner
-			.value
-			.is_some()
-			.then(|| BorrowRef(IMutRefMut::<_, W>::downgrade(inner)))
+		inner.value.is_some().then(|| {
+			drop(inner);
+			BorrowRef(self.inner.borrow())
+		})
 	}
 
 	fn borrow_raw(&self) -> Self::Ref<'_> {
 		// Start loading on borrow
-		let mut inner = self.inner.write();
-		inner.start_loading(Rc::<_, W>::clone(&self.inner));
+		let mut inner = self.inner.borrow_mut();
+		inner.start_loading(Rc::clone(&self.inner));
 
 		// Then get the value
-		inner
-			.value
-			.is_some()
-			.then(|| BorrowRef(IMutRefMut::<_, W>::downgrade(inner)))
+		inner.value.is_some().then(|| {
+			drop(inner);
+			BorrowRef(self.inner.borrow())
+		})
 	}
 }
 
-impl<F: Loader, W: AsyncReactiveWorld<F>> SignalWith for AsyncSignal<F, W>
+impl<F: Loader> SignalWith for AsyncSignal<F>
 where
 	F::Output: 'static,
 {
@@ -423,16 +434,16 @@ where
 }
 
 /// Reference type for [`SignalBorrowMut`] impl
-pub struct BorrowRefMut<'a, F: Loader, W: AsyncReactiveWorld<F> = WorldDefault> {
+pub struct BorrowRefMut<'a, F: Loader> {
 	/// Value
-	value: IMutRefMut<'a, Inner<F, W>, W>,
+	value: cell::RefMut<'a, Inner<F>>,
 
 	/// Trigger on drop
 	// Note: Must be dropped *after* `value`.
-	_trigger_on_drop: Option<TriggerExec<W>>,
+	_trigger_on_drop: Option<TriggerExec>,
 }
 
-impl<F: Loader, W: AsyncReactiveWorld<F>> fmt::Debug for BorrowRefMut<'_, F, W>
+impl<F: Loader> fmt::Debug for BorrowRefMut<'_, F>
 where
 	F::Output: fmt::Debug,
 {
@@ -441,7 +452,7 @@ where
 	}
 }
 
-impl<F: Loader, W: AsyncReactiveWorld<F>> Deref for BorrowRefMut<'_, F, W> {
+impl<F: Loader> Deref for BorrowRefMut<'_, F> {
 	type Target = F::Output;
 
 	fn deref(&self) -> &Self::Target {
@@ -449,15 +460,15 @@ impl<F: Loader, W: AsyncReactiveWorld<F>> Deref for BorrowRefMut<'_, F, W> {
 	}
 }
 
-impl<F: Loader, W: AsyncReactiveWorld<F>> DerefMut for BorrowRefMut<'_, F, W> {
+impl<F: Loader> DerefMut for BorrowRefMut<'_, F> {
 	fn deref_mut(&mut self) -> &mut Self::Target {
 		self.value.value.as_mut().expect("Borrow was `None`")
 	}
 }
 
-impl<F: Loader, W: AsyncReactiveWorld<F>> SignalBorrowMut for AsyncSignal<F, W> {
+impl<F: Loader> SignalBorrowMut for AsyncSignal<F> {
 	type RefMut<'a>
-		= Option<BorrowRefMut<'a, F, W>>
+		= Option<BorrowRefMut<'a, F>>
 	where
 		Self: 'a;
 
@@ -465,7 +476,7 @@ impl<F: Loader, W: AsyncReactiveWorld<F>> SignalBorrowMut for AsyncSignal<F, W> 
 		// Note: We don't load when mutably borrowing, since that's probably
 		//       not what the user wants
 		// TODO: Should we even stop loading if the value was set in the meantime?
-		let inner = self.inner.write();
+		let inner = self.inner.borrow_mut();
 
 		// Then get the value
 		match inner.value.is_some() {
@@ -481,7 +492,7 @@ impl<F: Loader, W: AsyncReactiveWorld<F>> SignalBorrowMut for AsyncSignal<F, W> 
 		// Note: We don't load when mutably borrowing, since that's probably
 		//       not what the user wants
 		// TODO: Should we even stop loading if the value was set in the meantime?
-		let inner = self.inner.write();
+		let inner = self.inner.borrow_mut();
 
 		// Then get the value
 		inner.value.is_some().then(|| BorrowRefMut {
@@ -491,7 +502,7 @@ impl<F: Loader, W: AsyncReactiveWorld<F>> SignalBorrowMut for AsyncSignal<F, W> 
 	}
 }
 
-impl<F: Loader, W: AsyncReactiveWorld<F>> SignalUpdate for AsyncSignal<F, W>
+impl<F: Loader> SignalUpdate for AsyncSignal<F>
 where
 	F::Output: 'static,
 {
@@ -514,14 +525,14 @@ where
 	}
 }
 
-impl<F: Loader, W: AsyncReactiveWorld<F>> SignalSetDefaultImpl for AsyncSignal<F, W> {}
-impl<F: Loader, W: AsyncReactiveWorld<F>> SignalGetDefaultImpl for AsyncSignal<F, W> {}
-impl<F: Loader, W: AsyncReactiveWorld<F>> SignalGetClonedDefaultImpl for AsyncSignal<F, W> {}
+impl<F: Loader> SignalSetDefaultImpl for AsyncSignal<F> {}
+impl<F: Loader> SignalGetDefaultImpl for AsyncSignal<F> {}
+impl<F: Loader> SignalGetClonedDefaultImpl for AsyncSignal<F> {}
 
 // Note: We want to return an `Option<&T>` instead of `&Option<T>`,
 //       so we can't use the default impl
-impl<F: Loader, W: AsyncReactiveWorld<F>> !SignalWithDefaultImpl for AsyncSignal<F, W> {}
-impl<F: Loader, W: AsyncReactiveWorld<F>> !SignalUpdateDefaultImpl for AsyncSignal<F, W> {}
+impl<F: Loader> !SignalWithDefaultImpl for AsyncSignal<F> {}
+impl<F: Loader> !SignalUpdateDefaultImpl for AsyncSignal<F> {}
 
 /// Loader
 pub trait Loader: 'static {

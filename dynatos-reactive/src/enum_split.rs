@@ -18,7 +18,6 @@ use {
 		Effect,
 		EffectRun,
 		EffectRunCtx,
-		ReactiveWorld,
 		Signal,
 		SignalBorrow,
 		SignalGetCloned,
@@ -28,49 +27,27 @@ use {
 		SignalWithDefaultImpl,
 		Trigger,
 	},
-	core::{fmt, marker::Unsize},
-	dynatos_world::{IMut, IMutLike, WorldDefault},
+	core::{cell::RefCell, fmt},
 };
 
-/// World for [`EnumSplitSignal`]
-#[expect(private_bounds, reason = "We can't *not* leak some implementation details currently")]
-pub trait EnumSplitWorld<S, T: EnumSplitValue<S, Self>> =
-	ReactiveWorld where IMut<EffectFnInner<S, T, Self>, Self>: Sized;
-
 /// Enum split signal
-pub struct EnumSplitSignal<S, T: EnumSplitValue<S, W>, W: EnumSplitWorld<S, T> = WorldDefault> {
+pub struct EnumSplitSignal<S, T: EnumSplitValue<S>> {
 	/// Effect
-	effect: Effect<EffectFn<S, T, W>, W>,
+	effect: Effect<EffectFn<S, T>>,
 }
 
-impl<S, T: EnumSplitValue<S, WorldDefault>> EnumSplitSignal<S, T, WorldDefault> {
+impl<S, T: EnumSplitValue<S>> EnumSplitSignal<S, T> {
 	/// Creates a new enum split signal
 	pub fn new(signal: S) -> Self
 	where
 		T: 'static,
 		S: SignalGetCloned<Value = T> + SignalSet<T> + Clone + 'static,
 	{
-		Self::new_in(signal, WorldDefault::default())
-	}
-}
-
-impl<S, T: EnumSplitValue<S, W>, W: EnumSplitWorld<S, T>> EnumSplitSignal<S, T, W> {
-	/// Creates a new enum split signal in a world
-	#[expect(private_bounds, reason = "We can't *not* leak some implementation details currently")]
-	pub fn new_in(signal: S, world: W) -> Self
-	where
-		T: 'static,
-		S: SignalGetCloned<Value = T> + SignalSet<T> + Clone + 'static,
-		EffectFn<S, T, W>: Unsize<W::F>,
-	{
-		let effect = Effect::new_in(
-			EffectFn {
-				inner: IMut::<_, W>::new(EffectFnInner::default()),
-				trigger: Trigger::new(),
-				signal,
-			},
-			world,
-		);
+		let effect = Effect::new(EffectFn {
+			inner: RefCell::new(EffectFnInner::default()),
+			trigger: Trigger::new(),
+			signal,
+		});
 
 		Self { effect }
 	}
@@ -78,7 +55,8 @@ impl<S, T: EnumSplitValue<S, W>, W: EnumSplitWorld<S, T>> EnumSplitSignal<S, T, 
 	/// Converts this signal into an effect.
 	// TODO: This only serves to keep effects alive in html nodes,
 	//       can we simply do that some other way?
-	pub fn into_effect(self) -> Effect<impl EffectRun<W>, W>
+	#[must_use]
+	pub fn into_effect(self) -> Effect<impl EffectRun>
 	where
 		S: SignalGetCloned<Value = T> + SignalSet<T> + Clone + 'static,
 	{
@@ -86,7 +64,7 @@ impl<S, T: EnumSplitValue<S, W>, W: EnumSplitWorld<S, T>> EnumSplitSignal<S, T, 
 	}
 }
 
-impl<S, T: EnumSplitValue<S, W>, W: EnumSplitWorld<S, T>> Clone for EnumSplitSignal<S, T, W> {
+impl<S, T: EnumSplitValue<S>> Clone for EnumSplitSignal<S, T> {
 	fn clone(&self) -> Self {
 		Self {
 			effect: self.effect.clone(),
@@ -94,28 +72,27 @@ impl<S, T: EnumSplitValue<S, W>, W: EnumSplitWorld<S, T>> Clone for EnumSplitSig
 	}
 }
 
-impl<S, T, W> fmt::Debug for EnumSplitSignal<S, T, W>
+impl<S, T> fmt::Debug for EnumSplitSignal<S, T>
 where
-	T: EnumSplitValue<S, W>,
+	T: EnumSplitValue<S>,
 	T::SignalsStorage: fmt::Debug,
 	T::SigKind: fmt::Debug,
-	W: EnumSplitWorld<S, T>,
 {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		let mut s = f.debug_struct("EnumSplitSignal");
 		s.field("effect", &self.effect);
 
-		match self.effect.inner_fn().inner.try_read() {
-			Some(inner) => s
+		match self.effect.inner_fn().inner.try_borrow() {
+			Ok(inner) => s
 				.field("signals", &inner.signals)
 				.field("cur_kind", &inner.cur_kind)
 				.finish(),
-			None => s.finish_non_exhaustive(),
+			Err(_) => s.finish_non_exhaustive(),
 		}
 	}
 }
 
-impl<S, T: EnumSplitValue<S, W>, W: EnumSplitWorld<S, T>> SignalBorrow for EnumSplitSignal<S, T, W> {
+impl<S, T: EnumSplitValue<S>> SignalBorrow for EnumSplitSignal<S, T> {
 	type Ref<'a>
 		= T::Signal
 	where
@@ -129,14 +106,14 @@ impl<S, T: EnumSplitValue<S, W>, W: EnumSplitWorld<S, T>> SignalBorrow for EnumS
 	fn borrow_raw(&self) -> Self::Ref<'_> {
 		let effect_fn = self.effect.inner_fn();
 
-		let inner = effect_fn.inner.read();
+		let inner = effect_fn.inner.borrow();
 
 		let cur = inner.cur_kind.as_ref().expect("Should have a current signal");
 		T::get_signal(&inner.signals, cur).expect("Signal for current signal was missing")
 	}
 }
 
-impl<S, T: EnumSplitValue<S, W>, W: EnumSplitWorld<S, T>> SignalGetCloned for EnumSplitSignal<S, T, W> {
+impl<S, T: EnumSplitValue<S>> SignalGetCloned for EnumSplitSignal<S, T> {
 	type Value = T::Signal;
 
 	fn get_cloned(&self) -> Self::Value {
@@ -148,15 +125,15 @@ impl<S, T: EnumSplitValue<S, W>, W: EnumSplitWorld<S, T>> SignalGetCloned for En
 	}
 }
 
-impl<S, T: EnumSplitValue<S, W>, W: EnumSplitWorld<S, T>> SignalWithDefaultImpl for EnumSplitSignal<S, T, W> {}
+impl<S, T: EnumSplitValue<S>> SignalWithDefaultImpl for EnumSplitSignal<S, T> {}
 
 // Note: Since our `Borrow` impl doesn't return a reference, we implement
 //       `GetCloned` manually, so we don't want the default impl
-impl<S, T: EnumSplitValue<S, W>, W: EnumSplitWorld<S, T>> !SignalGetDefaultImpl for EnumSplitSignal<S, T, W> {}
-impl<S, T: EnumSplitValue<S, W>, W: EnumSplitWorld<S, T>> !SignalGetClonedDefaultImpl for EnumSplitSignal<S, T, W> {}
+impl<S, T: EnumSplitValue<S>> !SignalGetDefaultImpl for EnumSplitSignal<S, T> {}
+impl<S, T: EnumSplitValue<S>> !SignalGetClonedDefaultImpl for EnumSplitSignal<S, T> {}
 
 /// Effect fn inner
-struct EffectFnInner<S, T: EnumSplitValue<S, W>, W: ReactiveWorld> {
+struct EffectFnInner<S, T: EnumSplitValue<S>> {
 	/// Signals
 	signals: T::SignalsStorage,
 
@@ -164,7 +141,7 @@ struct EffectFnInner<S, T: EnumSplitValue<S, W>, W: ReactiveWorld> {
 	cur_kind: Option<T::SigKind>,
 }
 
-impl<S, T: EnumSplitValue<S, W>, W: ReactiveWorld> Default for EffectFnInner<S, T, W> {
+impl<S, T: EnumSplitValue<S>> Default for EffectFnInner<S, T> {
 	fn default() -> Self {
 		Self {
 			signals:  T::SignalsStorage::default(),
@@ -174,9 +151,9 @@ impl<S, T: EnumSplitValue<S, W>, W: ReactiveWorld> Default for EffectFnInner<S, 
 }
 
 /// Inner effect function
-struct EffectFn<S, T: EnumSplitValue<S, W>, W: EnumSplitWorld<S, T>> {
+struct EffectFn<S, T: EnumSplitValue<S>> {
 	/// Inner
-	inner: IMut<EffectFnInner<S, T, W>, W>,
+	inner: RefCell<EffectFnInner<S, T>>,
 
 	/// Trigger
 	trigger: Trigger,
@@ -185,18 +162,17 @@ struct EffectFn<S, T: EnumSplitValue<S, W>, W: EnumSplitWorld<S, T>> {
 	signal: S,
 }
 
-impl<S, T, W> EffectRun<W> for EffectFn<S, T, W>
+impl<S, T> EffectRun for EffectFn<S, T>
 where
-	T: EnumSplitValue<S, W>,
+	T: EnumSplitValue<S>,
 	S: SignalGetCloned<Value = T> + SignalSet<T> + Clone + 'static,
-	W: EnumSplitWorld<S, T>,
 {
-	fn run(&self, _run_ctx: EffectRunCtx<'_, W>) {
+	fn run(&self, _run_ctx: EffectRunCtx<'_>) {
 		// Get the new value
 		let new_value = self.signal.get_cloned();
 
 		// Then update the current signal
-		let mut inner = self.inner.write();
+		let mut inner = self.inner.borrow_mut();
 		let prev_kind = inner.cur_kind.replace(new_value.kind());
 		let update_ctx = EnumSplitValueUpdateCtx::new(self.signal.clone());
 		new_value.update(&mut inner.signals, update_ctx);
@@ -209,7 +185,7 @@ where
 }
 
 /// Enum split value
-pub trait EnumSplitValue<S, W: ReactiveWorld = WorldDefault> {
+pub trait EnumSplitValue<S> {
 	/// Signals storage
 	type SignalsStorage: Default;
 
@@ -226,14 +202,13 @@ pub trait EnumSplitValue<S, W: ReactiveWorld = WorldDefault> {
 	fn kind(&self) -> Self::SigKind;
 
 	/// Updates a signal with this value
-	fn update(self, storage: &mut Self::SignalsStorage, ctx: EnumSplitValueUpdateCtx<'_, S, W>);
+	fn update(self, storage: &mut Self::SignalsStorage, ctx: EnumSplitValueUpdateCtx<'_, S>);
 }
 
-impl<S, T, W> EnumSplitValue<S, W> for Option<T>
+impl<S, T> EnumSplitValue<S> for Option<T>
 where
 	T: Clone + 'static,
 	S: SignalSet<Self> + Clone + 'static,
-	W: ReactiveWorld,
 {
 	type SigKind = Option<()>;
 	type Signal = Option<Signal<T>>;
@@ -252,7 +227,7 @@ where
 		self.as_ref().map(|_| ())
 	}
 
-	fn update(self, storage: &mut Self::SignalsStorage, ctx: EnumSplitValueUpdateCtx<'_, S, W>) {
+	fn update(self, storage: &mut Self::SignalsStorage, ctx: EnumSplitValueUpdateCtx<'_, S>) {
 		let Some(new_value) = self else { return };
 
 		match storage {
@@ -263,7 +238,6 @@ where
 }
 
 /// Extension trait to create an enum split signal
-// TODO: Add this for other worlds
 #[extend::ext_sized(name = SignalEnumSplit)]
 pub impl<S> S {
 	/// Splits this signal into sub-signals

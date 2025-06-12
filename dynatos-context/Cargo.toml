@@ -5,7 +5,5 @@ edition = "2021"
 
 [dependencies]
 
-dynatos-world = { workspace = true }
-
 [lints]
 workspace = true

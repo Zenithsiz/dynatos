@@ -3,7 +3,7 @@
 // Imports
 use {
 	super::{EnumSplitValue, EnumSplitValueUpdateCtx, SignalStorage},
-	crate::{ReactiveWorld, Signal, SignalSet},
+	crate::{Signal, SignalSet},
 };
 
 macro gen_either($Either:ident, $All:ident, $($t:ident: $T:ident),* $(,)?) {
@@ -17,11 +17,11 @@ macro gen_either($Either:ident, $All:ident, $($t:ident: $T:ident),* $(,)?) {
 		$( $t: $T, )*
 	}
 
-	impl<$( $T, )* S, W> EnumSplitValue<S, W> for $Either<$( $T, )*>
+	impl<$( $T, )* S> EnumSplitValue<S> for $Either<$( $T, )*>
 	where
 		$( $T: Clone + 'static, )*
 		S: SignalSet<Self> + Clone + 'static,
-		W: ReactiveWorld,
+
 	{
 		type SigKind = $Either< $( () ${ignore($T)}, )* >;
 		type Signal = $Either< $( Signal<$T>, )* >;
@@ -47,7 +47,7 @@ macro gen_either($Either:ident, $All:ident, $($t:ident: $T:ident),* $(,)?) {
 			}
 		}
 
-		fn update(self, storage: &mut Self::SignalsStorage, ctx: EnumSplitValueUpdateCtx<'_, S, W>) {
+		fn update(self, storage: &mut Self::SignalsStorage, ctx: EnumSplitValueUpdateCtx<'_, S>) {
 			match self {
 				$(
 					Self::$T(new_value) => match &storage.$t {

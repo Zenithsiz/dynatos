@@ -7,7 +7,6 @@ edition = "2021"
 
 dynatos-context = { workspace = true }
 dynatos-util    = { workspace = true }
-dynatos-world   = { workspace = true }
 
 derive_more          = { workspace = true, features = ["full"] }
 duplicate            = { workspace = true }

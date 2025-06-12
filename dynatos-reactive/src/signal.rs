@@ -28,75 +28,58 @@ pub use ops::{
 
 // Imports
 use {
-	crate::{trigger::TriggerExec, ReactiveWorld, Trigger},
+	crate::{trigger::TriggerExec, Trigger},
 	core::{
+		cell::{self, RefCell},
 		fmt,
 		marker::Unsize,
 		mem,
 		ops::{CoerceUnsized, Deref, DerefMut},
 	},
-	dynatos_world::{IMut, IMutLike, IMutRef, IMutRefMut, Rc, RcLike, WorldDefault},
+	std::rc::Rc,
 };
 
 /// Inner
-struct Inner<T: ?Sized, W: ReactiveWorld> {
+struct Inner<T: ?Sized> {
 	/// Trigger
-	trigger: Trigger<W>,
+	trigger: Trigger,
 
 	/// Value
-	value: IMut<T, W>,
+	value: RefCell<T>,
 }
 
 /// Signal
-pub struct Signal<T: ?Sized, W: ReactiveWorld = WorldDefault> {
+pub struct Signal<T: ?Sized> {
 	/// Inner
-	inner: Rc<Inner<T, W>, W>,
+	inner: Rc<Inner<T>>,
 }
 
-impl<T> Signal<T, WorldDefault> {
-	/// Creates a new signal
+impl<T> Signal<T> {
+	/// Creates a new signal.
 	#[track_caller]
-	pub fn new(value: T) -> Self
-	where
-		IMut<T, WorldDefault>: Sized,
-	{
-		Self::new_in(value, WorldDefault::default())
-	}
-}
-
-impl<T, W: ReactiveWorld> Signal<T, W> {
-	/// Creates a new signal in a world.
-	#[track_caller]
-	pub fn new_in(value: T, world: W) -> Self
-	where
-		IMut<T, W>: Sized,
-	{
+	pub fn new(value: T) -> Self {
 		let inner = Inner {
-			value:   IMut::<_, W>::new(value),
-			trigger: Trigger::new_in(world),
+			value:   RefCell::new(value),
+			trigger: Trigger::new(),
 		};
-		Self {
-			inner: Rc::<_, W>::new(inner),
-		}
+		Self { inner: Rc::new(inner) }
 	}
 }
 
 // TODO: Add `Signal::<dyn Any>::downcast` once we add `{T, U}: ?Sized` to the `CoerceUnsized` impl of `Inner`.
 //       Use `Rc::downcast::<Inner<T>>(self.inner as Rc<dyn Any>)`
 
-impl<T, U, W> CoerceUnsized<Signal<U, W>> for Signal<T, W>
+impl<T, U> CoerceUnsized<Signal<U>> for Signal<T>
 where
 	T: ?Sized + Unsize<U>,
 	U: ?Sized,
-	W: ReactiveWorld,
-	Rc<Inner<T, W>, W>: CoerceUnsized<Rc<Inner<U, W>, W>>,
 {
 }
 
 /// Reference type for [`SignalBorrow`] impl
-pub struct BorrowRef<'a, T: ?Sized + 'a, W: ReactiveWorld = WorldDefault>(IMutRef<'a, T, W>);
+pub struct BorrowRef<'a, T: ?Sized + 'a>(cell::Ref<'a, T>);
 
-impl<T: ?Sized, W: ReactiveWorld> Deref for BorrowRef<'_, T, W> {
+impl<T: ?Sized> Deref for BorrowRef<'_, T> {
 	type Target = T;
 
 	fn deref(&self) -> &Self::Target {
@@ -104,15 +87,15 @@ impl<T: ?Sized, W: ReactiveWorld> Deref for BorrowRef<'_, T, W> {
 	}
 }
 
-impl<T: fmt::Debug, W: ReactiveWorld> fmt::Debug for BorrowRef<'_, T, W> {
+impl<T: fmt::Debug> fmt::Debug for BorrowRef<'_, T> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		f.debug_tuple("BorrowRef").field(&*self.0).finish()
 	}
 }
 
-impl<T: ?Sized + 'static, W: ReactiveWorld> SignalBorrow for Signal<T, W> {
+impl<T: ?Sized + 'static> SignalBorrow for Signal<T> {
 	type Ref<'a>
-		= BorrowRef<'a, T, W>
+		= BorrowRef<'a, T>
 	where
 		Self: 'a;
 
@@ -123,12 +106,12 @@ impl<T: ?Sized + 'static, W: ReactiveWorld> SignalBorrow for Signal<T, W> {
 	}
 
 	fn borrow_raw(&self) -> Self::Ref<'_> {
-		let value = self.inner.value.read();
+		let value = self.inner.value.borrow();
 		BorrowRef(value)
 	}
 }
 
-impl<T: 'static, W: ReactiveWorld> SignalReplace<T> for Signal<T, W> {
+impl<T: 'static> SignalReplace<T> for Signal<T> {
 	type Value = T;
 
 	fn replace(&self, new_value: T) -> Self::Value {
@@ -141,16 +124,16 @@ impl<T: 'static, W: ReactiveWorld> SignalReplace<T> for Signal<T, W> {
 }
 
 /// Reference type for [`SignalBorrowMut`] impl
-pub struct BorrowRefMut<'a, T: ?Sized + 'a, W: ReactiveWorld = WorldDefault> {
+pub struct BorrowRefMut<'a, T: ?Sized + 'a> {
 	/// Value
-	value: IMutRefMut<'a, T, W>,
+	value: cell::RefMut<'a, T>,
 
 	/// Trigger executor
 	// Note: Must be dropped *after* `value`.
-	_trigger_exec: Option<TriggerExec<W>>,
+	_trigger_exec: Option<TriggerExec>,
 }
 
-impl<T: ?Sized, W: ReactiveWorld> Deref for BorrowRefMut<'_, T, W> {
+impl<T: ?Sized> Deref for BorrowRefMut<'_, T> {
 	type Target = T;
 
 	fn deref(&self) -> &Self::Target {
@@ -158,26 +141,26 @@ impl<T: ?Sized, W: ReactiveWorld> Deref for BorrowRefMut<'_, T, W> {
 	}
 }
 
-impl<T: ?Sized, W: ReactiveWorld> DerefMut for BorrowRefMut<'_, T, W> {
+impl<T: ?Sized> DerefMut for BorrowRefMut<'_, T> {
 	fn deref_mut(&mut self) -> &mut Self::Target {
 		&mut self.value
 	}
 }
 
-impl<T: fmt::Debug, W: ReactiveWorld> fmt::Debug for BorrowRefMut<'_, T, W> {
+impl<T: fmt::Debug> fmt::Debug for BorrowRefMut<'_, T> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		f.debug_tuple("BorrowRefMut").field(&*self.value).finish()
 	}
 }
 
-impl<T: ?Sized + 'static, W: ReactiveWorld> SignalBorrowMut for Signal<T, W> {
+impl<T: ?Sized + 'static> SignalBorrowMut for Signal<T> {
 	type RefMut<'a>
-		= BorrowRefMut<'a, T, W>
+		= BorrowRefMut<'a, T>
 	where
 		Self: 'a;
 
 	fn borrow_mut(&self) -> Self::RefMut<'_> {
-		let value = self.inner.value.write();
+		let value = self.inner.value.borrow_mut();
 		BorrowRefMut {
 			value,
 			_trigger_exec: Some(self.inner.trigger.exec()),
@@ -185,7 +168,7 @@ impl<T: ?Sized + 'static, W: ReactiveWorld> SignalBorrowMut for Signal<T, W> {
 	}
 
 	fn borrow_mut_raw(&self) -> Self::RefMut<'_> {
-		let value = self.inner.value.write();
+		let value = self.inner.value.borrow_mut();
 		BorrowRefMut {
 			value,
 			_trigger_exec: None,
@@ -194,24 +177,24 @@ impl<T: ?Sized + 'static, W: ReactiveWorld> SignalBorrowMut for Signal<T, W> {
 }
 
 
-impl<T: ?Sized, W: ReactiveWorld> SignalSetDefaultImpl for Signal<T, W> {}
-impl<T: ?Sized, W: ReactiveWorld> SignalGetDefaultImpl for Signal<T, W> {}
-impl<T: ?Sized, W: ReactiveWorld> SignalGetClonedDefaultImpl for Signal<T, W> {}
-impl<T: ?Sized, W: ReactiveWorld> SignalWithDefaultImpl for Signal<T, W> {}
-impl<T: ?Sized, W: ReactiveWorld> SignalUpdateDefaultImpl for Signal<T, W> {}
+impl<T: ?Sized> SignalSetDefaultImpl for Signal<T> {}
+impl<T: ?Sized> SignalGetDefaultImpl for Signal<T> {}
+impl<T: ?Sized> SignalGetClonedDefaultImpl for Signal<T> {}
+impl<T: ?Sized> SignalWithDefaultImpl for Signal<T> {}
+impl<T: ?Sized> SignalUpdateDefaultImpl for Signal<T> {}
 
-impl<T: ?Sized, W: ReactiveWorld> Clone for Signal<T, W> {
+impl<T: ?Sized> Clone for Signal<T> {
 	fn clone(&self) -> Self {
 		Self {
-			inner: Rc::<_, W>::clone(&self.inner),
+			inner: Rc::clone(&self.inner),
 		}
 	}
 }
 
-impl<T: ?Sized + fmt::Debug, W: ReactiveWorld> fmt::Debug for Signal<T, W> {
+impl<T: ?Sized + fmt::Debug> fmt::Debug for Signal<T> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		f.debug_struct("Signal")
-			.field("value", &&*self.inner.value.read())
+			.field("value", &&*self.inner.value.borrow())
 			.field("trigger", &self.inner.trigger)
 			.finish()
 	}

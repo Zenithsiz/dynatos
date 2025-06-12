@@ -38,13 +38,14 @@
 pub mod async_signal;
 pub mod derived;
 pub mod effect;
+pub mod effect_stack;
 pub mod enum_split;
 pub mod mapped_signal;
 pub mod memo;
+pub mod run_queue;
 pub mod signal;
 pub mod trigger;
 pub mod with_default;
-pub mod world;
 
 // Exports
 pub use self::{
@@ -75,5 +76,4 @@ pub use self::{
 	},
 	trigger::{IntoSubscriber, Subscriber, Trigger, WeakTrigger},
 	with_default::{SignalWithDefault, WithDefault},
-	world::ReactiveWorld,
 };

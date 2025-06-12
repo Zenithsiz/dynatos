@@ -37,7 +37,6 @@ use {
 		Effect,
 		EffectRun,
 		EffectRunCtx,
-		ReactiveWorld,
 		SignalBorrow,
 		SignalGetClonedDefaultImpl,
 		SignalGetDefaultImpl,
@@ -45,25 +44,22 @@ use {
 		Trigger,
 	},
 	core::{
+		cell::{self, RefCell},
 		fmt,
 		marker::{PhantomData, Unsize},
 		ops::{CoerceUnsized, Deref},
 	},
-	dynatos_world::{IMut, IMutLike, IMutRef, WorldDefault},
 };
-
-/// World for [`Derived`]
-pub trait DerivedWorld<T, F: ?Sized> = ReactiveWorld where IMut<Option<T>, Self>: Sized;
 
 /// Derived signal.
 ///
 /// See the module documentation for more information.
-pub struct Derived<T, F: ?Sized, W: DerivedWorld<T, F> = WorldDefault> {
+pub struct Derived<T, F: ?Sized> {
 	/// Effect
-	effect: Effect<EffectFn<T, F, W>, W>,
+	effect: Effect<EffectFn<T, F>>,
 }
 
-impl<T, F> Derived<T, F, WorldDefault> {
+impl<T, F> Derived<T, F> {
 	/// Creates a new derived signal
 	#[track_caller]
 	pub fn new(f: F) -> Self
@@ -71,41 +67,21 @@ impl<T, F> Derived<T, F, WorldDefault> {
 		T: 'static,
 		F: Fn() -> T + 'static,
 	{
-		Self::new_in(f, WorldDefault::default())
-	}
-}
-
-impl<T, F, W: DerivedWorld<T, F>> Derived<T, F, W> {
-	/// Creates a new derived signal in a world
-	#[track_caller]
-	#[expect(private_bounds, reason = "We can't *not* leak some implementation details currently")]
-	pub fn new_in(f: F, world: W) -> Self
-	where
-		T: 'static,
-		F: Fn() -> T + 'static,
-		EffectFn<T, F, W>: Unsize<W::F>,
-	{
-		let value = IMut::<_, W>::new(None);
-		let effect = Effect::new_in(
-			EffectFn {
-				trigger: Trigger::new_in(world.clone()),
-				value,
-				f,
-			},
-			world,
-		);
+		let value = RefCell::new(None);
+		let effect = Effect::new(EffectFn {
+			trigger: Trigger::new(),
+			value,
+			f,
+		});
 
 		Self { effect }
 	}
 }
 
 /// Reference type for [`SignalBorrow`] impl
-pub struct BorrowRef<'a, T: 'a, F: ?Sized, W: DerivedWorld<T, F> = WorldDefault>(
-	IMutRef<'a, Option<T>, W>,
-	PhantomData<fn(F)>,
-);
+pub struct BorrowRef<'a, T: 'a, F: ?Sized>(cell::Ref<'a, Option<T>>, PhantomData<fn(F)>);
 
-impl<T, F: ?Sized, W: DerivedWorld<T, F>> Deref for BorrowRef<'_, T, F, W> {
+impl<T, F: ?Sized> Deref for BorrowRef<'_, T, F> {
 	type Target = T;
 
 	fn deref(&self) -> &Self::Target {
@@ -113,15 +89,15 @@ impl<T, F: ?Sized, W: DerivedWorld<T, F>> Deref for BorrowRef<'_, T, F, W> {
 	}
 }
 
-impl<T: fmt::Debug, F: ?Sized, W: DerivedWorld<T, F>> fmt::Debug for BorrowRef<'_, T, F, W> {
+impl<T: fmt::Debug, F: ?Sized> fmt::Debug for BorrowRef<'_, T, F> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		(*self.0).fmt(f)
 	}
 }
 
-impl<T: 'static, F: ?Sized, W: DerivedWorld<T, F>> SignalBorrow for Derived<T, F, W> {
+impl<T: 'static, F: ?Sized> SignalBorrow for Derived<T, F> {
 	type Ref<'a>
-		= BorrowRef<'a, T, F, W>
+		= BorrowRef<'a, T, F>
 	where
 		Self: 'a;
 
@@ -133,16 +109,16 @@ impl<T: 'static, F: ?Sized, W: DerivedWorld<T, F>> SignalBorrow for Derived<T, F
 
 	fn borrow_raw(&self) -> Self::Ref<'_> {
 		let effect_fn = self.effect.inner_fn();
-		let value = effect_fn.value.read();
+		let value = effect_fn.value.borrow();
 		BorrowRef(value, PhantomData)
 	}
 }
 
-impl<T: 'static, F: ?Sized, W: DerivedWorld<T, F>> SignalWithDefaultImpl for Derived<T, F, W> {}
-impl<T: 'static, F: ?Sized, W: DerivedWorld<T, F>> SignalGetDefaultImpl for Derived<T, F, W> {}
-impl<T: 'static, F: ?Sized, W: DerivedWorld<T, F>> SignalGetClonedDefaultImpl for Derived<T, F, W> {}
+impl<T: 'static, F: ?Sized> SignalWithDefaultImpl for Derived<T, F> {}
+impl<T: 'static, F: ?Sized> SignalGetDefaultImpl for Derived<T, F> {}
+impl<T: 'static, F: ?Sized> SignalGetClonedDefaultImpl for Derived<T, F> {}
 
-impl<T, F: ?Sized, W: DerivedWorld<T, F>> Clone for Derived<T, F, W> {
+impl<T, F: ?Sized> Clone for Derived<T, F> {
 	fn clone(&self) -> Self {
 		Self {
 			effect: self.effect.clone(),
@@ -150,49 +126,46 @@ impl<T, F: ?Sized, W: DerivedWorld<T, F>> Clone for Derived<T, F, W> {
 	}
 }
 
-impl<T: fmt::Debug, F: ?Sized, W: DerivedWorld<T, F>> fmt::Debug for Derived<T, F, W> {
+impl<T: fmt::Debug, F: ?Sized> fmt::Debug for Derived<T, F> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		let effect_fn = self.effect.inner_fn();
 		let mut debug = f.debug_struct("Derived");
 		debug.field("effect", &self.effect);
 		debug.field("trigger", &effect_fn.trigger);
 
-		match effect_fn.value.try_read() {
-			Some(value) => debug.field("value", &*value).finish(),
-			None => debug.finish_non_exhaustive(),
+		match effect_fn.value.try_borrow() {
+			Ok(value) => debug.field("value", &*value).finish(),
+			Err(_) => debug.finish_non_exhaustive(),
 		}
 	}
 }
 
-impl<T, F1, F2, W> CoerceUnsized<Derived<T, F2, W>> for Derived<T, F1, W>
+impl<T, F1, F2> CoerceUnsized<Derived<T, F2>> for Derived<T, F1>
 where
 	F1: ?Sized + Unsize<F2>,
 	F2: ?Sized,
-	W: DerivedWorld<T, F1> + DerivedWorld<T, F2>,
-	Effect<EffectFn<T, F1, W>, W>: CoerceUnsized<Effect<EffectFn<T, F2, W>, W>>,
 {
 }
 
 /// Effect function
-struct EffectFn<T, F: ?Sized, W: DerivedWorld<T, F>> {
+struct EffectFn<T, F: ?Sized> {
 	/// Trigger
-	trigger: Trigger<W>,
+	trigger: Trigger,
 
 	/// Value
-	value: IMut<Option<T>, W>,
+	value: RefCell<Option<T>>,
 
 	/// Function
 	f: F,
 }
 
-impl<T, F, W> EffectRun<W> for EffectFn<T, F, W>
+impl<T, F> EffectRun for EffectFn<T, F>
 where
 	T: 'static,
 	F: Fn() -> T,
-	W: DerivedWorld<T, F>,
 {
-	fn run(&self, _ctx: EffectRunCtx<'_, W>) {
-		*self.value.write() = Some((self.f)());
+	fn run(&self, _ctx: EffectRunCtx<'_>) {
+		*self.value.borrow_mut() = Some((self.f)());
 		self.trigger.exec();
 	}
 }
