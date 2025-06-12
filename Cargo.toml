@@ -5,7 +5,6 @@ members = [
 	"dynatos-builder",
 	"dynatos-builder-macros",
 	"dynatos-context",
-	"dynatos-egui",
 	"dynatos-html",
 	"dynatos-html-macros",
 	"dynatos-html-parser",
@@ -26,7 +25,6 @@ dynatos                = { path = "dynatos" }
 dynatos-builder        = { path = "dynatos-builder" }
 dynatos-builder-macros = { path = "dynatos-builder-macros" }
 dynatos-context        = { path = "dynatos-context" }
-dynatos-egui           = { path = "dynatos-egui" }
 dynatos-html           = { path = "dynatos-html" }
 dynatos-html-macros    = { path = "dynatos-html-macros" }
 dynatos-html-parser    = { path = "dynatos-html-parser" }
@@ -46,7 +44,6 @@ convert_case         = "0.8.0"
 derive_more          = "2.0.1"
 derive_utils         = "0.15.0"
 duplicate            = "2.0.0"
-egui                 = "0.31.0"
 extend               = "1.2.0"
 futures              = "0.3.31"
 itertools            = "0.14.0"

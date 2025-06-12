@@ -3,7 +3,6 @@
 		"asyncness",
 		"Dynatos",
 		"eframe",
-		"egui",
 		"imut",
 		"itertools",
 		"loadables",
@@ -15,5 +14,8 @@
 		"unsize",
 		"zutil"
 	],
-	"rust-analyzer.linkedProjects": ["Cargo.toml", "examples/Cargo.toml", "examples-egui/Cargo.toml"]
+	"rust-analyzer.linkedProjects": [
+		"Cargo.toml",
+		"examples/Cargo.toml"
+	]
 }
