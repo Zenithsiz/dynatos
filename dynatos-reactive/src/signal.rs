@@ -201,7 +201,7 @@ impl<T: ?Sized + fmt::Debug> fmt::Debug for Signal<T> {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
 	// Imports
 	extern crate test;
 	use {super::*, crate::Effect, core::array, test::Bencher, zutil_cloned::cloned};

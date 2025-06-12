@@ -305,7 +305,7 @@ where
 
 
 #[cfg(test)]
-mod test {
+mod tests {
 	use {
 		super::*,
 		crate::SignalGet,

@@ -415,7 +415,7 @@ where
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
 	// Imports
 	extern crate test;
 	use {

@@ -202,7 +202,7 @@ fn on_missing_context<T, O>() -> O {
 }
 
 #[cfg(test)]
-mod test {
+mod tests {
 	// Imports
 	extern crate test;
 	use test::Bencher;
