@@ -30,10 +30,20 @@ use {
 	zutil_cloned::cloned,
 };
 
-/// Query signal
+/// Query signal.
+///
+/// # Bind
+/// When creating a query signal, it will be bound to the current
+/// url's path, and if the path changes, the query signal won't attempt
+/// to update the value.
 pub struct QuerySignal<T: QueryParse + 'static> {
 	/// Query
 	query: Rc<T>,
+
+	/// Bound url path for this query.
+	// TODO: Should this be optional so the user can opt out of
+	//       binding a unique path against the query signal?
+	location_path: Rc<str>,
 
 	/// Inner value
 	inner: Signal<Option<T::Value>>,
@@ -53,15 +63,26 @@ impl<T: QueryParse> QuerySignal<T> {
 	{
 		let query = Rc::new(query);
 
+		// Note: This access must be raw to ensure that the query signal itself doesn't
+		//       change whenever the location changes, and only it's value does.
+		let location = dynatos_context::expect_cloned::<Location>();
+		let location_path = Rc::<str>::from(location.borrow_raw().path());
+
 		let inner = Signal::new(None);
-		#[cloned(query, inner)]
+		#[cloned(query, location_path, inner)]
 		let update = Effect::new(move || {
+			// If the location changes, don't update.
+			if *location.borrow().path() != *location_path {
+				return;
+			}
+
 			let value = query.parse();
 			inner.set(value);
 		});
 
 		Self {
 			query,
+			location_path,
 			inner,
 			update_effect: update,
 		}
@@ -80,6 +101,7 @@ impl<T: QueryParse> Clone for QuerySignal<T> {
 	fn clone(&self) -> Self {
 		Self {
 			query:         Rc::clone(&self.query),
+			location_path: Rc::clone(&self.location_path),
 			inner:         self.inner.clone(),
 			update_effect: self.update_effect.clone(),
 		}
@@ -94,6 +116,7 @@ where
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		f.debug_struct("QuerySignal")
 			.field("query", &self.query)
+			.field("location_path", &self.location_path)
 			.field("inner", &self.inner)
 			.field("update_effect", &self.update_effect)
 			.finish()
