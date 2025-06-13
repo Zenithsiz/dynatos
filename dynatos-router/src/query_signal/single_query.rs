@@ -2,7 +2,7 @@
 
 // Imports
 use {
-	super::{QueriesFn, QueryParse, QueryWrite},
+	super::{QueriesFn, QueryIntoValue, QueryParse, QueryWrite},
 	crate::Location,
 	core::{error::Error as StdError, marker::PhantomData, str::FromStr},
 	dynatos_loadable::Loadable,
@@ -65,6 +65,21 @@ impl<T: FromStr> QueryParse for SingleQuery<T> {
 		};
 
 		value.parse::<T>().into()
+	}
+}
+
+impl<T: FromStr> QueryIntoValue<T> for SingleQuery<T> {
+	fn into_query_value(value: T) -> Self::Value {
+		Loadable::Loaded(value)
+	}
+}
+
+impl<T: FromStr> QueryIntoValue<Result<T, T::Err>> for SingleQuery<T> {
+	fn into_query_value(value: Result<T, T::Err>) -> Self::Value {
+		match value {
+			Ok(value) => Loadable::Loaded(value),
+			Err(err) => Loadable::Err(err),
+		}
 	}
 }
 

@@ -2,7 +2,7 @@
 
 // Imports
 use {
-	super::{QueriesFn, QueryParse, QueryWrite},
+	super::{QueriesFn, QueryIntoValue, QueryParse, QueryWrite},
 	crate::Location,
 	core::{error::Error as StdError, fmt, marker::PhantomData, str::FromStr},
 	dynatos_reactive::{Memo, SignalBorrow, SignalBorrowMut},
@@ -66,6 +66,12 @@ impl<T: FromStr> QueryParse for MultiQuery<T> {
 				}),
 			})
 			.collect()
+	}
+}
+
+impl<T: FromStr> QueryIntoValue<Vec<T>> for MultiQuery<T> {
+	fn into_query_value(value: Vec<T>) -> Self::Value {
+		Ok(value)
 	}
 }
 

@@ -172,16 +172,15 @@ where
 
 impl<T, U> SignalSet<U> for QuerySignal<T>
 where
-	T: QueryParse + QueryWriteValue + 'static,
+	T: QueryParse + QueryIntoValue<U> + QueryWriteValue + 'static,
 	T::Value: 'static,
-	U: Into<T::Value>,
 {
 	fn set(&self, new_value: U) {
-		*self.borrow_mut() = new_value.into();
+		*self.borrow_mut() = T::into_query_value(new_value);
 	}
 
 	fn set_raw(&self, new_value: U) {
-		*self.borrow_mut_raw() = new_value.into();
+		*self.borrow_mut_raw() = T::into_query_value(new_value);
 	}
 }
 
@@ -311,6 +310,19 @@ pub trait QueryParse {
 
 	/// Parses the value from the query
 	fn parse(&self) -> Self::Value;
+}
+
+
+/// Query into value
+pub trait QueryIntoValue<T>: QueryParse {
+	/// Converts this type into the value type of a query
+	fn into_query_value(value: T) -> Self::Value;
+}
+
+impl<Q: QueryParse> QueryIntoValue<Q::Value> for Q {
+	fn into_query_value(value: Q::Value) -> Self::Value {
+		value
+	}
 }
 
 /// Query write
