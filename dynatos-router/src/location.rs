@@ -98,7 +98,7 @@ impl Drop for BorrowRefMut<'_> {
 
 		// Push the new location into history
 		match history.push_state_with_url(&JsValue::UNDEFINED, "", Some(self.0.location.as_str())) {
-			Ok(()) => tracing::info!("Pushed history: {:?}", self.0.location.as_str()),
+			Ok(()) => tracing::debug!("Pushed history: {:?}", self.0.location.as_str()),
 			Err(err) => tracing::error!("Unable to push history {:?}: {err:?}", self.0.location.as_str()),
 		}
 	}
