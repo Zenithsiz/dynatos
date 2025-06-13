@@ -34,6 +34,7 @@
 // Imports
 use {
 	crate::{
+		effect,
 		Effect,
 		EffectRun,
 		EffectRunCtx,
@@ -49,6 +50,7 @@ use {
 		marker::{PhantomData, Unsize},
 		ops::{CoerceUnsized, Deref},
 	},
+	std::rc::Rc,
 };
 
 /// Derived signal.
@@ -65,7 +67,7 @@ impl<T, F> Derived<T, F> {
 	pub fn new(f: F) -> Self
 	where
 		T: 'static,
-		F: Fn() -> T + 'static,
+		F: DerivedRun<T> + 'static,
 	{
 		let value = RefCell::new(None);
 		let effect = Effect::new(EffectFn {
@@ -75,6 +77,25 @@ impl<T, F> Derived<T, F> {
 		});
 
 		Self { effect }
+	}
+}
+
+impl<T, F: ?Sized> Derived<T, F> {
+	/// Unsizes this value into a `Derived<dyn DerivedRun<T>>`.
+	// Note: This is necessary for unsizing from `!Sized` to `dyn DerivedRun`,
+	//       since those coercions only work for `Sized` types.
+	// TODO: Once we can unsize from `?Sized` to `dyn DerivedRun`,
+	//       remove this.
+	#[must_use]
+	pub fn unsize(self) -> Derived<T, dyn DerivedRun<T>>
+	where
+		F: DerivedRun<T>,
+	{
+		Derived {
+			effect: Effect {
+				inner: self.effect.inner.unsize_inner_derived(),
+			},
+		}
 	}
 }
 
@@ -148,7 +169,8 @@ where
 }
 
 /// Effect function
-struct EffectFn<T, F: ?Sized> {
+#[doc(hidden)]
+pub struct EffectFn<T, F: ?Sized> {
 	/// Trigger
 	trigger: Trigger,
 
@@ -159,16 +181,77 @@ struct EffectFn<T, F: ?Sized> {
 	f: F,
 }
 
+// Note: This is necessary to use `EffectFn` as a receiver
+//       for unsizing in `DerivedRun`.
+impl<T, F: ?Sized> Deref for EffectFn<T, F> {
+	type Target = F;
+
+	fn deref(&self) -> &Self::Target {
+		&self.f
+	}
+}
+
 impl<T, F> EffectRun for EffectFn<T, F>
+where
+	T: 'static,
+	F: ?Sized + DerivedRun<T> + 'static,
+{
+	fn run(&self, _ctx: EffectRunCtx<'_>) {
+		*self.value.borrow_mut() = Some(self.f.run());
+		self.trigger.exec();
+	}
+
+	fn unsize_inner(self: Rc<effect::Inner<Self>>) -> Rc<effect::Inner<dyn EffectRun>> {
+		DerivedRun::unsize_inner_effect(self)
+	}
+}
+
+/// Derived run
+///
+/// # Implementation
+/// To implement this trait, you must implement the [`run`](DerivedRun::run) function,
+/// and then use the macro [`derived_run_impl_inner`] to implement some details.
+pub trait DerivedRun<T> {
+	/// Runs the derived function, yielding a value
+	fn run(&self) -> T;
+
+
+	// Implementation details.
+
+
+	/// Unsizes the inner field of the effect to a `dyn EffectRun`
+	#[doc(hidden)]
+	fn unsize_inner_effect(self: Rc<effect::Inner<EffectFn<T, Self>>>) -> Rc<effect::Inner<dyn EffectRun>>;
+
+	/// Unsizes the inner field of the effect to an effect fn to a `dyn DerivedRun`.
+	#[doc(hidden)]
+	fn unsize_inner_derived(
+		self: Rc<effect::Inner<EffectFn<T, Self>>>,
+	) -> Rc<effect::Inner<EffectFn<T, dyn DerivedRun<T>>>>;
+}
+
+/// Implementation detail for the [`EffectRun`] trait
+pub macro derived_run_impl_inner($T:ty) {
+	fn unsize_inner_effect(self: Rc<effect::Inner<EffectFn<$T, Self>>>) -> Rc<effect::Inner<dyn EffectRun>> {
+		self
+	}
+
+	fn unsize_inner_derived(
+		self: Rc<effect::Inner<EffectFn<$T, Self>>>,
+	) -> Rc<effect::Inner<EffectFn<$T, dyn DerivedRun<$T>>>> {
+		self
+	}
+}
+
+impl<T, F> DerivedRun<T> for F
 where
 	T: 'static,
 	F: Fn() -> T + 'static,
 {
-	crate::effect_run_impl_inner! {}
+	derived_run_impl_inner! { T }
 
-	fn run(&self, _ctx: EffectRunCtx<'_>) {
-		*self.value.borrow_mut() = Some((self.f)());
-		self.trigger.exec();
+	fn run(&self) -> T {
+		self()
 	}
 }
 
@@ -179,9 +262,12 @@ mod tests {
 	#[test]
 	fn unsize() {
 		let f1 = Derived::new(|| 1_usize);
-		let f2: Derived<usize, dyn Fn() -> usize> = f1.clone();
+		let f2: Derived<usize, dyn DerivedRun<usize>> = f1.clone();
+		let f3: Derived<usize, dyn Fn() -> usize> = f1.clone();
 
 		assert_eq!(&f1.effect, &f2.effect);
+		assert_eq!(&f1.effect, &f3.effect);
 		assert_eq!(*f2.borrow(), 1);
+		assert_eq!(*f3.borrow(), 1);
 	}
 }

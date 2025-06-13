@@ -56,7 +56,7 @@ impl<F: ?Sized> Deref for Inner<F> {
 /// Effect
 pub struct Effect<F: ?Sized = dyn EffectRun> {
 	/// Inner
-	inner: Rc<Inner<F>>,
+	pub(crate) inner: Rc<Inner<F>>,
 }
 
 impl<F> Effect<F> {
