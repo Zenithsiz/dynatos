@@ -7,11 +7,13 @@
 //       which doesn't allow casting to `Rc<dyn Any>`, required by `Rc::downcast`.
 
 // Modules
+mod deps_gatherer;
 mod run;
 mod weak;
 
 // Exports
 pub use self::{
+	deps_gatherer::EffectDepsGatherer,
 	run::{effect_run_impl_inner, EffectRun, EffectRunCtx},
 	weak::WeakEffect,
 };
@@ -25,7 +27,7 @@ use {
 		cell::RefCell,
 		fmt,
 		hash::{Hash, Hasher},
-		marker::{PhantomData, Unsize},
+		marker::Unsize,
 		ops::{CoerceUnsized, Deref},
 		ptr,
 		sync::atomic::{self, AtomicBool},
@@ -165,11 +167,7 @@ impl<F: ?Sized> Effect<F> {
 	where
 		F: EffectRun + 'static,
 	{
-		// Push the effect
-		effect_stack::push(self.clone().unsize());
-
-		// Then return the gatherer, which will pop the effect from the stack on drop
-		EffectDepsGatherer(PhantomData)
+		EffectDepsGatherer::new(self)
 	}
 
 	/// Gathers dependencies for this effect.
@@ -320,19 +318,6 @@ where
 {
 }
 
-
-/// Effect dependency gatherer.
-///
-/// While this type is alive, any signals used will
-/// be added as a dependency.
-pub struct EffectDepsGatherer<'a>(PhantomData<&'a ()>);
-
-impl Drop for EffectDepsGatherer<'_> {
-	fn drop(&mut self) {
-		// Pop our effect from the stack
-		effect_stack::pop();
-	}
-}
 
 /// Returns the current running effect
 #[must_use]
