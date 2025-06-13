@@ -36,7 +36,7 @@ pub struct EnumSplitSignal<S, T: EnumSplitValue<S>> {
 	effect: Effect<EffectFn<S, T>>,
 }
 
-impl<S, T: EnumSplitValue<S>> EnumSplitSignal<S, T> {
+impl<S, T: EnumSplitValue<S> + 'static> EnumSplitSignal<S, T> {
 	/// Creates a new enum split signal
 	pub fn new(signal: S) -> Self
 	where
@@ -164,9 +164,11 @@ struct EffectFn<S, T: EnumSplitValue<S>> {
 
 impl<S, T> EffectRun for EffectFn<S, T>
 where
-	T: EnumSplitValue<S>,
+	T: EnumSplitValue<S> + 'static,
 	S: SignalGetCloned<Value = T> + SignalSet<T> + Clone + 'static,
 {
+	crate::effect_run_impl_inner! {}
+
 	fn run(&self, _run_ctx: EffectRunCtx<'_>) {
 		// Get the new value
 		let new_value = self.signal.get_cloned();

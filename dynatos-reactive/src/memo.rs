@@ -128,8 +128,10 @@ struct EffectFn<T, F: ?Sized> {
 impl<T, F> EffectRun for EffectFn<T, F>
 where
 	T: PartialEq + 'static,
-	F: Fn() -> T,
+	F: Fn() -> T + 'static,
 {
+	crate::effect_run_impl_inner! {}
+
 	fn run(&self, _ctx: EffectRunCtx<'_>) {
 		let new_value = (self.f)();
 		let mut value = self.value.borrow_mut();

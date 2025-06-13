@@ -16,7 +16,7 @@ use {
 		fmt,
 		hash::{Hash, Hasher},
 		marker::{PhantomData, Unsize},
-		ops::CoerceUnsized,
+		ops::{CoerceUnsized, Deref},
 		ptr,
 		sync::atomic::{self, AtomicBool},
 	},
@@ -27,7 +27,8 @@ use {
 };
 
 /// Effect inner
-pub(crate) struct Inner<F: ?Sized> {
+#[doc(hidden)]
+pub struct Inner<F: ?Sized> {
 	/// Whether this effect is currently suppressed
 	suppressed: AtomicBool,
 
@@ -40,6 +41,16 @@ pub(crate) struct Inner<F: ?Sized> {
 
 	/// Effect runner
 	run: F,
+}
+
+// Note: This is necessary to use `Inner` as a receiver
+//       for unsizing in `EffectRun`.
+impl<F: ?Sized> Deref for Inner<F> {
+	type Target = F;
+
+	fn deref(&self) -> &Self::Target {
+		&self.run
+	}
 }
 
 /// Effect
@@ -145,10 +156,10 @@ impl<F: ?Sized> Effect<F> {
 	#[must_use]
 	pub fn deps_gatherer(&self) -> EffectDepsGatherer
 	where
-		F: Unsize<dyn EffectRun> + 'static,
+		F: EffectRun + 'static,
 	{
 		// Push the effect
-		effect_stack::push(self.clone());
+		effect_stack::push(self.clone().unsize());
 
 		// Then return the gatherer, which will pop the effect from the stack on drop
 		EffectDepsGatherer(PhantomData)
@@ -159,7 +170,7 @@ impl<F: ?Sized> Effect<F> {
 	/// All signals used within `gather` will have this effect as a dependency.
 	pub fn gather_dependencies<G, O>(&self, gather: G) -> O
 	where
-		F: Unsize<dyn EffectRun> + 'static,
+		F: EffectRun + 'static,
 		G: FnOnce() -> O,
 	{
 		let _gatherer = self.deps_gatherer();
@@ -172,7 +183,7 @@ impl<F: ?Sized> Effect<F> {
 	#[track_caller]
 	pub fn run(&self)
 	where
-		F: EffectRun + Unsize<dyn EffectRun> + 'static,
+		F: EffectRun + 'static,
 	{
 		// If we're suppressed, don't do anything
 		// TODO: Should we clear our dependencies in this case?
@@ -250,6 +261,21 @@ impl<F: ?Sized> Effect<F> {
 
 		s.finish_non_exhaustive()
 	}
+
+	/// Unsizes this value into an `Effect`.
+	// Note: This is necessary for unsizing from `!Sized` to `dyn EffectRun`,
+	//       since those coercions only work for `Sized` types.
+	// TODO: Once we can unsize from `?Sized` to `dyn EffectRun`,
+	//       remove this.
+	#[must_use]
+	pub fn unsize(self) -> Effect
+	where
+		F: EffectRun,
+	{
+		Effect {
+			inner: self.inner.unsize_inner(),
+		}
+	}
 }
 
 impl<F1: ?Sized, F2: ?Sized> PartialEq<Effect<F2>> for Effect<F1> {
@@ -321,7 +347,7 @@ impl<F: ?Sized> WeakEffect<F> {
 	)]
 	pub fn try_run(&self) -> bool
 	where
-		F: EffectRun + Unsize<dyn EffectRun> + 'static,
+		F: EffectRun + 'static,
 	{
 		// Try to upgrade, else return that it was missing
 		let Some(effect) = self.upgrade() else {
@@ -330,6 +356,33 @@ impl<F: ?Sized> WeakEffect<F> {
 
 		effect.run();
 		true
+	}
+
+	/// Unsizes this value into a `WeakEffect`.
+	// Note: This is necessary for unsizing from `!Sized` to `dyn EffectRun`,
+	//       since those coercions only work for `Sized` types.
+	// TODO: Once we can unsize from `?Sized` to `dyn EffectRun`,
+	//       remove this.
+	#[must_use]
+	pub fn unsize(&self) -> WeakEffect
+	where
+		F: EffectRun,
+	{
+		// Note: We can't call `unsize_inner` on a `Weak`, so
+		//       we need to first upgrade and call it that way.
+		match self.inner.upgrade() {
+			Some(inner) => WeakEffect {
+				inner: Rc::downgrade(&inner.unsize_inner()),
+			},
+
+			// Note: If we failed upgrading, we simply create a `Weak`
+			//       that can never be upgraded. This is technically a
+			//       breaking change, since the weak count will be different,
+			//       but we don't care about that for now
+			None => WeakEffect {
+				inner: Weak::<Inner<!>>::new(),
+			},
+		}
 	}
 }
 
@@ -394,10 +447,35 @@ pub fn running() -> Option<Effect> {
 }
 
 /// Effect run
+///
+/// # Implementation
+/// To implement this trait, you must implement the [`run`](EffectRun::run) function,
+/// and then use the macro [`effect_run_impl_inner`] to implement some details.
 pub trait EffectRun {
 	/// Runs the effect
 	#[track_caller]
 	fn run(&self, ctx: EffectRunCtx<'_>);
+
+	// Implementation details.
+
+	/// Unsizes the inner field of the effect
+	#[doc(hidden)]
+	fn unsize_inner(self: Rc<Inner<Self>>) -> Rc<Inner<dyn EffectRun>>;
+}
+
+/// Implementation detail for the [`EffectRun`] trait
+pub macro effect_run_impl_inner() {
+	fn unsize_inner(self: Rc<Inner<Self>>) -> Rc<Inner<dyn EffectRun>> {
+		self
+	}
+}
+
+impl EffectRun for ! {
+	effect_run_impl_inner! {}
+
+	fn run(&self, _ctx: EffectRunCtx<'_>) {
+		*self
+	}
 }
 
 /// Effect run context
@@ -407,8 +485,10 @@ pub struct EffectRunCtx<'a> {
 
 impl<F> EffectRun for F
 where
-	F: Fn(),
+	F: Fn() + 'static,
 {
+	effect_run_impl_inner! {}
+
 	fn run(&self, _ctx: EffectRunCtx<'_>) {
 		self();
 	}

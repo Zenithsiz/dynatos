@@ -162,8 +162,10 @@ struct EffectFn<T, F: ?Sized> {
 impl<T, F> EffectRun for EffectFn<T, F>
 where
 	T: 'static,
-	F: Fn() -> T,
+	F: Fn() -> T + 'static,
 {
+	crate::effect_run_impl_inner! {}
+
 	fn run(&self, _ctx: EffectRunCtx<'_>) {
 		*self.value.borrow_mut() = Some((self.f)());
 		self.trigger.exec();

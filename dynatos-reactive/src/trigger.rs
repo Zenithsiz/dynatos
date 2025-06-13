@@ -11,7 +11,6 @@ use {
 		cell::RefCell,
 		fmt,
 		hash::{Hash, Hasher},
-		marker::Unsize,
 		ptr,
 	},
 	std::{
@@ -397,10 +396,12 @@ impl IntoSubscriber for Subscriber {
 )]
 impl<F> IntoSubscriber for T<F>
 where
-	F: ?Sized + Unsize<dyn EffectRun>,
+	F: ?Sized + EffectRun,
 {
 	fn into_subscriber(self) -> Subscriber {
-		Subscriber { effect: effect_value }
+		Subscriber {
+			effect: effect_value.unsize(),
+		}
 	}
 }
 

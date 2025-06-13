@@ -2,7 +2,6 @@
 
 // Imports
 use {
-	core::marker::Unsize,
 	dynatos_html::{ObjectGet, ObjectSetProp},
 	dynatos_reactive::{Effect, EffectRun},
 	wasm_bindgen::prelude::wasm_bindgen,
@@ -15,7 +14,7 @@ pub impl js_sys::Object {
 	/// Attaches an effect to this object
 	fn attach_effect<F>(&self, effect: Effect<F>)
 	where
-		F: ?Sized + EffectRun + Unsize<dyn EffectRun>,
+		F: ?Sized + EffectRun,
 	{
 		// Get the effects map, or create it, if it doesn't exist
 		// TODO: Use an static anonymous symbol?
@@ -32,7 +31,7 @@ pub impl js_sys::Object {
 
 		// Then push the effects
 		let effect_key = effect.inner_ptr();
-		let effect = WasmEffect(effect);
+		let effect = WasmEffect(effect.unsize());
 		effects.set(&effect_key.into(), &effect.into());
 	}
 }
@@ -48,7 +47,7 @@ where
 	/// Returns the object, for chaining
 	fn with_effect<F>(self, effect: Effect<F>) -> Self
 	where
-		F: ?Sized + EffectRun + Unsize<dyn EffectRun>,
+		F: ?Sized + EffectRun,
 	{
 		self.as_ref().attach_effect(effect);
 		self

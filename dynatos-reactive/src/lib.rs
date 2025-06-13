@@ -31,7 +31,8 @@
 	try_trait_v2_residual,
 	assert_matches,
 	never_type,
-	unwrap_infallible
+	unwrap_infallible,
+	arbitrary_self_types
 )]
 
 // Modules
@@ -51,7 +52,7 @@ pub mod with_default;
 pub use self::{
 	async_signal::AsyncSignal,
 	derived::Derived,
-	effect::{Effect, EffectRun, EffectRunCtx, WeakEffect},
+	effect::{effect_run_impl_inner, Effect, EffectRun, EffectRunCtx, WeakEffect},
 	enum_split::{EnumSplitSignal, SignalEnumSplit},
 	mapped_signal::{MappedSignal, SignalMapped, TryMappedSignal},
 	memo::Memo,
