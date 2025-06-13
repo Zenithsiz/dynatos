@@ -78,6 +78,25 @@ impl<T, F> Derived<T, F> {
 
 		Self { effect }
 	}
+
+	/// Creates a new lazy derived signal.
+	///
+	/// Only calls `f` when first accessing the value.
+	#[track_caller]
+	pub fn new_lazy(f: F) -> Self
+	where
+		T: 'static,
+		F: DerivedRun<T> + 'static,
+	{
+		let value = RefCell::new(None);
+		let effect = Effect::new_raw(EffectFn {
+			trigger: Trigger::new(),
+			value,
+			f,
+		});
+
+		Self { effect }
+	}
 }
 
 impl<T, F: ?Sized> Derived<T, F> {
@@ -116,7 +135,7 @@ impl<T: fmt::Debug, F: ?Sized> fmt::Debug for BorrowRef<'_, T, F> {
 	}
 }
 
-impl<T: 'static, F: ?Sized> SignalBorrow for Derived<T, F> {
+impl<T: 'static, F: ?Sized + DerivedRun<T> + 'static> SignalBorrow for Derived<T, F> {
 	type Ref<'a>
 		= BorrowRef<'a, T, F>
 	where
@@ -130,7 +149,15 @@ impl<T: 'static, F: ?Sized> SignalBorrow for Derived<T, F> {
 
 	fn borrow_raw(&self) -> Self::Ref<'_> {
 		let effect_fn = self.effect.inner_fn();
-		let value = effect_fn.value.borrow();
+		let mut value = effect_fn.value.borrow();
+
+		// Initialize the value if we haven't
+		if value.is_none() {
+			drop(value);
+			self.effect.run();
+			value = effect_fn.value.borrow();
+		}
+
 		BorrowRef(value, PhantomData)
 	}
 }
@@ -257,17 +284,27 @@ where
 
 #[cfg(test)]
 mod tests {
-	use super::*;
+	use {super::*, core::cell::Cell};
 
 	#[test]
 	fn unsize() {
 		let f1 = Derived::new(|| 1_usize);
 		let f2: Derived<usize, dyn DerivedRun<usize>> = f1.clone();
-		let f3: Derived<usize, dyn Fn() -> usize> = f1.clone();
 
 		assert_eq!(&f1.effect, &f2.effect);
-		assert_eq!(&f1.effect, &f3.effect);
 		assert_eq!(*f2.borrow(), 1);
-		assert_eq!(*f3.borrow(), 1);
+	}
+
+	#[test]
+	fn lazy() {
+		#[thread_local]
+		static COUNT: Cell<usize> = Cell::new(0);
+
+		let f = Derived::new_lazy(|| COUNT.set(COUNT.get() + 1));
+		assert_eq!(COUNT.get(), 0, "Lazy effect was run before access");
+		_ = f.borrow();
+		assert_eq!(COUNT.get(), 1, "Lazy effect was not run after access");
+		_ = f.borrow();
+		assert_eq!(COUNT.get(), 1, "Lazy effect was run again after access");
 	}
 }

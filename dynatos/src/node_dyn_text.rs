@@ -5,7 +5,7 @@ use {
 	crate::ObjectAttachEffect,
 	core::ops::Deref,
 	dynatos_html::WeakRef,
-	dynatos_reactive::{Derived, Effect, Memo, Signal, SignalWith, WithDefault},
+	dynatos_reactive::{derived::DerivedRun, Derived, Effect, Memo, Signal, SignalWith, WithDefault},
 	dynatos_router::{query_signal::QueryParse, QuerySignal},
 	dynatos_util::TryOrReturnExt,
 };
@@ -124,7 +124,7 @@ where
 #[duplicate::duplicate_item(
 	Generics Ty;
 	[T] [Signal<T> where T: WithDynText + 'static];
-	[T, F] [Derived<T, F> where T: WithDynText + 'static, F: ?Sized + 'static];
+	[T, F] [Derived<T, F> where T: WithDynText + 'static, F: ?Sized + DerivedRun<T> + 'static];
 	[T, F] [Memo<T, F> where T: WithDynText + 'static, F: ?Sized + 'static];
 	[S, T] [WithDefault<S, T> where Self: for<'a> SignalWith<Value<'a>: Deref<Target: WithDynText>>];
 	[T] [QuerySignal<T> where T: QueryParse<Value: WithDynText>]

@@ -5,7 +5,7 @@ use {
 	crate::ObjectAttachEffect,
 	core::ops::Deref,
 	dynatos_html::WeakRef,
-	dynatos_reactive::{Derived, Effect, Memo, Signal, SignalWith, WithDefault},
+	dynatos_reactive::{derived::DerivedRun, Derived, Effect, Memo, Signal, SignalWith, WithDefault},
 	dynatos_util::TryOrReturnExt,
 };
 
@@ -154,7 +154,7 @@ where
 #[duplicate::duplicate_item(
 	Generics Ty;
 	[T] [Signal<T> where T: WithDynAttr + 'static];
-	[T, F] [Derived<T, F> where T: WithDynAttr + 'static, F: ?Sized + 'static];
+	[T, F] [Derived<T, F> where T: WithDynAttr + 'static, F: ?Sized + DerivedRun<T> + 'static];
 	[T, F] [Memo<T, F> where T: WithDynAttr + 'static, F: ?Sized + 'static];
 	[S, T] [WithDefault<S, T> where Self: for<'a> SignalWith<Value<'a>: Deref<Target: WithDynAttr>>];
 )]
@@ -200,7 +200,7 @@ impl DynAttrPred for bool {
 #[duplicate::duplicate_item(
 	Generics Ty;
 	[T] [Signal<T> where T: DynAttrPred + 'static];
-	[T, F] [Derived<T, F> where T: DynAttrPred + 'static, F: ?Sized + 'static];
+	[T, F] [Derived<T, F> where T: DynAttrPred + 'static, F: ?Sized + DerivedRun<T> + 'static];
 	[T, F] [Memo<T, F> where T: DynAttrPred + 'static, F: ?Sized + 'static];
 	[S, T] [WithDefault<S, T> where Self: for<'a> SignalWith<Value<'a>: Deref<Target: DynAttrPred>>];
 )]
