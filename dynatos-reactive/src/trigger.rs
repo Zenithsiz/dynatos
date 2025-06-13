@@ -177,6 +177,7 @@ impl Trigger {
 			// TODO: Add some way to turn off this warning at a global
 			//       scale, with something like
 			//       `fn without_warning(f: impl FnOnce() -> O) -> O`
+			#[cfg(debug_assertions)]
 			None => tracing::warn!(
 				trigger=?self,
 				location=%Location::caller(),
@@ -187,6 +188,9 @@ impl Trigger {
 				try to use one of the `_raw` methods that don't gather \
 				subscribers to make it intentional"
 			),
+
+			#[cfg(not(debug_assertions))]
+			None => (),
 		}
 	}
 
