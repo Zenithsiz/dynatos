@@ -1,0 +1,126 @@
+//! Weak effect
+
+use {
+	super::{Effect, EffectRun, Inner},
+	core::{
+		fmt,
+		hash::{Hash, Hasher},
+		marker::Unsize,
+		ops::CoerceUnsized,
+		ptr,
+	},
+	std::rc::{Rc, Weak},
+};
+
+/// Weak effect
+///
+/// Used to break ownership between a signal and it's subscribers
+pub struct WeakEffect<F: ?Sized = dyn EffectRun> {
+	/// Inner
+	pub(super) inner: Weak<Inner<F>>,
+}
+
+impl<F: ?Sized> WeakEffect<F> {
+	/// Upgrades this effect
+	#[must_use]
+	pub fn upgrade(&self) -> Option<Effect<F>> {
+		self.inner.upgrade().map(|inner| Effect { inner })
+	}
+
+	/// Returns the pointer of this effect
+	///
+	/// This can be used for creating maps based on equality
+	#[must_use]
+	pub fn inner_ptr(&self) -> *const () {
+		Weak::as_ptr(&self.inner).cast()
+	}
+
+	/// Runs this effect, if it exists.
+	///
+	/// Returns if the effect still existed
+	#[track_caller]
+	#[expect(
+		clippy::must_use_candidate,
+		reason = "The user may not care whether we actually ran or not"
+	)]
+	pub fn try_run(&self) -> bool
+	where
+		F: EffectRun + 'static,
+	{
+		// Try to upgrade, else return that it was missing
+		let Some(effect) = self.upgrade() else {
+			return false;
+		};
+
+		effect.run();
+		true
+	}
+
+	/// Unsizes this value into a `WeakEffect`.
+	// Note: This is necessary for unsizing from `!Sized` to `dyn EffectRun`,
+	//       since those coercions only work for `Sized` types.
+	// TODO: Once we can unsize from `?Sized` to `dyn EffectRun`,
+	//       remove this.
+	#[must_use]
+	pub fn unsize(&self) -> WeakEffect
+	where
+		F: EffectRun,
+	{
+		// Note: We can't call `unsize_inner` on a `Weak`, so
+		//       we need to first upgrade and call it that way.
+		match self.inner.upgrade() {
+			Some(inner) => WeakEffect {
+				inner: Rc::downgrade(&inner.unsize_inner()),
+			},
+
+			// Note: If we failed upgrading, we simply create a `Weak`
+			//       that can never be upgraded. This is technically a
+			//       breaking change, since the weak count will be different,
+			//       but we don't care about that for now
+			None => WeakEffect {
+				inner: Weak::<Inner<!>>::new(),
+			},
+		}
+	}
+}
+
+impl<F1: ?Sized, F2: ?Sized> PartialEq<WeakEffect<F2>> for WeakEffect<F1> {
+	fn eq(&self, other: &WeakEffect<F2>) -> bool {
+		ptr::eq(self.inner_ptr(), other.inner_ptr())
+	}
+}
+
+impl<F: ?Sized> Eq for WeakEffect<F> {}
+
+impl<F: ?Sized> Clone for WeakEffect<F> {
+	fn clone(&self) -> Self {
+		Self {
+			inner: Weak::clone(&self.inner),
+		}
+	}
+}
+
+
+impl<F: ?Sized> Hash for WeakEffect<F> {
+	fn hash<H: Hasher>(&self, state: &mut H) {
+		self.inner_ptr().hash(state);
+	}
+}
+
+impl<F: ?Sized> fmt::Debug for WeakEffect<F> {
+	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+		let mut s = f.debug_struct("WeakEffect");
+
+		match self.upgrade() {
+			Some(effect) => effect.fmt_debug(s),
+			None => s.finish_non_exhaustive(),
+		}
+	}
+}
+
+impl<F1, F2> CoerceUnsized<WeakEffect<F2>> for WeakEffect<F1>
+where
+	F1: ?Sized + Unsize<F2>,
+	F2: ?Sized,
+{
+}
