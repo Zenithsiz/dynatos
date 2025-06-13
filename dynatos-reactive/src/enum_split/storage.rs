@@ -37,6 +37,7 @@ impl<T> SignalStorage<T> {
 	where
 		T: 'static,
 	{
-		self.write_back_effect.suppressed(|| self.signal.set(new_value));
+		let _suppressed = self.write_back_effect.suppress();
+		self.signal.set(new_value);
 	}
 }

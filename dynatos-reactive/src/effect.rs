@@ -9,12 +9,14 @@
 // Modules
 mod deps_gatherer;
 mod run;
+mod suppressed;
 mod weak;
 
 // Exports
 pub use self::{
 	deps_gatherer::EffectDepsGatherer,
 	run::{effect_run_impl_inner, EffectRun, EffectRunCtx},
+	suppressed::EffectSuppressed,
 	weak::WeakEffect,
 };
 
@@ -24,13 +26,12 @@ use core::panic::Location;
 use {
 	crate::{effect_stack, WeakTrigger},
 	core::{
-		cell::RefCell,
+		cell::{Cell, RefCell},
 		fmt,
 		hash::{Hash, Hasher},
 		marker::Unsize,
 		ops::{CoerceUnsized, Deref},
 		ptr,
-		sync::atomic::{self, AtomicBool},
 	},
 	std::{collections::HashSet, rc::Rc},
 };
@@ -39,7 +40,7 @@ use {
 #[doc(hidden)]
 pub struct Inner<F: ?Sized> {
 	/// Whether this effect is currently suppressed
-	suppressed: AtomicBool,
+	suppressed: Cell<bool>,
 
 	#[cfg(debug_assertions)]
 	/// Where this effect was defined
@@ -93,7 +94,7 @@ impl<F> Effect<F> {
 	#[track_caller]
 	pub fn new_raw(run: F) -> Self {
 		let inner = Inner {
-			suppressed: AtomicBool::new(false),
+			suppressed: Cell::new(false),
 			#[cfg(debug_assertions)]
 			defined_loc: Location::caller(),
 			dependencies: RefCell::new(HashSet::new()),
@@ -211,26 +212,15 @@ impl<F: ?Sized> Effect<F> {
 		self.inner.run.run(ctx);
 	}
 
-	/// Suppresses this effect from running while calling this function
-	// TODO: Remove this and just add a wrapper around `EffectRun` with the check?
-	pub fn suppressed<F2, O>(&self, f: F2) -> O
-	where
-		F2: FnOnce() -> O,
-	{
-		// Set the suppress flag and run `f`
-		let last_suppressed = self.inner.suppressed.swap(true, atomic::Ordering::AcqRel);
-		let output = f();
-
-		// Then restore it
-		self.inner.suppressed.store(last_suppressed, atomic::Ordering::Release);
-
-		output
+	/// Suppresses this effect.
+	pub fn suppress(&self) -> EffectSuppressed<'_, F> {
+		EffectSuppressed::new(self)
 	}
 
 	/// Returns whether the effect is suppressed
 	#[must_use]
 	pub fn is_suppressed(&self) -> bool {
-		self.inner.suppressed.load(atomic::Ordering::Acquire)
+		self.inner.suppressed.get()
 	}
 
 	/// Adds a dependency to this effect
@@ -240,7 +230,7 @@ impl<F: ?Sized> Effect<F> {
 
 	/// Formats this effect into `s`
 	fn fmt_debug(&self, mut s: fmt::DebugStruct<'_, '_>) -> Result<(), fmt::Error> {
-		s.field("suppressed", &self.inner.suppressed.load(atomic::Ordering::Acquire));
+		s.field("suppressed", &self.inner.suppressed.get());
 
 		#[cfg(debug_assertions)]
 		s.field_with("defined_loc", |f| fmt::Display::fmt(self.inner.defined_loc, f));

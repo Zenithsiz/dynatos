@@ -48,7 +48,8 @@ impl<S> EnumSplitValueUpdateCtx<'_, S> {
 		#[cloned(inner_signal = signal, outer_signal = self.outer_signal)]
 		let write_back_effect = Effect::new_raw(move || {
 			let value = inner_signal.get_cloned();
-			cur_effect.suppressed(|| outer_signal.set(into_t(value)));
+			let _suppressed = cur_effect.suppress();
+			outer_signal.set(into_t(value));
 		});
 		write_back_effect.gather_dependencies(|| {
 			signal.with(|_| ());

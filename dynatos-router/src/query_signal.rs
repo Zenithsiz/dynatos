@@ -190,11 +190,11 @@ where
 		// Note: We suppress the update, given that it won't change anything,
 		//       as we already have the latest value.
 		// TODO: Force an update anyway just to ensure some consistency with `FromStr` + `ToString`?
-		self.0.update_effect.suppressed(|| {
-			let value = self.0.inner.borrow_raw();
-			let value = value.as_ref().expect("Should have value");
-			self.0.query.write(value);
-		});
+		let _suppressed = self.0.update_effect.suppress();
+
+		let value = self.0.inner.borrow_raw();
+		let value = value.as_ref().expect("Should have value");
+		self.0.query.write(value);
 	}
 }
 

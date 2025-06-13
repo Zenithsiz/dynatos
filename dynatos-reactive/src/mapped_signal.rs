@@ -108,10 +108,10 @@ where
 							// If we have the set effect, run it suppressed,
 							// to avoid writing the value of the output signal
 							// back into the input.
-							match set_weak_effect.get().and_then(WeakEffect::upgrade) {
-								Some(set_effect) => set_effect.suppressed(|| signal.set(value)),
-								None => signal.set(value),
-							}
+							let set_weak_effect = set_weak_effect.get().and_then(WeakEffect::upgrade);
+							let _suppressed = set_weak_effect.as_ref().map(Effect::suppress);
+
+							signal.set(value);
 
 							(SignalTry::<T>::from_output(signal), false)
 						},
@@ -142,14 +142,12 @@ where
 		#[cloned(output_sig)]
 		let set_effect = Effect::new_raw(move || {
 			self::with_output_signal::<T, _>(&output_sig, |output| {
-				let update = || input.update(|input| output.with(|output| set(input, output)));
-
 				// If we have the get effect, run it suppressed,
 				// to avoid writing the value back into the output signal
-				match get_weak_effect.upgrade() {
-					Some(get_effect) => get_effect.suppressed(update),
-					None => update(),
-				}
+				let get_weak_effect = get_weak_effect.upgrade();
+				let _suppressed = get_weak_effect.as_ref().map(Effect::suppress);
+
+				input.update(|input| output.with(|output| set(input, output)));
 			});
 		});
 		set_effect.gather_dependencies(|| self::with_output_signal::<T, _>(&output_sig, |sig| sig.with(|_| ())));
