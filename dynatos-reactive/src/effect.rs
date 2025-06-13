@@ -6,6 +6,12 @@
 // TODO: Downcasting? It isn't trivial due to the usages of `Rc<Inner<dyn EffectRun>>`,
 //       which doesn't allow casting to `Rc<dyn Any>`, required by `Rc::downcast`.
 
+// Modules
+mod run;
+
+// Exports
+pub use self::run::{effect_run_impl_inner, EffectRun, EffectRunCtx};
+
 // Imports
 #[cfg(debug_assertions)]
 use core::panic::Location;
@@ -201,7 +207,7 @@ impl<F: ?Sized> Effect<F> {
 		}
 
 		// Otherwise, run it
-		let ctx = EffectRunCtx { _phantom: PhantomData };
+		let ctx = EffectRunCtx::new();
 		let _gatherer = self.deps_gatherer();
 		self.inner.run.run(ctx);
 	}
@@ -444,54 +450,6 @@ impl Drop for EffectDepsGatherer<'_> {
 #[must_use]
 pub fn running() -> Option<Effect> {
 	effect_stack::top()
-}
-
-/// Effect run
-///
-/// # Implementation
-/// To implement this trait, you must implement the [`run`](EffectRun::run) function,
-/// and then use the macro [`effect_run_impl_inner`] to implement some details.
-pub trait EffectRun {
-	/// Runs the effect
-	#[track_caller]
-	fn run(&self, ctx: EffectRunCtx<'_>);
-
-	// Implementation details.
-
-	/// Unsizes the inner field of the effect
-	#[doc(hidden)]
-	fn unsize_inner(self: Rc<Inner<Self>>) -> Rc<Inner<dyn EffectRun>>;
-}
-
-/// Implementation detail for the [`EffectRun`] trait
-pub macro effect_run_impl_inner() {
-	fn unsize_inner(self: Rc<Inner<Self>>) -> Rc<Inner<dyn EffectRun>> {
-		self
-	}
-}
-
-impl EffectRun for ! {
-	effect_run_impl_inner! {}
-
-	fn run(&self, _ctx: EffectRunCtx<'_>) {
-		*self
-	}
-}
-
-/// Effect run context
-pub struct EffectRunCtx<'a> {
-	_phantom: PhantomData<&'a ()>,
-}
-
-impl<F> EffectRun for F
-where
-	F: Fn() + 'static,
-{
-	effect_run_impl_inner! {}
-
-	fn run(&self, _ctx: EffectRunCtx<'_>) {
-		self();
-	}
 }
 
 #[cfg(test)]
