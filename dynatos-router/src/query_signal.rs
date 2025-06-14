@@ -72,7 +72,11 @@ impl<T: QueryParse> QuerySignal<T> {
 		#[cloned(query, location_path, inner)]
 		let update = Effect::new(move || {
 			// If the location changes, don't update.
-			if *location.borrow().path() != *location_path {
+			// Note: If this is the correct location, we don't want to add the location
+			//       as a dependency, because otherwise we'll be re-parsing all queries
+			//       each time the location changes and not just when `T::parse` changes.
+			if *location.borrow_raw().path() != *location_path {
+				_ = location.borrow();
 				return;
 			}
 
