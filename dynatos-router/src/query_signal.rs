@@ -184,42 +184,6 @@ where
 	}
 }
 
-/// Writes the query on `Drop`
-// Note: We need this wrapper because `BorrowRefMut::value` must
-//       already be dropped when we update the query, which we
-//       can't do if we implement `Drop` on `BorrowRefMut`.
-// TODO: Remove this once we implement the trigger stack.
-struct WriteQueryOnDrop<'a, T>(pub &'a QuerySignal<T>)
-where
-	T: QueryParse + QueryWriteValue + 'static,
-	T::Value: 'static;
-
-impl<T> fmt::Debug for WriteQueryOnDrop<'_, T>
-where
-	T: QueryParse + QueryWriteValue + 'static,
-{
-	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		f.debug_tuple("UpdateLocationOnDrop").finish_non_exhaustive()
-	}
-}
-
-impl<T> Drop for WriteQueryOnDrop<'_, T>
-where
-	T: QueryParse + QueryWriteValue + 'static,
-	T::Value: 'static,
-{
-	fn drop(&mut self) {
-		// Note: We suppress the update, given that it won't change anything,
-		//       as we already have the latest value.
-		// TODO: Force an update anyway just to ensure some consistency with `FromStr` + `ToString`?
-		let _suppressed = self.0.update_effect.suppress();
-
-		let value = self.0.inner.borrow_raw();
-		let value = value.as_ref().expect("Should have value");
-		self.0.query.write(value);
-	}
-}
-
 /// Reference type for [`SignalBorrowMut`] impl
 pub struct BorrowRefMut<'a, T>
 where
@@ -229,9 +193,11 @@ where
 	/// Value
 	value: signal::BorrowRefMut<'a, Option<T::Value>>,
 
-	/// Write query on drop
-	// Note: Must be dropped *after* `value`.
-	write_query_on_drop: Option<WriteQueryOnDrop<'a, T>>,
+	/// Query signal
+	signal: &'a QuerySignal<T>,
+
+	/// Whether to write the query on drop.
+	write_query_on_drop: bool,
 }
 
 impl<T> fmt::Debug for BorrowRefMut<'_, T>
@@ -267,6 +233,24 @@ where
 	}
 }
 
+impl<T: QueryWriteValue> Drop for BorrowRefMut<'_, T> {
+	fn drop(&mut self) {
+		// Write the signal back
+		if self.write_query_on_drop {
+			// Note: We suppress the update, given that it won't change anything,
+			//       as we already have the latest value.
+			// TODO: Force an update anyway just to ensure some consistency with `FromStr` + `ToString`?
+			let _suppressed = self.signal.update_effect.suppress();
+
+			// Note: It's fine to do this while the value is still alive because
+			//       the run queue ensures we won't run any effects until we're dropped.
+			// TODO: If we're being borrowed raw, this might bypass the run queue, and end
+			//       up writing while our borrow still exists?
+			self.signal.query.write(&*self);
+		}
+	}
+}
+
 impl<T> SignalBorrowMut for QuerySignal<T>
 where
 	T: QueryParse + QueryWriteValue + 'static,
@@ -281,7 +265,8 @@ where
 		let value = self.inner.borrow_mut();
 		BorrowRefMut {
 			value,
-			write_query_on_drop: Some(WriteQueryOnDrop(self)),
+			signal: self,
+			write_query_on_drop: true,
 		}
 	}
 
@@ -290,7 +275,8 @@ where
 		let value = self.inner.borrow_mut_raw();
 		BorrowRefMut {
 			value,
-			write_query_on_drop: None,
+			signal: self,
+			write_query_on_drop: false,
 		}
 	}
 }
