@@ -1,7 +1,7 @@
 //! [`SignalSet`]
 
 // Imports
-use crate::SignalUpdate;
+use crate::{SignalUpdate, Trigger};
 
 /// Types which may be set by [`SignalSet`]
 pub trait SignalSetWith<T>: Sized {
@@ -48,3 +48,36 @@ where
 		self.update_raw(|value| SignalSetWith::set_value(value, new_value));
 	}
 }
+
+macro impl_tuple($($S:ident : $T:ident),* $(,)?) {
+	#[allow(clippy::allow_attributes, non_snake_case, reason = "Macro generated code")]
+	impl<$( $S, $T, )*> SignalSet<( $( $T, )* )> for ( $( &'_ $S, )* )
+	where
+		$( $S: SignalSet<$T>, )*
+	{
+		fn set(&self, new_value: ( $( $T, )* )) {
+			// Note: We use a no-op exec to ensure that we only run the queue once
+			//       during both of the sets.
+			let _exec = Trigger::exec_noop();
+
+			let ( $( $S, )* ) = self;
+			let ( $( $T, )* ) = new_value;
+			$( $S.set($T); )*
+		}
+
+		fn set_raw(&self, new_value: ( $( $T, )* )) {
+			// Note: Here we don't need the no-op exec, since the triggers won't be
+			//       executing anyway, given that we're raw.
+			let ( $( $S, )* ) = self;
+			let ( $( $T, )* ) = new_value;
+			$( $S.set_raw($T); )*
+		}
+	}
+}
+
+impl_tuple! {}
+impl_tuple! { S1: T1, }
+impl_tuple! { S1: T1, S2: T2, }
+impl_tuple! { S1: T1, S2: T2, S3: T3 }
+impl_tuple! { S1: T1, S2: T2, S3: T3, S4: T4 }
+impl_tuple! { S1: T1, S2: T2, S3: T3, S4: T4, S5: T5 }
