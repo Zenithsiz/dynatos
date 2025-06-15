@@ -8,7 +8,7 @@ use {
 	crate::{effect, run_queue, Effect, EffectRun, WeakEffect},
 	core::{
 		borrow::Borrow,
-		cell::RefCell,
+		cell::{LazyCell, RefCell},
 		fmt,
 		hash::{Hash, Hasher},
 		ptr,
@@ -242,6 +242,19 @@ impl Trigger {
 			#[cfg(debug_assertions)]
 			Location::caller(),
 		)
+	}
+
+	/// Creates an execution for a no-op trigger.
+	///
+	/// This is useful to ensure that another trigger
+	/// doesn't execute the run queue and just appends to
+	/// it instead.
+	pub fn exec_noop() -> TriggerExec {
+		/// No-op trigger
+		#[thread_local]
+		static NOOP_TRIGGER: LazyCell<Trigger> = LazyCell::new(Trigger::new);
+
+		NOOP_TRIGGER.exec()
 	}
 
 	/// Inner function for [`Self::exec`]
