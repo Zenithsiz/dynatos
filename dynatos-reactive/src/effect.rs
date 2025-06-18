@@ -164,7 +164,7 @@ impl<F: ?Sized> Effect<F> {
 	/// While this type lives, all signals used will be gathered as dependencies
 	/// for this effect.
 	#[must_use]
-	pub fn deps_gatherer(&self) -> EffectDepsGatherer<F>
+	pub fn deps_gatherer(&self) -> EffectDepsGatherer<'_, F>
 	where
 		F: EffectRun + 'static,
 	{

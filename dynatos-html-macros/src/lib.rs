@@ -289,7 +289,7 @@ enum TextArg<'a> {
 }
 
 /// Splits a string into constants and arguments
-fn split_text_args(mut text: &str) -> Vec<TextArg> {
+fn split_text_args(mut text: &str) -> Vec<TextArg<'_>> {
 	let mut args = vec![];
 	while !text.is_empty() {
 		// Find the first escape
