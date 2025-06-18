@@ -62,8 +62,8 @@ impl<F: Loader> Inner<F> {
 	where
 		F: Loader,
 	{
-		// If we're loaded, or we're loading, return
-		if self.value.is_some() || self.handle.is_some() {
+		// If we're already loading, return
+		if self.is_loading() {
 			return false;
 		}
 
@@ -149,9 +149,9 @@ impl<F: Loader> AsyncSignal<F> {
 		}
 	}
 
-	/// Stops loading the value.
+	/// Stops the loading future.
 	///
-	/// Returns if the loader had a future.
+	/// Returns if any future existed.
 	#[expect(
 		clippy::must_use_candidate,
 		reason = "The user may not care whether the future existed"
@@ -160,11 +160,14 @@ impl<F: Loader> AsyncSignal<F> {
 		self.inner.borrow_mut().stop_loading()
 	}
 
-	/// Starts loading the value.
+	/// Starts a new loading future.
 	///
-	/// If the loader already has a future, this does nothing.
+	/// If a future already exists, this does nothing.
 	///
-	/// Returns whether this created the loader's future.
+	/// If a value already exists, this won't remove it, but
+	/// will overwrite it once the future completes.
+	///
+	/// Returns whether we created a new future.
 	#[track_caller]
 	#[expect(
 		clippy::must_use_candidate,
@@ -177,12 +180,15 @@ impl<F: Loader> AsyncSignal<F> {
 		self.inner.borrow_mut().start_loading(self)
 	}
 
-	/// Restarts the loading.
+	/// Restarts the currently loading future.
 	///
-	/// If the loader already has a future, it will be dropped
-	/// and re-created.
+	/// If a future already exists, this will stop it and begin a
+	/// new one.
 	///
-	/// Returns whether a future existed before
+	/// If a value already exists, this won't remove it, but
+	/// will overwrite it once the future completes.
+	///
+	/// Returns whether a future already existed.
 	#[track_caller]
 	#[expect(
 		clippy::must_use_candidate,
@@ -195,9 +201,7 @@ impl<F: Loader> AsyncSignal<F> {
 		self.inner.borrow_mut().restart_loading(self)
 	}
 
-	/// Returns if loading.
-	///
-	/// This is considered loading if the loader has an active future.
+	/// Returns if there exists a loading future.
 	#[must_use]
 	pub fn is_loading(&self) -> bool {
 		self.inner.borrow().is_loading()
@@ -379,15 +383,18 @@ impl<F: Loader> SignalBorrow for AsyncSignal<F> {
 	}
 
 	fn borrow_raw(&self) -> Self::Ref<'_> {
-		// Start loading on borrow
-		let mut inner = self.inner.borrow_mut();
-		inner.start_loading(self);
+		let inner = self.inner.borrow();
+		match &inner.value {
+			// If there's already a value, return it
+			Some(_) => Some(BorrowRef(inner)),
 
-		// Then get the value
-		inner.value.is_some().then(|| {
-			drop(inner);
-			BorrowRef(self.inner.borrow())
-		})
+			// Otherwise, start loading
+			None => {
+				drop(inner);
+				self.inner.borrow_mut().start_loading(self);
+				None
+			},
+		}
 	}
 }
 

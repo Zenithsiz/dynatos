@@ -45,39 +45,32 @@ where
 		}
 	}
 
-	/// Stops loading the value.
+	/// Stops the loading future.
 	///
-	/// Returns if the loader had a future.
+	/// See [`AsyncSignal::stop_loading`] for details
 	#[expect(clippy::must_use_candidate, reason = "It's fine to ignore")]
 	pub fn stop_loading(&self) -> bool {
 		self.inner.stop_loading()
 	}
 
-	/// Starts loading the value.
+	/// Starts a new loading future.
 	///
-	/// If the loader already has a future, this does nothing.
-	///
-	/// Returns whether this created the loader's future.
+	/// See [`AsyncSignal::start_loading`] for details
 	#[expect(clippy::must_use_candidate, reason = "It's fine to ignore")]
 	pub fn start_loading(&self) -> bool {
 		self.inner.start_loading()
 	}
 
-	/// Restarts the loading.
+	/// Restarts the currently loading future.
 	///
-	/// If the loader already has a future, it will be dropped
-	/// and re-created.
-	///
-	/// Returns whether a future existed before
+	/// See [`AsyncSignal::restart_loading`] for details
 	#[expect(clippy::must_use_candidate, reason = "It's fine to ignore")]
 	pub fn restart_loading(&self) -> bool
 where {
 		self.inner.restart_loading()
 	}
 
-	/// Returns if loading.
-	///
-	/// This is considered loading if the loader has a future active.
+	/// Returns if there exists a loading future.
 	#[must_use]
 	pub fn is_loading(&self) -> bool {
 		self.inner.is_loading()
