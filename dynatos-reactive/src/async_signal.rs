@@ -7,6 +7,7 @@ use {
 	crate::{
 		trigger::TriggerExec,
 		Effect,
+		EffectRun,
 		SignalBorrow,
 		SignalBorrowMut,
 		SignalGetClone,
@@ -42,12 +43,14 @@ struct Inner<F: Loader> {
 
 	/// Restart effect
 	// TODO: Not have this in an option just to be able to initialize it
-	// TODO: Not make this effect dynamic.
-	restart_effect: Option<Effect>,
+	restart_effect: Option<Effect<RestartEffectFn<F>>>,
 
 	/// Task handle
 	handle: Option<AbortHandle>,
 }
+
+/// Type for [`Inner::restart_effect`]'s effect
+type RestartEffectFn<F: Loader> = impl EffectRun;
 
 impl<F: Loader> Inner<F> {
 	/// See [`AsyncSignal::stop_loading`]
@@ -149,6 +152,7 @@ impl<F: Loader> AsyncSignal<F> {
 	/// future will be restarted.
 	#[track_caller]
 	#[must_use]
+	#[define_opaque(RestartEffectFn)]
 	pub fn new(loader: F) -> Self {
 		let signal = Self {
 			inner:   Rc::new(RefCell::new(Inner {
@@ -161,7 +165,7 @@ impl<F: Loader> AsyncSignal<F> {
 			notify:  Rc::new(Notify::new()),
 		};
 
-		signal.inner.borrow_mut().restart_effect = Some(Effect::new_raw(
+		signal.inner.borrow_mut().restart_effect = Some(Effect::<RestartEffectFn<F>>::new_raw(
 			#[cloned(signal)]
 			move || {
 				// TODO: Fix the exec location coming from here
