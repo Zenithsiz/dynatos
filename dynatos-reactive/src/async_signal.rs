@@ -28,6 +28,7 @@ use {
 	futures::{future, stream::AbortHandle},
 	std::rc::Rc,
 	tokio::sync::Notify,
+	zutil_cloned::cloned,
 };
 
 /// Inner
@@ -63,7 +64,7 @@ impl<F: Loader> Inner<F> {
 	///
 	/// Returns whether this created the loader's future.
 	#[track_caller]
-	pub fn start_loading(&mut self, this: Rc<RefCell<Self>>, trigger: Trigger, notify: Rc<Notify>) -> bool
+	pub fn start_loading(&mut self, signal: &AsyncSignal<F>) -> bool
 	where
 		F: Loader,
 	{
@@ -78,27 +79,28 @@ impl<F: Loader> Inner<F> {
 		// Then spawn the future
 		// TODO: Allow using something other than `wasm_bindgen_futures`?
 		let (fut, handle) = future::abortable(self.loader.load());
+		#[cloned(signal)]
 		wasm_bindgen_futures::spawn_local(async move {
 			// Load the value
 			// Note: If we get aborted, just remove the handle
 			let Ok(value) = fut.await else {
-				this.borrow_mut().handle = None;
+				signal.inner.borrow_mut().handle = None;
 				return;
 			};
 
 			// Then write it and remove the handle
-			let mut inner = this.borrow_mut();
+			let mut inner = signal.inner.borrow_mut();
 			inner.value = Some(value);
 			inner.handle = None;
 			drop(inner);
 
 			// Finally trigger and awake all waiters.
 			// TODO: Notify using the trigger?
-			trigger.exec_inner(
+			signal.trigger.exec_inner(
 				#[cfg(debug_assertions)]
 				caller_loc,
 			);
-			notify.notify_waiters();
+			signal.notify.notify_waiters();
 		});
 		self.handle = Some(handle);
 
@@ -112,13 +114,13 @@ impl<F: Loader> Inner<F> {
 	///
 	/// Returns whether a future existed before
 	#[track_caller]
-	pub fn restart_loading(&mut self, this: Rc<RefCell<Self>>, trigger: Trigger, notify: Rc<Notify>) -> bool
+	pub fn restart_loading(&mut self, signal: &AsyncSignal<F>) -> bool
 	where
 		F: Loader,
 	{
 		// cancel the existing future, if any
 		let had_fut = self.stop_loading();
-		assert!(self.start_loading(this, trigger, notify), "Should start loading");
+		assert!(self.start_loading(signal), "Should start loading");
 
 		had_fut
 	}
@@ -185,9 +187,7 @@ impl<F: Loader> AsyncSignal<F> {
 	where
 		F: Loader,
 	{
-		self.inner
-			.borrow_mut()
-			.start_loading(Rc::clone(&self.inner), self.trigger.clone(), Rc::clone(&self.notify))
+		self.inner.borrow_mut().start_loading(self)
 	}
 
 	/// Restarts the loading.
@@ -205,9 +205,7 @@ impl<F: Loader> AsyncSignal<F> {
 	where
 		F: Loader,
 	{
-		self.inner
-			.borrow_mut()
-			.restart_loading(Rc::clone(&self.inner), self.trigger.clone(), Rc::clone(&self.notify))
+		self.inner.borrow_mut().restart_loading(self)
 	}
 
 	/// Returns if loading.
@@ -250,7 +248,7 @@ impl<F: Loader> AsyncSignal<F> {
 		// Else start loading, and setup a defer to stop loading if we get cancelled.
 		// Note: Stopping loading is a no-op if `wait` successfully returns, we only
 		//       care if we're dropped early.
-		let created_loader = inner.start_loading(Rc::clone(&self.inner), self.trigger.clone(), Rc::clone(&self.notify));
+		let created_loader = inner.start_loading(self);
 		scopeguard::defer! {
 			if created_loader {
 				self.stop_loading();
@@ -396,7 +394,7 @@ impl<F: Loader> SignalBorrow for AsyncSignal<F> {
 	fn borrow_raw(&self) -> Self::Ref<'_> {
 		// Start loading on borrow
 		let mut inner = self.inner.borrow_mut();
-		inner.start_loading(Rc::clone(&self.inner), self.trigger.clone(), Rc::clone(&self.notify));
+		inner.start_loading(self);
 
 		// Then get the value
 		inner.value.is_some().then(|| {
