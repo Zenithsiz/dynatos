@@ -3,6 +3,7 @@
 // Imports
 use {
 	crate::{
+		effect::EffectSuppressed,
 		Effect,
 		EffectRun,
 		EffectRunCtx,
@@ -44,6 +45,19 @@ impl<T, F> Memo<T, F> {
 		});
 
 		Self { effect }
+	}
+}
+
+// TODO: `F: ?Sized`
+impl<T, F> Memo<T, F> {
+	/// Suppresses the update of the memo'd value
+	#[track_caller]
+	pub fn suppress(&self) -> EffectSuppressed<'_, impl EffectRun>
+	where
+		T: PartialEq + 'static,
+		F: Fn() -> T + 'static,
+	{
+		self.effect.suppress()
 	}
 }
 
