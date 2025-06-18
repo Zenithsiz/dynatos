@@ -59,6 +59,12 @@ impl<T, F> Memo<T, F> {
 	{
 		self.effect.suppress()
 	}
+
+	/// Updates the existing value without updating dependencies
+	// TODO: Just implement `SignalBorrowMut` and friends?
+	pub fn update_raw(&self, value: T) {
+		*self.effect.inner_fn().value.borrow_mut() = Some(value);
+	}
 }
 
 /// Reference type for [`SignalBorrow`] impl
