@@ -95,6 +95,13 @@ impl<T: FromStr<Err: StdError> + ToString> QueryWrite<&'_ Loadable<T, T::Err>> f
 
 impl<T: FromStr<Err: StdError> + ToString> QueryWrite<Option<&'_ T>> for SingleQuery<T> {
 	fn write(&self, new_value: Option<&T>) {
+		// Update our queries memo manually and prevent it from being added
+		let _suppress_queries = self.queries.suppress();
+		match &new_value {
+			Some(new_value) => self.queries.update_raw(vec![new_value.to_string()]),
+			None => self.queries.update_raw(vec![]),
+		}
+
 		let location = dynatos_context::expect_cloned::<Location>();
 		let mut location = location.borrow_mut();
 		let mut added_query = false;
@@ -113,8 +120,8 @@ impl<T: FromStr<Err: StdError> + ToString> QueryWrite<Option<&'_ T>> for SingleQ
 
 			// If it's our key, check what we should do
 			if let Some(new_value) = new_value {
-				added_query = true;
 				queries.push((self.key.to_string(), new_value.to_string()));
+				added_query = true;
 			}
 		}
 
