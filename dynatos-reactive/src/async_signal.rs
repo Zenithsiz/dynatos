@@ -6,6 +6,7 @@ use core::panic::Location;
 use {
 	crate::{
 		trigger::TriggerExec,
+		Effect,
 		SignalBorrow,
 		SignalBorrowMut,
 		SignalGetClone,
@@ -38,6 +39,11 @@ struct Inner<F: Loader> {
 
 	/// Loader
 	loader: F,
+
+	/// Restart effect
+	// TODO: Not have this in an option just to be able to initialize it
+	// TODO: Not make this effect dynamic.
+	restart_effect: Option<Effect>,
 
 	/// Task handle
 	handle: Option<AbortHandle>,
@@ -72,7 +78,9 @@ impl<F: Loader> Inner<F> {
 
 		// Then spawn the future
 		// TODO: Allow using something other than `wasm_bindgen_futures`?
-		let (fut, handle) = future::abortable(self.loader.load());
+		let restart_effect = self.restart_effect.clone().expect("Missing restart effect");
+		let fut = restart_effect.gather_dependencies(|| self.loader.load());
+		let (fut, handle) = future::abortable(fut);
 		#[cloned(signal)]
 		wasm_bindgen_futures::spawn_local(async move {
 			// Load the value
@@ -90,6 +98,7 @@ impl<F: Loader> Inner<F> {
 
 			// Finally trigger and awake all waiters.
 			// TODO: Notify using the trigger?
+			let _suppress_restart = restart_effect.suppress();
 			signal.trigger.exec_inner(
 				#[cfg(debug_assertions)]
 				caller_loc,
@@ -134,19 +143,33 @@ pub struct AsyncSignal<F: Loader> {
 }
 
 impl<F: Loader> AsyncSignal<F> {
-	/// Creates a new async signal with a loader
+	/// Creates a new async signal with a reactive loader.
+	///
+	/// When any inputs to `loader` change, the signal's
+	/// future will be restarted.
 	#[track_caller]
 	#[must_use]
 	pub fn new(loader: F) -> Self {
-		Self {
+		let signal = Self {
 			inner:   Rc::new(RefCell::new(Inner {
 				value: None,
 				loader,
+				restart_effect: None,
 				handle: None,
 			})),
 			trigger: Trigger::new(),
 			notify:  Rc::new(Notify::new()),
-		}
+		};
+
+		signal.inner.borrow_mut().restart_effect = Some(Effect::new_raw(
+			#[cloned(signal)]
+			move || {
+				// TODO: Fix the exec location coming from here
+				signal.restart_loading();
+			},
+		));
+
+		signal
 	}
 
 	/// Stops the loading future.
