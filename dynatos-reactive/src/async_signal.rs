@@ -44,9 +44,7 @@ struct Inner<F: Loader> {
 }
 
 impl<F: Loader> Inner<F> {
-	/// Stops loading the value.
-	///
-	/// Returns if the loader had a future.
+	/// See [`AsyncSignal::stop_loading`]
 	pub fn stop_loading(&mut self) -> bool {
 		let handle = self.handle.take();
 		match handle {
@@ -58,11 +56,7 @@ impl<F: Loader> Inner<F> {
 		}
 	}
 
-	/// Starts loading the value.
-	///
-	/// If the loader already has a future, this does nothing.
-	///
-	/// Returns whether this created the loader's future.
+	/// See [`AsyncSignal::start_loading`]
 	#[track_caller]
 	pub fn start_loading(&mut self, signal: &AsyncSignal<F>) -> bool
 	where
@@ -107,12 +101,7 @@ impl<F: Loader> Inner<F> {
 		true
 	}
 
-	/// Restarts the loading.
-	///
-	/// If the loader already has a future, it will be dropped
-	/// and re-created.
-	///
-	/// Returns whether a future existed before
+	/// See [`AsyncSignal::restart_loading`]
 	#[track_caller]
 	pub fn restart_loading(&mut self, signal: &AsyncSignal<F>) -> bool
 	where
@@ -125,9 +114,7 @@ impl<F: Loader> Inner<F> {
 		had_fut
 	}
 
-	/// Returns if loading.
-	///
-	/// This is considered loading if the loader has an active future.
+	/// See [`AsyncSignal::is_loading`]
 	#[must_use]
 	pub const fn is_loading(&self) -> bool {
 		self.handle.is_some()
