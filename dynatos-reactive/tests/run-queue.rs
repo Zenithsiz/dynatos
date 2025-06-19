@@ -5,8 +5,8 @@
 
 // Imports
 use {
-	core::cell::RefCell,
-	dynatos_reactive::{Derived, Effect, Signal, SignalBorrowMut, SignalGet},
+	core::cell::{Cell, RefCell},
+	dynatos_reactive::{Derived, Effect, Signal, SignalBorrowMut, SignalGet, Trigger},
 	zutil_cloned::cloned,
 };
 
@@ -41,4 +41,39 @@ fn breadth_first() {
 	ORDER.borrow_mut().clear();
 	drop((a, b));
 	assert_eq!(*ORDER.borrow(), ["a2", "b2", "c"], "Effect was run with wrong order");
+}
+
+#[test]
+fn order() {
+	// a1╶─🭬a2╶─┬─🭬c
+	//       b╶─┘
+	let a1 = Trigger::new();
+	let a2 = Trigger::new();
+	let b = Trigger::new();
+
+	#[cloned(a1, a2)]
+	let _a1_to_2 = Effect::new(move || {
+		a1.gather_subscribers();
+		a2.exec();
+	});
+
+	#[thread_local]
+	static COUNT: Cell<usize> = Cell::new(0);
+
+	#[cloned(b)]
+	let _c = Effect::new(move || {
+		a2.gather_subscribers();
+		b.gather_subscribers();
+		COUNT.set(COUNT.get() + 1);
+	});
+
+	assert_eq!(COUNT.get(), 1);
+
+	drop((a1.exec(), b.exec()));
+	assert_eq!(COUNT.get(), 2);
+
+	// TODO: Can we make this `3` by creating
+	//       a full dependency graph?
+	drop((b.exec(), a1.exec()));
+	assert_eq!(COUNT.get(), 4);
 }
