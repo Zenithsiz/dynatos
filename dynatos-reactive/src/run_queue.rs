@@ -2,7 +2,10 @@
 
 // Imports
 use {
-	crate::{trigger::SubscriberInfo, Subscriber},
+	crate::{
+		trigger::{IntoSubscriber, SubscriberInfo},
+		WeakEffect,
+	},
 	core::{
 		cell::{LazyCell, RefCell},
 		cmp::Reverse,
@@ -14,7 +17,7 @@ use {
 /// Inner item for the priority queue
 struct Item {
 	/// Subscriber
-	subscriber: Subscriber,
+	subscriber: WeakEffect,
 
 	/// Info
 	info: SubscriberInfo,
@@ -104,16 +107,22 @@ pub fn dec_ref() -> Option<ExecGuard> {
 }
 
 /// Pushes a subscriber to the queue.
-pub fn push(subscriber: Subscriber, info: SubscriberInfo) {
+pub fn push<S: IntoSubscriber>(subscriber: S, info: SubscriberInfo) {
 	let mut inner = RUN_QUEUE.borrow_mut();
 
 	let next = Reverse(inner.next);
-	inner.queue.push_decrease(Item { subscriber, info }, next);
+	inner.queue.push_decrease(
+		Item {
+			subscriber: subscriber.into_subscriber(),
+			info,
+		},
+		next,
+	);
 	inner.next += 1;
 }
 
 /// Pops a subscriber from the front of the queue
-pub fn pop() -> Option<(Subscriber, SubscriberInfo)> {
+pub fn pop() -> Option<(WeakEffect, SubscriberInfo)> {
 	let (item, _) = RUN_QUEUE.borrow_mut().queue.pop()?;
 	Some((item.subscriber, item.info))
 }

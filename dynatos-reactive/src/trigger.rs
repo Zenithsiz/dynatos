@@ -7,7 +7,6 @@
 use {
 	crate::{effect, run_queue, Effect, EffectRun, WeakEffect},
 	core::{
-		borrow::Borrow,
 		cell::{LazyCell, RefCell},
 		fmt,
 		hash::{Hash, Hasher},
@@ -23,41 +22,6 @@ use {
 	core::{iter, panic::Location},
 	std::collections::HashSet,
 };
-
-/// Subscribers
-#[derive(Debug)]
-pub struct Subscriber {
-	/// Effect
-	effect: WeakEffect,
-}
-
-impl Clone for Subscriber {
-	fn clone(&self) -> Self {
-		Self {
-			effect: self.effect.clone(),
-		}
-	}
-}
-
-impl PartialEq for Subscriber {
-	fn eq(&self, other: &Self) -> bool {
-		self.effect == other.effect
-	}
-}
-
-impl Eq for Subscriber {}
-
-impl Hash for Subscriber {
-	fn hash<H: Hasher>(&self, state: &mut H) {
-		self.effect.hash(state);
-	}
-}
-
-impl Borrow<WeakEffect> for Subscriber {
-	fn borrow(&self) -> &WeakEffect {
-		&self.effect
-	}
-}
 
 /// Subscriber info
 // TODO: Make cloning this cheap by wrapping it in an `Arc` or something.
@@ -117,7 +81,7 @@ struct Inner {
 			reason = "It isn't zero-sized with `debug_assertions`"
 		)
 	)]
-	subscribers: RefCell<HashMap<Subscriber, SubscriberInfo>>,
+	subscribers: RefCell<HashMap<WeakEffect, SubscriberInfo>>,
 
 	#[cfg(debug_assertions)]
 	/// Where this trigger was defined
@@ -273,7 +237,7 @@ impl Trigger {
 		#[expect(clippy::iter_over_hash_type, reason = "We don't care about which order they go in")]
 		for (subscriber, info) in &*subscribers {
 			// If the effect doesn't exist anymore, remove it
-			let Some(effect) = subscriber.effect.upgrade() else {
+			let Some(effect) = subscriber.upgrade() else {
 				continue;
 			};
 
@@ -394,13 +358,7 @@ impl fmt::Debug for WeakTrigger {
 pub trait IntoSubscriber {
 	/// Converts this type into a weak effect.
 	#[track_caller]
-	fn into_subscriber(self) -> Subscriber;
-}
-
-impl IntoSubscriber for Subscriber {
-	fn into_subscriber(self) -> Self {
-		self
-	}
+	fn into_subscriber(self) -> WeakEffect;
 }
 
 #[expect(clippy::allow_attributes, reason = "Only applicable to one of the branches")]
@@ -415,10 +373,8 @@ impl<F> IntoSubscriber for T<F>
 where
 	F: ?Sized + EffectRun,
 {
-	fn into_subscriber(self) -> Subscriber {
-		Subscriber {
-			effect: effect_value.unsize(),
-		}
+	fn into_subscriber(self) -> WeakEffect {
+		effect_value.unsize()
 	}
 }
 
@@ -443,7 +399,7 @@ impl Drop for TriggerExec {
 		// If we were the last, keep popping effects and running them until
 		// the run queue is empty
 		while let Some((subscriber, info)) = run_queue::pop() {
-			let Some(effect) = subscriber.effect.upgrade() else {
+			let Some(effect) = subscriber.upgrade() else {
 				continue;
 			};
 
