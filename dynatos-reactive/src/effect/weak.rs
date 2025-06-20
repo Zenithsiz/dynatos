@@ -20,6 +20,14 @@ pub struct WeakEffect<F: ?Sized = dyn EffectRun> {
 	pub(super) inner: Weak<Inner<F>>,
 }
 
+impl<F> WeakEffect<F> {
+	/// Creates an empty weak effect
+	#[must_use]
+	pub const fn new() -> Self {
+		Self { inner: Weak::new() }
+	}
+}
+
 impl<F: ?Sized> WeakEffect<F> {
 	/// Upgrades this effect
 	#[must_use]
@@ -81,6 +89,12 @@ impl<F: ?Sized> WeakEffect<F> {
 				inner: Weak::<Inner<!>>::new(),
 			},
 		}
+	}
+}
+
+impl<F> Default for WeakEffect<F> {
+	fn default() -> Self {
+		Self::new()
 	}
 }
 
