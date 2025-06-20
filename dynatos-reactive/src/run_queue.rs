@@ -3,7 +3,7 @@
 // Imports
 use {
 	crate::{
-		trigger::{IntoSubscriber, SubscriberInfo},
+		trigger::{IntoSubscriber, TriggerEffectInfo},
 		WeakEffect,
 	},
 	core::{
@@ -20,7 +20,7 @@ struct Item {
 	subscriber: WeakEffect,
 
 	/// Info
-	info: SubscriberInfo,
+	info: TriggerEffectInfo,
 }
 
 impl PartialEq for Item {
@@ -107,7 +107,7 @@ pub fn dec_ref() -> Option<ExecGuard> {
 }
 
 /// Pushes a subscriber to the queue.
-pub fn push<S: IntoSubscriber>(subscriber: S, info: SubscriberInfo) {
+pub fn push<S: IntoSubscriber>(subscriber: S, info: TriggerEffectInfo) {
 	let mut inner = RUN_QUEUE.borrow_mut();
 
 	let next = Reverse(inner.next);
@@ -122,7 +122,7 @@ pub fn push<S: IntoSubscriber>(subscriber: S, info: SubscriberInfo) {
 }
 
 /// Pops a subscriber from the front of the queue
-pub fn pop() -> Option<(WeakEffect, SubscriberInfo)> {
+pub fn pop() -> Option<(WeakEffect, TriggerEffectInfo)> {
 	let (item, _) = RUN_QUEUE.borrow_mut().queue.pop()?;
 	Some((item.subscriber, item.info))
 }

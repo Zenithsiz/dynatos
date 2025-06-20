@@ -23,65 +23,78 @@ use {
 	std::collections::HashSet,
 };
 
-/// Subscriber info
+/// Subscriber / Dependency info
 // TODO: Make cloning this cheap by wrapping it in an `Arc` or something.
 #[derive(Clone, Debug)]
-pub struct SubscriberInfo {
+pub struct TriggerEffectInfo {
 	#[cfg(debug_assertions)]
-	/// Where this subscriber was defined
+	/// Where this subscriber / dependency was defined
 	defined_locs: HashSet<&'static Location<'static>>,
 }
 
-impl SubscriberInfo {
-	/// Creates new subscriber info.
+#[cfg_attr(
+	not(debug_assertions),
+	expect(
+		clippy::missing_const_for_fn,
+		reason = "It can't be a `const fn` with `debug_assertions`"
+	)
+)]
+impl TriggerEffectInfo {
+	/// Creates new info.
 	#[track_caller]
-	#[cfg_attr(
-		not(debug_assertions),
-		expect(
-			clippy::missing_const_for_fn,
-			reason = "It can't be a `const fn` with `debug_assertions`"
-		)
-	)]
 	#[must_use]
 	pub fn new() -> Self {
+		Self::new_with(
+			#[cfg(debug_assertions)]
+			Location::caller(),
+		)
+	}
+
+	/// Creates new info with the caller location
+	#[must_use]
+	pub fn new_with(#[cfg(debug_assertions)] caller_loc: &'static Location<'static>) -> Self {
 		Self {
 			#[cfg(debug_assertions)]
-			defined_locs:                          iter::once(Location::caller()).collect(),
+			defined_locs:                          iter::once(caller_loc).collect(),
 		}
 	}
 
-	/// Updates this subscriber info
+	/// Updates this info
 	#[track_caller]
-	#[cfg_attr(
-		not(debug_assertions),
-		expect(
-			clippy::missing_const_for_fn,
-			reason = "We use it in a non-const way with `debug_assertions`"
-		)
-	)]
 	pub fn update(&mut self) {
+		self.update_with(
+			#[cfg(debug_assertions)]
+			Location::caller(),
+		);
+	}
+
+	/// Updates this info with the caller location
+	pub fn update_with(&mut self, #[cfg(debug_assertions)] caller_loc: &'static Location<'static>) {
 		#[cfg(debug_assertions)]
-		self.defined_locs.insert(Location::caller());
+		self.defined_locs.insert(caller_loc);
 	}
 }
 
-impl Default for SubscriberInfo {
+impl Default for TriggerEffectInfo {
 	fn default() -> Self {
 		Self::new()
 	}
 }
 
 /// Trigger inner
+#[cfg_attr(
+	not(debug_assertions),
+	expect(
+		clippy::zero_sized_map_values,
+		reason = "They aren't zero-sized with `debug_assertions`"
+	)
+)]
 struct Inner {
+	/// Dependencies
+	dependencies: RefCell<HashMap<WeakEffect, TriggerEffectInfo>>,
+
 	/// Subscribers
-	#[cfg_attr(
-		not(debug_assertions),
-		expect(
-			clippy::zero_sized_map_values,
-			reason = "It isn't zero-sized with `debug_assertions`"
-		)
-	)]
-	subscribers: RefCell<HashMap<WeakEffect, SubscriberInfo>>,
+	subscribers: RefCell<HashMap<WeakEffect, TriggerEffectInfo>>,
 
 	#[cfg(debug_assertions)]
 	/// Where this trigger was defined
@@ -99,14 +112,15 @@ impl Trigger {
 	#[must_use]
 	#[track_caller]
 	pub fn new() -> Self {
+		#[cfg_attr(
+			not(debug_assertions),
+			expect(
+				clippy::zero_sized_map_values,
+				reason = "They aren't zero-sized with `debug_assertions`"
+			)
+		)]
 		let inner = Inner {
-			#[cfg_attr(
-				not(debug_assertions),
-				expect(
-					clippy::zero_sized_map_values,
-					reason = "It isn't zero-sized with `debug_assertions`"
-				)
-			)]
+			dependencies: RefCell::new(HashMap::new()),
 			subscribers: RefCell::new(HashMap::new()),
 			#[cfg(debug_assertions)]
 			defined_loc: Location::caller(),
@@ -120,6 +134,12 @@ impl Trigger {
 		WeakTrigger {
 			inner: Rc::downgrade(&self.inner),
 		}
+	}
+
+	/// Returns where this effect was defined
+	#[cfg(debug_assertions)]
+	pub(crate) fn defined_loc(&self) -> &'static Location<'static> {
+		self.inner.defined_loc
 	}
 
 	/// Returns the pointer of this effect
@@ -178,7 +198,34 @@ impl Trigger {
 				true
 			},
 			hash_map::Entry::Vacant(entry) => {
-				entry.insert(SubscriberInfo::new());
+				entry.insert(TriggerEffectInfo::new());
+				false
+			},
+		}
+	}
+
+	/// Adds a dependency to this trigger.
+	///
+	/// Returns if the dependency already existed.
+	fn add_dependency(
+		&self,
+		dependency: WeakEffect,
+		#[cfg(debug_assertions)] caller_loc: &'static Location<'static>,
+	) -> bool {
+		let mut dependencies = self.inner.dependencies.borrow_mut();
+		match (*dependencies).entry(dependency) {
+			hash_map::Entry::Occupied(mut entry) => {
+				entry.get_mut().update_with(
+					#[cfg(debug_assertions)]
+					caller_loc,
+				);
+				true
+			},
+			hash_map::Entry::Vacant(entry) => {
+				entry.insert(TriggerEffectInfo::new_with(
+					#[cfg(debug_assertions)]
+					caller_loc,
+				));
 				false
 			},
 		}
@@ -230,10 +277,17 @@ impl Trigger {
 	}
 
 	/// Inner function for [`Self::exec`]
-	pub(crate) fn exec_inner(
-		&self,
-		#[cfg(debug_assertions)] exec_defined_loc: &'static Location<'static>,
-	) -> TriggerExec {
+	pub(crate) fn exec_inner(&self, #[cfg(debug_assertions)] caller_loc: &'static Location<'static>) -> TriggerExec {
+		// If there's a running effect, register it as our dependency
+		if let Some(effect) = effect::running() {
+			effect.add_subscriber(self.downgrade());
+			self.add_dependency(
+				effect.downgrade(),
+				#[cfg(debug_assertions)]
+				caller_loc,
+			);
+		}
+
 		let subscribers = self.inner.subscribers.borrow();
 
 		// Increase the ref count
@@ -260,9 +314,9 @@ impl Trigger {
 
 		TriggerExec {
 			#[cfg(debug_assertions)]
-			trigger_defined_loc: self.inner.defined_loc,
+			trigger_defined_loc:                          self.inner.defined_loc,
 			#[cfg(debug_assertions)]
-			exec_defined_loc,
+			exec_defined_loc:                             caller_loc,
 		}
 	}
 
@@ -276,6 +330,74 @@ impl Trigger {
 
 		#[cfg(debug_assertions)]
 		s.field_with("defined_loc", |f| fmt::Display::fmt(self.inner.defined_loc, f));
+
+		s.field_with("dependencies", |f| {
+			Self::fmt_debug_effect_map(f, &self.inner.dependencies)
+		});
+		s.field_with("subscribers", |f| {
+			Self::fmt_debug_effect_map(f, &self.inner.subscribers)
+		});
+
+		s.finish()
+	}
+
+	/// Formats an effect hashmap (dependencies / subscribers) into `f`.
+	fn fmt_debug_effect_map(
+		f: &mut fmt::Formatter<'_>,
+		map: &RefCell<HashMap<WeakEffect, TriggerEffectInfo>>,
+	) -> Result<(), fmt::Error> {
+		#[cfg(debug_assertions)]
+		let mut s = f.debug_map();
+		#[cfg(not(debug_assertions))]
+		let mut s = f.debug_list();
+
+		let Ok(deps) = map.try_borrow() else {
+			return s.finish_non_exhaustive();
+		};
+		#[expect(clippy::iter_over_hash_type, reason = "We don't care about the order")]
+		for (dep, info) in &*deps {
+			#[cfg(not(debug_assertions))]
+			let _ = info;
+
+			let Some(effect) = dep.upgrade() else {
+				#[cfg(debug_assertions)]
+				s.entry(&"<...>", info);
+
+				#[cfg(not(debug_assertions))]
+				s.entry_with(|f| {
+					fmt::Pointer::fmt(&dep.inner_ptr(), f)?;
+					f.write_str(" (dead)")
+				});
+
+				continue;
+			};
+
+			#[cfg(debug_assertions)]
+			s.key_with(|f| fmt::Display::fmt(&effect.defined_loc(), f))
+				.value_with(|f| Self::fmt_debug_effect_info(f, info));
+
+			#[cfg(not(debug_assertions))]
+			s.entry_with(|f| fmt::Pointer::fmt(&effect.inner_ptr(), f));
+		}
+
+		s.finish()
+	}
+
+	/// Formats an effect info into `f`.
+	#[cfg(debug_assertions)]
+	fn fmt_debug_effect_info(f: &mut fmt::Formatter<'_>, info: &TriggerEffectInfo) -> Result<(), fmt::Error> {
+		let mut s = f.debug_struct("Info");
+
+		s.field_with("defined_locs", |f| {
+			let mut s = f.debug_list();
+
+			#[expect(clippy::iter_over_hash_type, reason = "We don't care about order for debugging")]
+			for &loc in &info.defined_locs {
+				s.entry_with(|f| fmt::Display::fmt(loc, f));
+			}
+
+			s.finish()
+		});
 
 		s.finish()
 	}
@@ -433,7 +555,7 @@ impl Drop for TriggerExec {
 
 
 			#[cfg(not(debug_assertions))]
-			let _: SubscriberInfo = info;
+			let _: TriggerEffectInfo = info;
 
 			effect.run();
 		}

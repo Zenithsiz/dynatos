@@ -49,6 +49,9 @@ pub struct Inner<F: ?Sized> {
 	/// All dependencies of this effect
 	dependencies: RefCell<HashSet<WeakTrigger>>,
 
+	/// All subscribers to this effect
+	subscribers: RefCell<HashSet<WeakTrigger>>,
+
 	/// Effect runner
 	run: F,
 }
@@ -98,6 +101,7 @@ impl<F> Effect<F> {
 			#[cfg(debug_assertions)]
 			defined_loc: Location::caller(),
 			dependencies: RefCell::new(HashSet::new()),
+			subscribers: RefCell::new(HashSet::new()),
 			run,
 		};
 
@@ -228,6 +232,11 @@ impl<F: ?Sized> Effect<F> {
 		self.inner.dependencies.borrow_mut().insert(trigger);
 	}
 
+	/// Adds a subscriber to this effect
+	pub(crate) fn add_subscriber(&self, trigger: WeakTrigger) {
+		self.inner.subscribers.borrow_mut().insert(trigger);
+	}
+
 	/// Formats this effect into `s`
 	fn fmt_debug(&self, mut s: fmt::DebugStruct<'_, '_>) -> Result<(), fmt::Error> {
 		s.field_with("inner", |f| fmt::Pointer::fmt(&self.inner_ptr(), f));
@@ -238,23 +247,39 @@ impl<F: ?Sized> Effect<F> {
 		s.field_with("defined_loc", |f| fmt::Display::fmt(self.inner.defined_loc, f));
 
 		s.field_with("dependencies", |f| {
-			let mut s = f.debug_list();
-
-			let Ok(deps) = self.inner.dependencies.try_borrow() else {
-				return s.finish_non_exhaustive();
-			};
-			#[expect(clippy::iter_over_hash_type, reason = "We don't care about the order")]
-			for dep in &*deps {
-				let Some(trigger) = dep.upgrade() else {
-					s.entry(&"<...>");
-					continue;
-				};
-
-				s.entry(&trigger);
-			}
-
-			s.finish()
+			Self::fmt_debug_trigger_set(f, &self.inner.dependencies)
 		});
+		s.field_with("subscribers", |f| {
+			Self::fmt_debug_trigger_set(f, &self.inner.subscribers)
+		});
+
+		s.finish()
+	}
+
+	/// Formats a trigger hashset (dependencies / subscribers) into `f`.
+	fn fmt_debug_trigger_set(
+		f: &mut fmt::Formatter<'_>,
+		set: &RefCell<HashSet<WeakTrigger>>,
+	) -> Result<(), fmt::Error> {
+		let mut s = f.debug_list();
+
+		let Ok(deps) = set.try_borrow() else {
+			return s.finish_non_exhaustive();
+		};
+
+		#[expect(clippy::iter_over_hash_type, reason = "We don't care about the order")]
+		for dep in &*deps {
+			let Some(trigger) = dep.upgrade() else {
+				s.entry(&"<...>");
+				continue;
+			};
+
+			#[cfg(debug_assertions)]
+			s.entry_with(|f| fmt::Display::fmt(&trigger.defined_loc(), f));
+
+			#[cfg(not(debug_assertions))]
+			s.entry_with(|f| fmt::Pointer::fmt(&trigger.inner_ptr(), f));
+		}
 
 		s.finish()
 	}
