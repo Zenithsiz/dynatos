@@ -44,6 +44,24 @@ fn breadth_first() {
 }
 
 #[test]
+fn multiple() {
+	let a = Trigger::new();
+
+	#[thread_local]
+	static COUNT: Cell<usize> = Cell::new(0);
+	#[cloned(a)]
+	let _effect = Effect::new(move || {
+		a.gather_subscribers();
+		a.gather_subscribers();
+		COUNT.set(COUNT.get() + 1);
+	});
+
+	assert_eq!(COUNT.get(), 1);
+	a.exec();
+	assert_eq!(COUNT.get(), 2, "Effect was run multiple times");
+}
+
+#[test]
 fn order() {
 	// a1╶─🭬a2╶─┬─🭬c
 	//       b╶─┘
