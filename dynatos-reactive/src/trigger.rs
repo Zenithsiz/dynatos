@@ -582,6 +582,7 @@ mod tests {
 		super::*,
 		core::{array, cell::Cell, mem},
 		test::Bencher,
+		zutil_cloned::cloned,
 	};
 
 	#[test]
@@ -590,28 +591,23 @@ mod tests {
 		#[thread_local]
 		static TRIGGERS: Cell<usize> = Cell::new(0);
 
-		// Create the effect
-		let effect = Effect::new(move || TRIGGERS.set(TRIGGERS.get() + 1));
-
-		// Then create the trigger, and ensure it wasn't triggered
-		// by just creating it and adding the subscriber
 		let trigger = Trigger::new();
-		trigger.add_subscriber(&effect);
+		#[cloned(trigger)]
+		let effect = Effect::new(move || {
+			trigger.gather_subscribers();
+			TRIGGERS.set(TRIGGERS.get() + 1);
+		});
+
 		assert_eq!(TRIGGERS.get(), 1, "Trigger was triggered early");
 
 		// Then trigger and ensure it was triggered
 		trigger.exec();
 		assert_eq!(TRIGGERS.get(), 2, "Trigger was not triggered");
 
-		// Then add the subscriber again and ensure the effect isn't run twice
-		trigger.add_subscriber(&effect);
-		trigger.exec();
-		assert_eq!(TRIGGERS.get(), 3, "Trigger ran effect multiple times");
-
 		// Finally drop the effect and try again
 		mem::drop(effect);
 		trigger.exec();
-		assert_eq!(TRIGGERS.get(), 3, "Trigger was triggered after effect was dropped");
+		assert_eq!(TRIGGERS.get(), 2, "Trigger was triggered after effect was dropped");
 	}
 
 	#[test]
@@ -620,10 +616,12 @@ mod tests {
 		#[thread_local]
 		static TRIGGERS: Cell<usize> = Cell::new(0);
 
-		let effect = Effect::new(move || TRIGGERS.set(TRIGGERS.get() + 1));
-
 		let trigger = Trigger::new();
-		trigger.add_subscriber(&effect);
+		#[cloned(trigger)]
+		let _effect = Effect::new(move || {
+			trigger.gather_subscribers();
+			TRIGGERS.set(TRIGGERS.get() + 1);
+		});
 
 		let exec0 = trigger.exec();
 		assert_eq!(TRIGGERS.get(), 1, "Trigger was triggered when executing");
@@ -650,13 +648,14 @@ mod tests {
 		#[thread_local]
 		static TRIGGERS: Cell<usize> = Cell::new(0);
 
-		let effect = Effect::new(move || TRIGGERS.set(TRIGGERS.get() + 1));
-
 		let trigger0 = Trigger::new();
-		trigger0.add_subscriber(&effect);
-
 		let trigger1 = Trigger::new();
-		trigger1.add_subscriber(&effect);
+		#[cloned(trigger0, trigger1)]
+		let _effect = Effect::new(move || {
+			trigger0.gather_subscribers();
+			trigger1.gather_subscribers();
+			TRIGGERS.set(TRIGGERS.get() + 1);
+		});
 
 		let exec0 = trigger0.exec();
 		let exec1 = trigger1.exec();
@@ -688,10 +687,12 @@ mod tests {
 	/// Benches triggering a trigger with `N` no-op effects.
 	fn trigger_noop_n<const N: usize>(bencher: &mut Bencher) {
 		let trigger = Trigger::new();
-		let effects = array::from_fn::<_, N, _>(|_| Effect::new(|| ()));
-		for effect in &effects {
-			trigger.add_subscriber(effect);
-		}
+		let _effects = array::from_fn::<_, N, _>(|_| {
+			Effect::new(
+				#[cloned(trigger)]
+				move || trigger.gather_subscribers(),
+			)
+		});
 
 		bencher.iter(|| {
 			trigger.exec();
