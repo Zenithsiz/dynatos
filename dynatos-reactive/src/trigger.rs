@@ -445,11 +445,23 @@ pub struct WeakTrigger {
 }
 
 impl WeakTrigger {
+	/// Creates an empty weak trigger
+	#[must_use]
+	pub const fn new() -> Self {
+		Self { inner: Weak::new() }
+	}
+
 	/// Upgrades this weak trigger
 	#[must_use]
 	pub fn upgrade(&self) -> Option<Trigger> {
 		let inner = self.inner.upgrade()?;
 		Some(Trigger { inner })
+	}
+}
+
+impl Default for WeakTrigger {
+	fn default() -> Self {
+		Self::new()
 	}
 }
 
