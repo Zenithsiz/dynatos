@@ -122,6 +122,14 @@ impl Trigger {
 		}
 	}
 
+	/// Returns the pointer of this effect
+	///
+	/// This can be used for creating maps based on equality
+	#[must_use]
+	pub fn inner_ptr(&self) -> *const () {
+		Rc::as_ptr(&self.inner).cast()
+	}
+
 	/// Gathers all effects depending on this trigger.
 	///
 	/// When triggering this trigger, all effects active during this gathering
