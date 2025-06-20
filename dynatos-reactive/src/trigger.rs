@@ -272,10 +272,12 @@ impl Trigger {
 		expect(clippy::unused_self, reason = "We use it in with `debug_assertions`")
 	)]
 	fn fmt_debug(&self, mut s: fmt::DebugStruct<'_, '_>) -> Result<(), fmt::Error> {
+		s.field_with("inner", |f| fmt::Pointer::fmt(&self.inner_ptr(), f));
+
 		#[cfg(debug_assertions)]
 		s.field_with("defined_loc", |f| fmt::Display::fmt(self.inner.defined_loc, f));
 
-		s.finish_non_exhaustive()
+		s.finish()
 	}
 }
 

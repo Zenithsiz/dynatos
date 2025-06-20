@@ -230,6 +230,8 @@ impl<F: ?Sized> Effect<F> {
 
 	/// Formats this effect into `s`
 	fn fmt_debug(&self, mut s: fmt::DebugStruct<'_, '_>) -> Result<(), fmt::Error> {
+		s.field_with("inner", |f| fmt::Pointer::fmt(&self.inner_ptr(), f));
+
 		s.field("suppressed", &self.inner.suppressed.get());
 
 		#[cfg(debug_assertions)]
@@ -254,7 +256,7 @@ impl<F: ?Sized> Effect<F> {
 			s.finish()
 		});
 
-		s.finish_non_exhaustive()
+		s.finish()
 	}
 
 	/// Unsizes this value into an `Effect`.
