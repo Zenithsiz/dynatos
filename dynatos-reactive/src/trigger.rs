@@ -162,6 +162,14 @@ impl Trigger {
 	pub fn gather_subscribers(&self) {
 		match effect::running() {
 			Some(effect) => {
+				#[cfg(debug_assertions)]
+				tracing::trace!(
+					"Adding effect dependency\nEffect  : {}\nTrigger : {}\nGathered: {}",
+					effect.defined_loc(),
+					self.defined_loc(),
+					Location::caller(),
+				);
+
 				effect.add_dependency(self.downgrade());
 				self.add_subscriber(effect);
 			},
@@ -280,6 +288,14 @@ impl Trigger {
 	pub(crate) fn exec_inner(&self, #[cfg(debug_assertions)] caller_loc: &'static Location<'static>) -> TriggerExec {
 		// If there's a running effect, register it as our dependency
 		if let Some(effect) = effect::running() {
+			#[cfg(debug_assertions)]
+			tracing::trace!(
+				"Adding effect subscriber\nEffect  : {}\nTrigger : {}\nExecuted: {}",
+				effect.defined_loc(),
+				self.defined_loc(),
+				caller_loc,
+			);
+
 			effect.add_subscriber(self.downgrade());
 			self.add_dependency(
 				effect.downgrade(),
