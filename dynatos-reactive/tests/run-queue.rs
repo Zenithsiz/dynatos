@@ -1,11 +1,14 @@
 //! Run queue tests
 
 // Features
-#![feature(thread_local, proc_macro_hygiene, stmt_expr_attributes)]
+#![feature(thread_local, proc_macro_hygiene, stmt_expr_attributes, array_windows)]
 
 // Imports
 use {
-	core::cell::{Cell, RefCell},
+	core::{
+		cell::{Cell, RefCell},
+		iter,
+	},
 	dynatos_reactive::{Derived, Effect, Signal, SignalBorrowMut, SignalGet, Trigger},
 	zutil_cloned::cloned,
 };
@@ -63,35 +66,45 @@ fn multiple() {
 
 #[test]
 fn order() {
-	// a1╶─🭬a2╶─┬─🭬c
-	//       b╶─┘
-	let a1 = Trigger::new();
-	let a2 = Trigger::new();
+	// a1╶─🭬a2╶─🭬aN-1╶─🭬aN╶─┬─🭬c
+	//                  b╶──┘
+	let a = iter::repeat_with(Trigger::new).take(3).collect::<Vec<_>>();
 	let b = Trigger::new();
 
-	#[cloned(a1, a2)]
-	let _a1_to_2 = Effect::new(move || {
-		a1.gather_subscribers();
-		a2.exec();
-	});
+	let a_first = a.first().expect("Empty `a`s").clone();
+	let a_last = a.last().expect("Empty `a`s").clone();
+
+	#[expect(clippy::redundant_clone, reason = "False positive")]
+	let _a_effects = a
+		.array_windows()
+		.cloned()
+		.map(move |[lhs, rhs]| {
+			assert_ne!(lhs, rhs);
+			Effect::new(move || {
+				lhs.gather_subscribers();
+				rhs.exec();
+			})
+		})
+		.collect::<Vec<_>>();
 
 	#[thread_local]
 	static COUNT: Cell<usize> = Cell::new(0);
 
 	#[cloned(b)]
 	let _c = Effect::new(move || {
-		a2.gather_subscribers();
+		a_last.gather_subscribers();
 		b.gather_subscribers();
 		COUNT.set(COUNT.get() + 1);
 	});
 
 	assert_eq!(COUNT.get(), 1);
 
-	drop((a1.exec(), b.exec()));
-	assert_eq!(COUNT.get(), 2);
+	// TODO: Can we make this `2,3` by recursively
+	//       checking the dependencies?
 
-	// TODO: Can we make this `3` by creating
-	//       a full dependency graph?
-	drop((b.exec(), a1.exec()));
-	assert_eq!(COUNT.get(), 4);
+	drop((a_first.exec(), b.exec()));
+	assert_eq!(COUNT.get(), 3);
+
+	drop((b.exec(), a_first.exec()));
+	assert_eq!(COUNT.get(), 5);
 }
