@@ -244,14 +244,17 @@ impl Trigger {
 	/// Returns if the subscriber existed
 	#[track_caller]
 	pub(crate) fn remove_subscriber<S: IntoSubscriber>(&self, subscriber: S) -> bool {
-		Self::remove_subscriber_inner(&self.inner, subscriber)
+		let mut subscribers = self.inner.subscribers.borrow_mut();
+		subscribers.remove(&subscriber.into_subscriber()).is_some()
 	}
 
-	/// Inner function for [`Self::remove_subscriber`]
+	/// Removes a dependency from this trigger.
+	///
+	/// Returns if the dependency existed
 	#[track_caller]
-	fn remove_subscriber_inner<S: IntoSubscriber>(inner: &Inner, subscriber: S) -> bool {
-		let mut subscribers = inner.subscribers.borrow_mut();
-		subscribers.remove(&subscriber.into_subscriber()).is_some()
+	pub(crate) fn remove_dependency(&self, dependency: &WeakEffect) -> bool {
+		let mut dependencies = self.inner.dependencies.borrow_mut();
+		dependencies.remove(dependency).is_some()
 	}
 
 	/// Executes this trigger.

@@ -209,6 +209,11 @@ impl<F: ?Sized> Effect<F> {
 			let Some(trigger) = dep.upgrade() else { continue };
 			trigger.remove_subscriber(self.downgrade());
 		}
+		#[expect(clippy::iter_over_hash_type, reason = "We don't care about the order here")]
+		for dep in self.inner.subscribers.borrow_mut().drain() {
+			let Some(trigger) = dep.upgrade() else { continue };
+			trigger.remove_dependency(&self.downgrade().unsize());
+		}
 
 		// Otherwise, run it
 		let ctx = EffectRunCtx::new();
