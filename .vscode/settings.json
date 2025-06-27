@@ -7,6 +7,7 @@
 		"itertools",
 		"loadables",
 		"metavar",
+		"petgraph",
 		"popstate",
 		"qself",
 		"scopeguard",

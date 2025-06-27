@@ -37,6 +37,7 @@
 
 // Modules
 pub mod async_signal;
+pub mod dep_graph;
 pub mod derived;
 pub mod effect;
 pub mod effect_stack;

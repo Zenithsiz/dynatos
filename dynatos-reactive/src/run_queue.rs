@@ -1,8 +1,11 @@
 //! Run queue
 
+// TODO: We should coordinate with the dependency graph to ensure we don't
+//       run effects unnecessarily.
+
 // Imports
 use {
-	crate::{trigger::TriggerEffectInfo, WeakEffect},
+	crate::{dep_graph::EffectDepInfo, WeakEffect},
 	core::{
 		cell::{LazyCell, RefCell},
 		cmp::Reverse,
@@ -14,10 +17,11 @@ use {
 /// Inner item for the priority queue
 struct Item {
 	/// Subscriber
+	// TODO: Should the run queue use strong effects?
 	subscriber: WeakEffect,
 
 	/// Info
-	info: TriggerEffectInfo,
+	info: Vec<EffectDepInfo>,
 }
 
 impl PartialEq for Item {
@@ -104,7 +108,7 @@ pub fn dec_ref() -> Option<ExecGuard> {
 }
 
 /// Pushes a subscriber to the queue.
-pub fn push(subscriber: WeakEffect, info: TriggerEffectInfo) {
+pub fn push(subscriber: WeakEffect, info: Vec<EffectDepInfo>) {
 	let mut inner = RUN_QUEUE.borrow_mut();
 
 	let next = Reverse(inner.next);
@@ -113,7 +117,7 @@ pub fn push(subscriber: WeakEffect, info: TriggerEffectInfo) {
 }
 
 /// Pops a subscriber from the front of the queue
-pub fn pop() -> Option<(WeakEffect, TriggerEffectInfo)> {
+pub fn pop() -> Option<(WeakEffect, Vec<EffectDepInfo>)> {
 	let (item, _) = RUN_QUEUE.borrow_mut().queue.pop()?;
 	Some((item.subscriber, item.info))
 }

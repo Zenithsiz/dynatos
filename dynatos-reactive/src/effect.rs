@@ -24,16 +24,16 @@ pub use self::{
 #[cfg(debug_assertions)]
 use core::panic::Location;
 use {
-	crate::{effect_stack, WeakTrigger},
+	crate::{dep_graph, effect_stack},
 	core::{
-		cell::{Cell, RefCell},
+		cell::Cell,
 		fmt,
 		hash::{Hash, Hasher},
 		marker::Unsize,
 		ops::{CoerceUnsized, Deref},
 		ptr,
 	},
-	std::{collections::HashSet, rc::Rc},
+	std::rc::Rc,
 };
 
 /// Effect inner
@@ -45,12 +45,6 @@ pub struct Inner<F: ?Sized> {
 	#[cfg(debug_assertions)]
 	/// Where this effect was defined
 	defined_loc: &'static Location<'static>,
-
-	/// All dependencies of this effect
-	dependencies: RefCell<HashSet<WeakTrigger>>,
-
-	/// All subscribers to this effect
-	subscribers: RefCell<HashSet<WeakTrigger>>,
 
 	/// Effect runner
 	run: F,
@@ -100,8 +94,6 @@ impl<F> Effect<F> {
 			suppressed: Cell::new(false),
 			#[cfg(debug_assertions)]
 			defined_loc: Location::caller(),
-			dependencies: RefCell::new(HashSet::new()),
-			subscribers: RefCell::new(HashSet::new()),
 			run,
 		};
 
@@ -203,19 +195,10 @@ impl<F: ?Sized> Effect<F> {
 			return;
 		}
 
-		// Clear the dependencies before running
-		#[expect(clippy::iter_over_hash_type, reason = "We don't care about the order here")]
-		for dep in self.inner.dependencies.borrow_mut().drain() {
-			let Some(trigger) = dep.upgrade() else { continue };
-			trigger.remove_subscriber(&self.downgrade().unsize());
-		}
-		#[expect(clippy::iter_over_hash_type, reason = "We don't care about the order here")]
-		for dep in self.inner.subscribers.borrow_mut().drain() {
-			let Some(trigger) = dep.upgrade() else { continue };
-			trigger.remove_dependency(&self.downgrade().unsize());
-		}
+		// Clear the dependencies/subscribers before running
+		dep_graph::clear_effect(self);
 
-		// Otherwise, run it
+		// Then run it
 		let ctx = EffectRunCtx::new();
 		let _gatherer = self.deps_gatherer();
 		self.inner.run.run(ctx);
@@ -232,16 +215,6 @@ impl<F: ?Sized> Effect<F> {
 		self.inner.suppressed.get()
 	}
 
-	/// Adds a dependency to this effect
-	pub(crate) fn add_dependency(&self, trigger: WeakTrigger) {
-		self.inner.dependencies.borrow_mut().insert(trigger);
-	}
-
-	/// Adds a subscriber to this effect
-	pub(crate) fn add_subscriber(&self, trigger: WeakTrigger) {
-		self.inner.subscribers.borrow_mut().insert(trigger);
-	}
-
 	/// Formats this effect into `s`
 	fn fmt_debug(&self, mut s: fmt::DebugStruct<'_, '_>) -> Result<(), fmt::Error> {
 		s.field_with("inner", |f| fmt::Pointer::fmt(&self.inner_ptr(), f));
@@ -250,41 +223,6 @@ impl<F: ?Sized> Effect<F> {
 
 		#[cfg(debug_assertions)]
 		s.field_with("defined_loc", |f| fmt::Display::fmt(self.inner.defined_loc, f));
-
-		s.field_with("dependencies", |f| {
-			Self::fmt_debug_trigger_set(f, &self.inner.dependencies)
-		});
-		s.field_with("subscribers", |f| {
-			Self::fmt_debug_trigger_set(f, &self.inner.subscribers)
-		});
-
-		s.finish()
-	}
-
-	/// Formats a trigger hashset (dependencies / subscribers) into `f`.
-	fn fmt_debug_trigger_set(
-		f: &mut fmt::Formatter<'_>,
-		set: &RefCell<HashSet<WeakTrigger>>,
-	) -> Result<(), fmt::Error> {
-		let mut s = f.debug_list();
-
-		let Ok(deps) = set.try_borrow() else {
-			return s.finish_non_exhaustive();
-		};
-
-		#[expect(clippy::iter_over_hash_type, reason = "We don't care about the order")]
-		for dep in &*deps {
-			let Some(trigger) = dep.upgrade() else {
-				s.entry(&"<...>");
-				continue;
-			};
-
-			#[cfg(debug_assertions)]
-			s.entry_with(|f| fmt::Display::fmt(&trigger.defined_loc(), f));
-
-			#[cfg(not(debug_assertions))]
-			s.entry_with(|f| fmt::Pointer::fmt(&trigger.inner_ptr(), f));
-		}
 
 		s.finish()
 	}
