@@ -7,7 +7,6 @@ use {
 		hash::{Hash, Hasher},
 		marker::Unsize,
 		ops::CoerceUnsized,
-		ptr,
 	},
 	std::rc::{Rc, Weak},
 };
@@ -35,12 +34,12 @@ impl<F: ?Sized> WeakEffect<F> {
 		self.inner.upgrade().map(|inner| Effect { inner })
 	}
 
-	/// Returns the pointer of this effect
+	/// Returns a unique identifier to this effect.
 	///
-	/// This can be used for creating maps based on equality
+	/// Upgrading and cloning the effect will retain the same id
 	#[must_use]
-	pub fn inner_ptr(&self) -> *const () {
-		Weak::as_ptr(&self.inner).cast()
+	pub fn id(&self) -> usize {
+		Weak::as_ptr(&self.inner).addr()
 	}
 
 	/// Runs this effect, if it exists.
@@ -100,7 +99,7 @@ impl<F> Default for WeakEffect<F> {
 
 impl<F1: ?Sized, F2: ?Sized> PartialEq<WeakEffect<F2>> for WeakEffect<F1> {
 	fn eq(&self, other: &WeakEffect<F2>) -> bool {
-		ptr::eq(self.inner_ptr(), other.inner_ptr())
+		self.id() == other.id()
 	}
 }
 
@@ -117,7 +116,7 @@ impl<F: ?Sized> Clone for WeakEffect<F> {
 
 impl<F: ?Sized> Hash for WeakEffect<F> {
 	fn hash<H: Hasher>(&self, state: &mut H) {
-		self.inner_ptr().hash(state);
+		self.id().hash(state);
 	}
 }
 

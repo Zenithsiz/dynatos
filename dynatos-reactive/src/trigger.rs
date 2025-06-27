@@ -12,7 +12,6 @@ use {
 		cell::LazyCell,
 		fmt,
 		hash::{Hash, Hasher},
-		ptr,
 	},
 	std::rc::{Rc, Weak},
 };
@@ -56,12 +55,12 @@ impl Trigger {
 		self.inner.defined_loc
 	}
 
-	/// Returns the pointer of this effect
+	/// Returns a unique identifier to this trigger.
 	///
-	/// This can be used for creating maps based on equality
+	/// Downgrading and cloning the trigger will retain the same id
 	#[must_use]
-	pub fn inner_ptr(&self) -> *const () {
-		Rc::as_ptr(&self.inner).cast()
+	pub fn id(&self) -> usize {
+		Rc::as_ptr(&self.inner).addr()
 	}
 
 	/// Gathers all effects depending on this trigger.
@@ -167,7 +166,7 @@ impl Trigger {
 
 	/// Formats this trigger into `s`
 	fn fmt_debug(&self, mut s: fmt::DebugStruct<'_, '_>) -> Result<(), fmt::Error> {
-		s.field_with("inner", |f| fmt::Pointer::fmt(&self.inner_ptr(), f));
+		s.field("inner", &self.id());
 
 		#[cfg(debug_assertions)]
 		s.field_with("defined_loc", |f| fmt::Display::fmt(self.inner.defined_loc, f));
@@ -184,7 +183,7 @@ impl Default for Trigger {
 
 impl PartialEq for Trigger {
 	fn eq(&self, other: &Self) -> bool {
-		ptr::eq(Rc::as_ptr(&self.inner), Rc::as_ptr(&other.inner))
+		self.id() == other.id()
 	}
 }
 
@@ -201,7 +200,7 @@ impl Clone for Trigger {
 
 impl Hash for Trigger {
 	fn hash<H: Hasher>(&self, state: &mut H) {
-		Rc::as_ptr(&self.inner).hash(state);
+		self.id().hash(state);
 	}
 }
 
@@ -224,6 +223,14 @@ impl WeakTrigger {
 		Self { inner: Weak::new() }
 	}
 
+	/// Returns a unique identifier to this trigger.
+	///
+	/// Upgrading and cloning the trigger will retain the same id
+	#[must_use]
+	pub fn id(&self) -> usize {
+		Weak::as_ptr(&self.inner).addr()
+	}
+
 	/// Upgrades this weak trigger
 	#[must_use]
 	pub fn upgrade(&self) -> Option<Trigger> {
@@ -240,7 +247,7 @@ impl Default for WeakTrigger {
 
 impl PartialEq for WeakTrigger {
 	fn eq(&self, other: &Self) -> bool {
-		ptr::eq(Weak::as_ptr(&self.inner), Weak::as_ptr(&other.inner))
+		self.id() == other.id()
 	}
 }
 
@@ -256,7 +263,7 @@ impl Clone for WeakTrigger {
 
 impl Hash for WeakTrigger {
 	fn hash<H: Hasher>(&self, state: &mut H) {
-		Weak::as_ptr(&self.inner).hash(state);
+		self.id().hash(state);
 	}
 }
 

@@ -31,7 +31,6 @@ use {
 		hash::{Hash, Hasher},
 		marker::Unsize,
 		ops::{CoerceUnsized, Deref},
-		ptr,
 	},
 	std::rc::Rc,
 };
@@ -147,12 +146,12 @@ impl<F: ?Sized> Effect<F> {
 		Rc::strong_count(&self.inner) == 1 && Rc::weak_count(&self.inner) == 0
 	}
 
-	/// Returns the pointer of this effect
+	/// Returns a unique identifier to this effect.
 	///
-	/// This can be used for creating maps based on equality
+	/// Downgrading and cloning the effect will retain the same id
 	#[must_use]
-	pub fn inner_ptr(&self) -> *const () {
-		Rc::as_ptr(&self.inner).cast()
+	pub fn id(&self) -> usize {
+		Rc::as_ptr(&self.inner).addr()
 	}
 
 	/// Creates an effect dependency gatherer
@@ -217,7 +216,7 @@ impl<F: ?Sized> Effect<F> {
 
 	/// Formats this effect into `s`
 	fn fmt_debug(&self, mut s: fmt::DebugStruct<'_, '_>) -> Result<(), fmt::Error> {
-		s.field_with("inner", |f| fmt::Pointer::fmt(&self.inner_ptr(), f));
+		s.field("id", &self.id());
 
 		s.field("suppressed", &self.inner.suppressed.get());
 
@@ -245,7 +244,7 @@ impl<F: ?Sized> Effect<F> {
 
 impl<F1: ?Sized, F2: ?Sized> PartialEq<Effect<F2>> for Effect<F1> {
 	fn eq(&self, other: &Effect<F2>) -> bool {
-		ptr::eq(self.inner_ptr(), other.inner_ptr())
+		self.id() == other.id()
 	}
 }
 
@@ -261,7 +260,7 @@ impl<F: ?Sized> Clone for Effect<F> {
 
 impl<F: ?Sized> Hash for Effect<F> {
 	fn hash<H: Hasher>(&self, state: &mut H) {
-		Rc::as_ptr(&self.inner).hash(state);
+		self.id().hash(state);
 	}
 }
 

@@ -30,9 +30,9 @@ pub impl js_sys::Object {
 		};
 
 		// Then push the effects
-		let effect_key = effect.inner_ptr();
+		let id = effect.id();
 		let effect = WasmEffect(effect.unsize());
-		effects.set(&effect_key.into(), &effect.into());
+		effects.set(&id.into(), &effect.into());
 	}
 }
 
