@@ -75,6 +75,6 @@ pub use self::{
 		SignalWith,
 		SignalWithDefaultImpl,
 	},
-	trigger::{IntoSubscriber, Trigger, WeakTrigger},
+	trigger::{Trigger, WeakTrigger},
 	with_default::{SignalWithDefault, WithDefault},
 };

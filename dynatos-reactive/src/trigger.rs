@@ -5,7 +5,7 @@
 
 // Imports
 use {
-	crate::{effect, run_queue, Effect, EffectRun, WeakEffect},
+	crate::{effect, run_queue, WeakEffect},
 	core::{
 		cell::{LazyCell, RefCell},
 		fmt,
@@ -171,7 +171,7 @@ impl Trigger {
 				);
 
 				effect.add_dependency(self.downgrade());
-				self.add_subscriber(effect);
+				self.add_subscriber(effect.downgrade().unsize());
 			},
 
 			// TODO: Add some way to turn off this warning at a global
@@ -198,9 +198,9 @@ impl Trigger {
 	///
 	/// Returns if the subscriber already existed.
 	#[track_caller]
-	fn add_subscriber<S: IntoSubscriber>(&self, subscriber: S) -> bool {
+	fn add_subscriber(&self, subscriber: WeakEffect) -> bool {
 		let mut subscribers = self.inner.subscribers.borrow_mut();
-		match (*subscribers).entry(subscriber.into_subscriber()) {
+		match (*subscribers).entry(subscriber) {
 			hash_map::Entry::Occupied(mut entry) => {
 				entry.get_mut().update();
 				true
@@ -243,9 +243,9 @@ impl Trigger {
 	///
 	/// Returns if the subscriber existed
 	#[track_caller]
-	pub(crate) fn remove_subscriber<S: IntoSubscriber>(&self, subscriber: S) -> bool {
+	pub(crate) fn remove_subscriber(&self, subscriber: &WeakEffect) -> bool {
 		let mut subscribers = self.inner.subscribers.borrow_mut();
-		subscribers.remove(&subscriber.into_subscriber()).is_some()
+		subscribers.remove(subscriber).is_some()
 	}
 
 	/// Removes a dependency from this trigger.
@@ -517,30 +517,6 @@ impl fmt::Debug for WeakTrigger {
 	}
 }
 
-/// Types that may be converted into a subscriber
-pub trait IntoSubscriber {
-	/// Converts this type into a weak effect.
-	#[track_caller]
-	fn into_subscriber(self) -> WeakEffect;
-}
-
-#[expect(clippy::allow_attributes, reason = "Only applicable to one of the branches")]
-#[allow(clippy::use_self, reason = "Only applicable in one of the branches")]
-#[duplicate::duplicate_item(
-	T effect_value;
-	[ Effect ] [ self.downgrade() ];
-	[ &'_ Effect ] [ self.downgrade() ];
-	[ WeakEffect ] [ self ];
-)]
-impl<F> IntoSubscriber for T<F>
-where
-	F: ?Sized + EffectRun,
-{
-	fn into_subscriber(self) -> WeakEffect {
-		effect_value.unsize()
-	}
-}
-
 /// Trigger executor
 pub struct TriggerExec {
 	/// Trigger defined location
@@ -599,6 +575,7 @@ mod tests {
 	extern crate test;
 	use {
 		super::*,
+		crate::Effect,
 		core::{array, cell::Cell, mem},
 		test::Bencher,
 		zutil_cloned::cloned,

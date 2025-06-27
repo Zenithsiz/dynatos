@@ -2,10 +2,7 @@
 
 // Imports
 use {
-	crate::{
-		trigger::{IntoSubscriber, TriggerEffectInfo},
-		WeakEffect,
-	},
+	crate::{trigger::TriggerEffectInfo, WeakEffect},
 	core::{
 		cell::{LazyCell, RefCell},
 		cmp::Reverse,
@@ -107,17 +104,11 @@ pub fn dec_ref() -> Option<ExecGuard> {
 }
 
 /// Pushes a subscriber to the queue.
-pub fn push<S: IntoSubscriber>(subscriber: S, info: TriggerEffectInfo) {
+pub fn push(subscriber: WeakEffect, info: TriggerEffectInfo) {
 	let mut inner = RUN_QUEUE.borrow_mut();
 
 	let next = Reverse(inner.next);
-	inner.queue.push_decrease(
-		Item {
-			subscriber: subscriber.into_subscriber(),
-			info,
-		},
-		next,
-	);
+	inner.queue.push_decrease(Item { subscriber, info }, next);
 	inner.next += 1;
 }
 

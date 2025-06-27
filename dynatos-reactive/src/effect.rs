@@ -207,7 +207,7 @@ impl<F: ?Sized> Effect<F> {
 		#[expect(clippy::iter_over_hash_type, reason = "We don't care about the order here")]
 		for dep in self.inner.dependencies.borrow_mut().drain() {
 			let Some(trigger) = dep.upgrade() else { continue };
-			trigger.remove_subscriber(self.downgrade());
+			trigger.remove_subscriber(&self.downgrade().unsize());
 		}
 		#[expect(clippy::iter_over_hash_type, reason = "We don't care about the order here")]
 		for dep in self.inner.subscribers.borrow_mut().drain() {
