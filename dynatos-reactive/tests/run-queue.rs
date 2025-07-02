@@ -68,7 +68,7 @@ fn multiple() {
 fn order() {
 	// a1╶─🭬a2╶─🭬aN-1╶─🭬aN╶─┬─🭬c
 	//                  b╶──┘
-	let a = iter::repeat_with(Trigger::new).take(3).collect::<Vec<_>>();
+	let a = iter::repeat_with(|| Trigger::new()).take(3).collect::<Vec<_>>();
 	let b = Trigger::new();
 
 	let a_first = a.first().expect("Empty `a`s").clone();
