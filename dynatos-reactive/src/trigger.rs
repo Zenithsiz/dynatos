@@ -153,6 +153,8 @@ impl Trigger {
 				return;
 			}
 
+			// Then set the effect as stale and add it to the run queue
+			effect.set_stale();
 			run_queue::push(effect.downgrade(), subscriber_info);
 		});
 

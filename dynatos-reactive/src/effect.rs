@@ -38,6 +38,9 @@ use {
 /// Effect inner
 #[doc(hidden)]
 pub struct Inner<F: ?Sized> {
+	/// Whether this effect is fresh
+	fresh: Cell<bool>,
+
 	/// Whether this effect is currently suppressed
 	suppressed: Cell<bool>,
 
@@ -90,6 +93,7 @@ impl<F> Effect<F> {
 	#[track_caller]
 	pub fn new_raw(run: F) -> Self {
 		let inner = Inner {
+			fresh: Cell::new(false),
 			suppressed: Cell::new(false),
 			#[cfg(debug_assertions)]
 			defined_loc: Location::caller(),
@@ -178,7 +182,7 @@ impl<F: ?Sized> Effect<F> {
 		gather()
 	}
 
-	/// Runs the effect.
+	/// Runs the effect if stale.
 	///
 	/// Removes any existing dependencies before running.
 	#[track_caller]
@@ -186,11 +190,23 @@ impl<F: ?Sized> Effect<F> {
 	where
 		F: EffectRun + 'static,
 	{
-		// If we're suppressed, don't do anything
-		if self.is_suppressed() {
+		// If we're suppressed or fresh, we don't need to run.
+		if self.is_suppressed() || self.is_fresh() {
 			return;
 		}
 
+		// Otherwise, force run
+		self.force_run();
+	}
+
+	/// Runs the effect without checking for freshness.
+	///
+	/// Removes any existing dependencies before running.
+	#[track_caller]
+	pub fn force_run(&self)
+	where
+		F: EffectRun + 'static,
+	{
 		// Clear the dependencies/subscribers before running
 		dep_graph::clear_effect(self);
 
@@ -198,6 +214,26 @@ impl<F: ?Sized> Effect<F> {
 		let ctx = EffectRunCtx::new();
 		let _gatherer = self.deps_gatherer();
 		self.inner.run.run(ctx);
+
+		// And set ourselves as fresh
+		self.inner.fresh.set(true);
+	}
+
+	/// Sets the effect as stale
+	pub fn set_stale(&self) {
+		self.inner.fresh.set(false);
+	}
+
+	/// Returns whether the effect is fresh
+	#[must_use]
+	pub fn is_fresh(&self) -> bool {
+		self.inner.fresh.get()
+	}
+
+	/// Returns whether the effect is stale
+	#[must_use]
+	pub fn is_stale(&self) -> bool {
+		!self.is_fresh()
 	}
 
 	/// Suppresses this effect.

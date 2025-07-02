@@ -11,17 +11,25 @@ use {
 	test::Bencher,
 };
 
-/// Ensures effects are executed
+/// Ensures effects are executed only when stale
 #[test]
-fn run() {
+fn fresh_stale() {
 	#[thread_local]
 	static COUNT: Cell<usize> = Cell::new(0);
 
 	assert_eq!(COUNT.get(), 0);
 	let effect = Effect::new(|| COUNT.update(|x| x + 1));
-	assert_eq!(COUNT.get(), 1);
+	assert_eq!(COUNT.get(), 1, "Effect wasn't run on creation");
 	effect.run();
-	assert_eq!(COUNT.get(), 2);
+	assert_eq!(COUNT.get(), 1, "Effect was ran despite being fresh");
+	effect.set_stale();
+	effect.run();
+	assert_eq!(COUNT.get(), 2, "Effect wasn't run despite being stale");
+	effect.run();
+	assert_eq!(COUNT.get(), 2, "Effect was ran despite being fresh");
+
+	effect.force_run();
+	assert_eq!(COUNT.get(), 3, "Effect wasn't run when fresh despite force running");
 }
 
 /// Ensures the function returned by `Effect::running` is the same as the future being run.
