@@ -271,6 +271,7 @@ impl<F: ?Sized> Effect<F> {
 	}
 
 	/// Formats this effect into `s`
+	#[coverage(off)]
 	fn fmt_debug(&self, mut s: fmt::DebugStruct<'_, '_>) -> Result<(), fmt::Error> {
 		s.field("id", &self.id());
 
@@ -319,6 +320,7 @@ impl<F: ?Sized> Hash for Effect<F> {
 	}
 }
 
+#[coverage(off)]
 impl<F: ?Sized> fmt::Debug for Effect<F> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		self.fmt_debug(f.debug_struct("Effect"))

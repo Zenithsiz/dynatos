@@ -23,6 +23,7 @@ pub trait EffectRun {
 impl EffectRun for ! {
 	effect_run_impl_inner! {}
 
+	#[coverage(off)]
 	fn run(&self, _ctx: EffectRunCtx<'_>) {
 		*self
 	}

@@ -227,6 +227,7 @@ impl DepGraph {
 	}
 }
 
+#[coverage(off)]
 impl Default for DepGraph {
 	fn default() -> Self {
 		Self::new()

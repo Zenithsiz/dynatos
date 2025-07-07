@@ -346,6 +346,7 @@ impl<F: Loader> Clone for AsyncSignal<F> {
 	}
 }
 
+#[coverage(off)]
 impl<F: Loader> fmt::Debug for AsyncSignal<F>
 where
 	F::Output: fmt::Debug,
@@ -359,6 +360,7 @@ where
 /// Reference type for [`SignalBorrow`] impl
 pub struct BorrowRef<'a, F: Loader>(cell::Ref<'a, Inner<F>>);
 
+#[coverage(off)]
 impl<F: Loader> fmt::Debug for BorrowRef<'_, F>
 where
 	F::Output: fmt::Debug,
@@ -453,6 +455,7 @@ pub struct BorrowRefMut<'a, F: Loader> {
 	_trigger_on_drop: Option<TriggerExec>,
 }
 
+#[coverage(off)]
 impl<F: Loader> fmt::Debug for BorrowRefMut<'_, F>
 where
 	F::Output: fmt::Debug,

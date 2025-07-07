@@ -41,6 +41,7 @@ impl EffectStack {
 	}
 }
 
+#[coverage(off)]
 impl Default for EffectStack {
 	fn default() -> Self {
 		Self::new()

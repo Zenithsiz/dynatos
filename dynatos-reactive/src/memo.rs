@@ -78,6 +78,7 @@ impl<T, F: ?Sized> Deref for BorrowRef<'_, T, F> {
 	}
 }
 
+#[coverage(off)]
 impl<T: fmt::Debug, F: ?Sized> fmt::Debug for BorrowRef<'_, T, F> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		(*self.0).fmt(f)
@@ -115,6 +116,7 @@ impl<T, F: ?Sized> Clone for Memo<T, F> {
 	}
 }
 
+#[coverage(off)]
 impl<T: fmt::Debug, F: ?Sized> fmt::Debug for Memo<T, F> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		let effect_fn = self.effect.inner_fn();

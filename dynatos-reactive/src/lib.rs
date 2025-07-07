@@ -28,7 +28,8 @@
 	assert_matches,
 	never_type,
 	unwrap_infallible,
-	arbitrary_self_types
+	arbitrary_self_types,
+	coverage_attribute
 )]
 
 // Modules

@@ -147,6 +147,7 @@ impl Trigger {
 	}
 
 	/// Formats this trigger into `s`
+	#[coverage(off)]
 	fn fmt_debug(&self, mut s: fmt::DebugStruct<'_, '_>) -> Result<(), fmt::Error> {
 		s.field("inner", &self.id());
 
@@ -156,6 +157,7 @@ impl Trigger {
 	}
 }
 
+#[coverage(off)]
 impl Default for Trigger {
 	fn default() -> Self {
 		Self::new()
@@ -185,6 +187,7 @@ impl Hash for Trigger {
 	}
 }
 
+#[coverage(off)]
 impl fmt::Debug for Trigger {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		self.fmt_debug(f.debug_struct("Trigger"))
@@ -220,6 +223,7 @@ impl WeakTrigger {
 	}
 }
 
+#[coverage(off)]
 impl Default for WeakTrigger {
 	fn default() -> Self {
 		Self::new()
@@ -248,6 +252,7 @@ impl Hash for WeakTrigger {
 	}
 }
 
+#[coverage(off)]
 impl fmt::Debug for WeakTrigger {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		let mut s = f.debug_struct("WeakTrigger");

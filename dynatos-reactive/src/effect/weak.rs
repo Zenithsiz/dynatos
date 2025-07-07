@@ -94,6 +94,7 @@ impl<F: ?Sized> WeakEffect<F> {
 	}
 }
 
+#[coverage(off)]
 impl<F> Default for WeakEffect<F> {
 	fn default() -> Self {
 		Self::new()
@@ -123,6 +124,7 @@ impl<F: ?Sized> Hash for WeakEffect<F> {
 	}
 }
 
+#[coverage(off)]
 impl<F: ?Sized> fmt::Debug for WeakEffect<F> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		let mut s = f.debug_struct("WeakEffect");

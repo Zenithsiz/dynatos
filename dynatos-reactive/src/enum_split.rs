@@ -72,6 +72,7 @@ impl<S, T: EnumSplitValue<S>> Clone for EnumSplitSignal<S, T> {
 	}
 }
 
+#[coverage(off)]
 impl<S, T> fmt::Debug for EnumSplitSignal<S, T>
 where
 	T: EnumSplitValue<S>,

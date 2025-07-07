@@ -3,3 +3,6 @@ target/
 
 # Trunk
 dist/
+
+# Tarpaulin
+tarpaulin-report.html

@@ -116,6 +116,7 @@ impl RunQueue {
 	}
 }
 
+#[coverage(off)]
 impl Default for RunQueue {
 	fn default() -> Self {
 		Self::new()

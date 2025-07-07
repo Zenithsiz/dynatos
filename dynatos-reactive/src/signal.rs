@@ -87,6 +87,7 @@ impl<T: ?Sized> Deref for BorrowRef<'_, T> {
 	}
 }
 
+#[coverage(off)]
 impl<T: fmt::Debug> fmt::Debug for BorrowRef<'_, T> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		f.debug_tuple("BorrowRef").field(&*self.0).finish()
@@ -147,6 +148,7 @@ impl<T: ?Sized> DerefMut for BorrowRefMut<'_, T> {
 	}
 }
 
+#[coverage(off)]
 impl<T: fmt::Debug> fmt::Debug for BorrowRefMut<'_, T> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		f.debug_tuple("BorrowRefMut").field(&*self.value).finish()
@@ -191,6 +193,7 @@ impl<T: ?Sized> Clone for Signal<T> {
 	}
 }
 
+#[coverage(off)]
 impl<T: ?Sized + fmt::Debug> fmt::Debug for Signal<T> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		f.debug_struct("Signal")
