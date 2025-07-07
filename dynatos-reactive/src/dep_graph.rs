@@ -1,10 +1,8 @@
 //! Dependency graph
 
 // Imports
-#[cfg(debug_assertions)]
-use core::panic::Location;
 use {
-	crate::{Effect, EffectRun, Trigger, WeakEffect, WeakTrigger},
+	crate::{loc::Loc, Effect, EffectRun, Trigger, WeakEffect, WeakTrigger},
 	core::cell::{LazyCell, RefCell},
 	petgraph::prelude::{NodeIndex, StableGraph},
 	std::{collections::HashMap, error::Error as StdError},
@@ -18,16 +16,14 @@ static DEP_GRAPH: LazyCell<RefCell<DepGraph>> = LazyCell::new(|| RefCell::new(De
 #[derive(PartialEq, Eq, Clone, Hash, Debug)]
 pub struct EffectDepInfo {
 	/// Location this dependency was gathered
-	#[cfg(debug_assertions)]
-	pub gathered_loc: &'static Location<'static>,
+	pub gathered_loc: Loc,
 }
 
 /// Effect subscriber info
 #[derive(PartialEq, Eq, Clone, Hash, Debug)]
 pub struct EffectSubInfo {
 	/// Location this subscriber was executed
-	#[cfg(debug_assertions)]
-	pub exec_loc: &'static Location<'static>,
+	pub exec_loc: Loc,
 }
 
 /// Graph node
@@ -58,17 +54,13 @@ impl Edge {
 	#[track_caller]
 	pub const fn effect_dep() -> Self {
 		Self::EffectDep(EffectDepInfo {
-			#[cfg(debug_assertions)]
-			gathered_loc:                          Location::caller(),
+			gathered_loc: Loc::caller(),
 		})
 	}
 
 	/// Creates an effect subscriber edge
-	pub const fn effect_sub(#[cfg(debug_assertions)] caller_loc: &'static Location<'static>) -> Self {
-		Self::EffectSub(EffectSubInfo {
-			#[cfg(debug_assertions)]
-			exec_loc:                          caller_loc,
-		})
+	pub const fn effect_sub(exec_loc: Loc) -> Self {
+		Self::EffectSub(EffectSubInfo { exec_loc })
 	}
 }
 
@@ -178,7 +170,7 @@ pub fn add_effect_dep(effect: &Effect, trigger: &Trigger) {
 		"Adding effect dependency\nEffect  : {}\nTrigger : {}\nGathered: {}",
 		effect.defined_loc(),
 		trigger.defined_loc(),
-		Location::caller(),
+		Loc::caller(),
 	);
 
 	let mut dep_graph = DEP_GRAPH.borrow_mut();
@@ -190,11 +182,7 @@ pub fn add_effect_dep(effect: &Effect, trigger: &Trigger) {
 }
 
 /// Adds an effect subscriber
-pub fn add_effect_sub(
-	effect: &Effect,
-	trigger: &Trigger,
-	#[cfg(debug_assertions)] caller_loc: &'static Location<'static>,
-) {
+pub fn add_effect_sub(effect: &Effect, trigger: &Trigger, caller_loc: Loc) {
 	#[cfg(debug_assertions)]
 	tracing::trace!(
 		"Adding effect subscriber\nEffect  : {}\nTrigger : {}\nExecuted: {}",
@@ -208,14 +196,9 @@ pub fn add_effect_sub(
 	let effect_idx = dep_graph.get_or_insert_node(Node::Effect(effect.downgrade()));
 	let trigger_idx = dep_graph.get_or_insert_node(Node::Trigger(trigger.downgrade()));
 
-	dep_graph.graph.add_edge(
-		effect_idx,
-		trigger_idx,
-		Edge::effect_sub(
-			#[cfg(debug_assertions)]
-			caller_loc,
-		),
-	);
+	dep_graph
+		.graph
+		.add_edge(effect_idx, trigger_idx, Edge::effect_sub(caller_loc));
 }
 
 /// Exports the dependency graph as a dot graph.

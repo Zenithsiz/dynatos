@@ -21,10 +21,8 @@ pub use self::{
 };
 
 // Imports
-#[cfg(debug_assertions)]
-use core::panic::Location;
 use {
-	crate::{dep_graph, effect_stack},
+	crate::{dep_graph, effect_stack, loc::Loc},
 	core::{
 		cell::Cell,
 		fmt,
@@ -47,9 +45,8 @@ pub struct Inner<F: ?Sized> {
 	/// Whether we're currently checking dependencies.
 	checking_deps: Cell<bool>,
 
-	#[cfg(debug_assertions)]
 	/// Where this effect was defined
-	defined_loc: &'static Location<'static>,
+	defined_loc: Loc,
 
 	/// Effect runner
 	run: F,
@@ -99,8 +96,7 @@ impl<F> Effect<F> {
 			fresh: Cell::new(false),
 			suppressed: Cell::new(false),
 			checking_deps: Cell::new(false),
-			#[cfg(debug_assertions)]
-			defined_loc: Location::caller(),
+			defined_loc: Loc::caller(),
 			run,
 		};
 
@@ -131,8 +127,8 @@ impl<F: ?Sized> Effect<F> {
 	}
 
 	/// Returns where this effect was defined
-	#[cfg(debug_assertions)]
-	pub(crate) fn defined_loc(&self) -> &'static Location<'static> {
+	#[cfg_attr(not(debug_assertions), expect(dead_code, reason = "Only used in debug"))]
+	pub(crate) fn defined_loc(&self) -> Loc {
 		self.inner.defined_loc
 	}
 
@@ -278,7 +274,7 @@ impl<F: ?Sized> Effect<F> {
 		s.field("suppressed", &self.inner.suppressed.get());
 
 		#[cfg(debug_assertions)]
-		s.field_with("defined_loc", |f| fmt::Display::fmt(self.inner.defined_loc, f));
+		s.field_with("defined_loc", |f| fmt::Display::fmt(&self.inner.defined_loc, f));
 
 		s.finish()
 	}

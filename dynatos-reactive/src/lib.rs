@@ -42,6 +42,7 @@ pub mod derived;
 pub mod effect;
 pub mod effect_stack;
 pub mod enum_split;
+mod loc;
 pub mod mapped_signal;
 pub mod memo;
 pub mod run_queue;

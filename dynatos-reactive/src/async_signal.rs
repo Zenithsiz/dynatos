@@ -1,10 +1,9 @@
 //! Async signal
 
 // Imports
-#[cfg(debug_assertions)]
-use core::panic::Location;
 use {
 	crate::{
+		loc::Loc,
 		trigger::TriggerExec,
 		Effect,
 		EffectRun,
@@ -76,8 +75,7 @@ impl<F: Loader> Inner<F> {
 			return false;
 		}
 
-		#[cfg(debug_assertions)]
-		let caller_loc = Location::caller();
+		let caller_loc = Loc::caller();
 
 		// Then spawn the future
 		// TODO: Allow using something other than `wasm_bindgen_futures`?
@@ -102,10 +100,7 @@ impl<F: Loader> Inner<F> {
 			// Finally trigger and awake all waiters.
 			// TODO: Notify using the trigger?
 			let _suppress_restart = restart_effect.suppress();
-			signal.trigger.exec_inner(
-				#[cfg(debug_assertions)]
-				caller_loc,
-			);
+			signal.trigger.exec_inner(caller_loc);
 			signal.notify.notify_waiters();
 		});
 		self.handle = Some(handle);

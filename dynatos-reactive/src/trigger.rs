@@ -4,10 +4,8 @@
 //! any subscribers.
 
 // Imports
-#[cfg(debug_assertions)]
-use core::panic::Location;
 use {
-	crate::{dep_graph, effect, run_queue},
+	crate::{dep_graph, effect, loc::Loc, run_queue},
 	core::{
 		cell::LazyCell,
 		fmt,
@@ -18,9 +16,8 @@ use {
 
 /// Trigger inner
 struct Inner {
-	#[cfg(debug_assertions)]
 	/// Where this trigger was defined
-	defined_loc: &'static Location<'static>,
+	defined_loc: Loc,
 }
 
 /// Trigger
@@ -35,8 +32,7 @@ impl Trigger {
 	#[track_caller]
 	pub fn new() -> Self {
 		let inner = Inner {
-			#[cfg(debug_assertions)]
-			defined_loc:                          Location::caller(),
+			defined_loc: Loc::caller(),
 		};
 		Self { inner: Rc::new(inner) }
 	}
@@ -50,8 +46,7 @@ impl Trigger {
 	}
 
 	/// Returns where this effect was defined
-	#[cfg(debug_assertions)]
-	pub(crate) fn defined_loc(&self) -> &'static Location<'static> {
+	pub(crate) fn defined_loc(&self) -> Loc {
 		self.inner.defined_loc
 	}
 
@@ -82,7 +77,7 @@ impl Trigger {
 			#[cfg(debug_assertions)]
 			None => tracing::warn!(
 				trigger=?self,
-				location=%Location::caller(),
+				location=%Loc::caller(),
 				"No effect is being run when trigger was accessed. \
 				\nThis typically means that you're accessing reactive \
 				signals outside of an effect, which means the code won't \
@@ -107,10 +102,7 @@ impl Trigger {
 		reason = "The user can just immediately drop the value to execute if they don't care"
 	)]
 	pub fn exec(&self) -> TriggerExec {
-		self.exec_inner(
-			#[cfg(debug_assertions)]
-			Location::caller(),
-		)
+		self.exec_inner(Loc::caller())
 	}
 
 	/// Creates an execution for a no-op trigger.
@@ -127,15 +119,10 @@ impl Trigger {
 	}
 
 	/// Inner function for [`Self::exec`]
-	pub(crate) fn exec_inner(&self, #[cfg(debug_assertions)] caller_loc: &'static Location<'static>) -> TriggerExec {
+	pub(crate) fn exec_inner(&self, caller_loc: Loc) -> TriggerExec {
 		// If there's a running effect, register it as our dependency
 		if let Some(effect) = effect::running() {
-			dep_graph::add_effect_sub(
-				&effect,
-				self,
-				#[cfg(debug_assertions)]
-				caller_loc,
-			);
+			dep_graph::add_effect_sub(&effect, self, caller_loc);
 		}
 
 		// Increase the ref count
@@ -159,10 +146,8 @@ impl Trigger {
 		});
 
 		TriggerExec {
-			#[cfg(debug_assertions)]
-			trigger_defined_loc:                          self.defined_loc(),
-			#[cfg(debug_assertions)]
-			exec_defined_loc:                             caller_loc,
+			trigger_defined_loc: self.defined_loc(),
+			exec_defined_loc:    caller_loc,
 		}
 	}
 
@@ -171,7 +156,7 @@ impl Trigger {
 		s.field("inner", &self.id());
 
 		#[cfg(debug_assertions)]
-		s.field_with("defined_loc", |f| fmt::Display::fmt(self.inner.defined_loc, f));
+		s.field_with("defined_loc", |f| fmt::Display::fmt(&self.inner.defined_loc, f));
 
 		s.finish()
 	}
@@ -281,10 +266,10 @@ impl fmt::Debug for WeakTrigger {
 }
 
 /// Trigger executor
+#[cfg_attr(not(debug_assertions), expect(dead_code, reason = "Only used in debug"))]
 pub struct TriggerExec {
 	/// Trigger defined location
-	#[cfg(debug_assertions)]
-	trigger_defined_loc: &'static Location<'static>,
+	trigger_defined_loc: Loc,
 
 	/// Execution defined location
 	// TODO: If a trigger gets executed inside of an effect,
@@ -294,8 +279,7 @@ pub struct TriggerExec {
 	//       We can get a better guess by going to the dependency graph and
 	//       getting the effect subscriber info, which will be where we're
 	//       executed.
-	#[cfg(debug_assertions)]
-	exec_defined_loc: &'static Location<'static>,
+	exec_defined_loc: Loc,
 }
 
 impl Drop for TriggerExec {
