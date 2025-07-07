@@ -12,6 +12,7 @@ use {
 };
 
 /// Inner item for the priority queue
+#[derive(Debug)]
 struct Item {
 	/// Subscriber
 	sub: WeakEffect,
@@ -35,6 +36,7 @@ impl Hash for Item {
 }
 
 /// Inner type for the queue impl
+#[derive(Debug)]
 struct Inner {
 	/// Queue
 	// TODO: We don't need the priority, so just use some kind of
@@ -52,6 +54,7 @@ struct Inner {
 }
 
 /// Run queue
+#[derive(Debug)]
 pub struct RunQueue {
 	/// Inner
 	inner: RefCell<Inner>,

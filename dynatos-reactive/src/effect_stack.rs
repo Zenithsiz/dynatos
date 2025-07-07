@@ -7,6 +7,7 @@ use {
 };
 
 /// Effect stack
+#[derive(Debug)]
 pub struct EffectStack {
 	/// Stack
 	stack: RefCell<Vec<Effect>>,

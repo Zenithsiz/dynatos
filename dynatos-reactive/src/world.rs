@@ -11,6 +11,7 @@ use {
 pub static WORLD: LazyCell<World> = LazyCell::new(World::new);
 
 /// World
+#[derive(Debug)]
 pub struct World {
 	/// Dependency graph
 	pub dep_graph: DepGraph,
