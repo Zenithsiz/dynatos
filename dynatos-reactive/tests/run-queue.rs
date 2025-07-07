@@ -99,12 +99,9 @@ fn order() {
 
 	assert_eq!(COUNT.get(), 1);
 
-	// TODO: Can we make this `2,3` by recursively
-	//       checking the dependencies?
-
 	drop((a_first.exec(), b.exec()));
-	assert_eq!(COUNT.get(), 3);
+	assert_eq!(COUNT.get(), 2);
 
 	drop((b.exec(), a_first.exec()));
-	assert_eq!(COUNT.get(), 5);
+	assert_eq!(COUNT.get(), 3);
 }

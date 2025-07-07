@@ -44,6 +44,9 @@ pub struct Inner<F: ?Sized> {
 	/// Whether this effect is currently suppressed
 	suppressed: Cell<bool>,
 
+	/// Whether we're currently checking dependencies.
+	checking_deps: Cell<bool>,
+
 	#[cfg(debug_assertions)]
 	/// Where this effect was defined
 	defined_loc: &'static Location<'static>,
@@ -95,6 +98,7 @@ impl<F> Effect<F> {
 		let inner = Inner {
 			fresh: Cell::new(false),
 			suppressed: Cell::new(false),
+			checking_deps: Cell::new(false),
 			#[cfg(debug_assertions)]
 			defined_loc: Location::caller(),
 			run,
@@ -190,6 +194,26 @@ impl<F: ?Sized> Effect<F> {
 	where
 		F: EffectRun + 'static,
 	{
+		// If we're checking dependencies, there's a cycle in the dependency graph,
+		// so just quit since we're already being executed.
+		if self.inner.checking_deps.get() {
+			return;
+		}
+
+		// Else recursively check dependencies before running
+		// TODO: Make it so we don't need to go through all dependencies?
+		//       Ideally, we'd check freshness, but when a trigger is executed,
+		//       it only marks it's immediate subscribers as stale, instead of
+		//       the whole dependency tree. However, we can't make it mark the whole
+		//       tree to avoid this check because some subscribers might be marked as
+		//       stale when they actually don't need to be rerun (if dependencies change).
+		// TODO: Add some logging here to debug why an effect is being run?
+		self.inner.checking_deps.set(true);
+		dep_graph::with_effect_deps(self.downgrade().unsize(), move |trigger, _| {
+			dep_graph::with_trigger_deps(trigger, move |effect, _| _ = effect.try_run());
+		});
+		self.inner.checking_deps.set(false);
+
 		// If we're suppressed or fresh, we don't need to run.
 		if self.is_suppressed() || self.is_fresh() {
 			return;
