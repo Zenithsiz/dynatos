@@ -6,8 +6,6 @@ use {
 	core::marker::PhantomData,
 };
 
-// TODO: Add type parameter `F`?
-
 /// Effect dependency gatherer.
 ///
 /// While this type is alive, any signals used will

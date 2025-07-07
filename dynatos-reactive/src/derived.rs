@@ -19,8 +19,7 @@
 //!
 //! Meanwhile, when using [`Derived`], you can cache each value, so that any updates
 //! to one of the signals doesn't re-compute the other.
-// TODO: Not ignore the test once we find out why it hangs the compiler
-//! ```rust,no_run
+//! ```rust
 //! use dynatos_reactive::{Derived, SignalGet};
 //! let expensive_operation1 = Derived::new(move || 1);
 //! let expensive_operation2 = Derived::new(move || 2);

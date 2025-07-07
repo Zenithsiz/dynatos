@@ -65,7 +65,6 @@ impl Trigger {
 	///
 	/// You can gather multiple times without removing the previous gathered
 	/// effects. Previous effects will only be removed when they are dropped.
-	// TODO: Should we remove all existing subscribers before gathering them?
 	#[track_caller]
 	pub fn gather_subs(&self) {
 		match effect::running() {

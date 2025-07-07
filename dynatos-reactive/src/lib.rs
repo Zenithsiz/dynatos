@@ -1,9 +1,5 @@
 //! Reactivity for `dynatos`
 
-// TODO: Currently both effects and triggers need to keep a map
-//       of dependencies/subscribers to each other, can we change
-//       this to be more efficient?
-
 // TODO: Instead of providing the `_raw` methods, just add a top-level
 //       `fn without_reactivity(impl FnOnce() -> O) -> O`?
 

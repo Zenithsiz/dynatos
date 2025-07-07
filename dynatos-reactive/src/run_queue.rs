@@ -1,8 +1,5 @@
 //! Run queue
 
-// TODO: We should coordinate with the dependency graph to ensure we don't
-//       run effects unnecessarily.
-
 // Imports
 use {
 	crate::{dep_graph::EffectDepInfo, WeakEffect},
@@ -17,7 +14,6 @@ use {
 /// Inner item for the priority queue
 struct Item {
 	/// Subscriber
-	// TODO: Should the run queue use strong effects?
 	sub: WeakEffect,
 
 	/// Info
