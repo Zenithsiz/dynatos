@@ -7,7 +7,7 @@ use {
 	crate::{Effect, EffectRun, Trigger, WeakEffect, WeakTrigger},
 	core::cell::{LazyCell, RefCell},
 	petgraph::prelude::{NodeIndex, StableGraph},
-	std::collections::HashMap,
+	std::{collections::HashMap, error::Error as StdError},
 };
 
 /// Dependency graph
@@ -32,6 +32,7 @@ pub struct EffectSubInfo {
 
 /// Graph node
 #[derive(PartialEq, Eq, Clone, Hash, Debug)]
+#[derive(derive_more::From, derive_more::TryInto)]
 enum Node {
 	/// Trigger
 	Trigger(WeakTrigger),
@@ -43,6 +44,7 @@ enum Node {
 /// Graph edge
 // TODO: Make this a ZST in release mode?
 #[derive(PartialEq, Eq, Clone, Hash, Debug)]
+#[derive(derive_more::From, derive_more::TryInto)]
 enum Edge {
 	/// Effect dependency
 	EffectDep(EffectDepInfo),
@@ -112,36 +114,60 @@ pub fn clear_effect<F: ?Sized + EffectRun>(effect: &Effect<F>) {
 	}
 }
 
-/// Uses all subscribers of a trigger
-pub fn with_trigger_subs<F>(trigger: WeakTrigger, mut f: F)
+/// Function trait for [`with`] and friends.
+pub trait WithFn<W: With> = FnMut(&W::EndNode, Vec<W::Info>);
+
+/// Uses all dependencies/subscribers of a trigger/effect
+pub fn with<W>(start: W::StartNode, mut f: impl WithFn<W>)
 where
-	F: FnMut(&WeakEffect, Vec<EffectDepInfo>),
+	W: With,
 {
-	let dep_graph = DEP_GRAPH.borrow();
-	let Some(&trigger_idx) = dep_graph.nodes.get(&Node::Trigger(trigger)) else {
+	let mut dep_graph = DEP_GRAPH.borrow();
+	let Some(&trigger_idx) = dep_graph.nodes.get(&start.into()) else {
 		return;
 	};
 
-	for effect_idx in dep_graph
-		.graph
-		.neighbors_directed(trigger_idx, petgraph::Direction::Outgoing)
-	{
-		let effect = match &dep_graph.graph[effect_idx] {
-			Node::Trigger(_) => unreachable!("Trigger had an outgoing edge to another trigger"),
-			Node::Effect(effect) => effect,
+	// TODO: If we have multiple edges to a neighbor, will this go through them once or
+	//       once for each edge?
+	let mut neighbors = dep_graph.graph.neighbors_directed(trigger_idx, W::DIR).detach();
+	loop {
+		let Some(effect_idx) = neighbors.next_node(&dep_graph.graph) else {
+			break;
 		};
+
+		let end = TryFrom::try_from(dep_graph.graph[effect_idx].clone())
+			.expect("Trigger/Effect had an edge to another trigger/effect");
 
 		let effect_info = dep_graph
 			.graph
 			.edges_connecting(trigger_idx, effect_idx)
-			.map(|edge| match edge.weight() {
-				Edge::EffectDep(dep_info) => dep_info.clone(),
-				Edge::EffectSub(_) => unreachable!("Trigger has an outgoing edge with effect subscriber info"),
-			})
+			.map(|edge| TryFrom::try_from(edge.weight().clone()).expect("Trigger/effect had the wrong edge type"))
 			.collect();
 
-		f(effect, effect_info);
+		drop(dep_graph);
+		f(&end, effect_info);
+		dep_graph = DEP_GRAPH.borrow();
 	}
+}
+
+/// Uses all subscribers of a trigger
+pub fn with_trigger_subs(trigger: WeakTrigger, f: impl WithFn<WithTriggerSubs>) {
+	self::with::<WithTriggerSubs>(trigger, f);
+}
+
+/// Uses all dependencies of a trigger
+pub fn with_trigger_deps(trigger: WeakTrigger, f: impl WithFn<WithTriggerDeps>) {
+	self::with::<WithTriggerDeps>(trigger, f);
+}
+
+/// Uses all subscribers of an effect
+pub fn with_effect_subs(effect: WeakEffect, f: impl WithFn<WithEffectSubs>) {
+	self::with::<WithEffectSubs>(effect, f);
+}
+
+/// Uses all dependencies of an effect
+pub fn with_effect_deps(effect: WeakEffect, f: impl WithFn<WithEffectDeps>) {
+	self::with::<WithEffectDeps>(effect, f);
 }
 
 /// Adds an effect dependency
@@ -214,4 +240,57 @@ pub fn export_dot() -> String {
 	);
 
 	petgraph::dot::Dot::new(&graph).to_string()
+}
+
+
+/// Dep graph with
+#[expect(private_bounds, reason = "It's a sealed trait")]
+pub trait With {
+	/// Start node
+	type StartNode: Into<Node>;
+
+	/// End node
+	type EndNode: TryFrom<Node, Error: StdError>;
+
+	/// Info type
+	type Info: TryFrom<Edge, Error: StdError>;
+
+	/// Direction
+	const DIR: petgraph::Direction;
+}
+
+pub struct WithTriggerSubs;
+impl With for WithTriggerSubs {
+	type EndNode = WeakEffect;
+	type Info = EffectDepInfo;
+	type StartNode = WeakTrigger;
+
+	const DIR: petgraph::Direction = petgraph::Direction::Outgoing;
+}
+
+pub struct WithTriggerDeps;
+impl With for WithTriggerDeps {
+	type EndNode = WeakEffect;
+	type Info = EffectSubInfo;
+	type StartNode = WeakTrigger;
+
+	const DIR: petgraph::Direction = petgraph::Direction::Incoming;
+}
+
+pub struct WithEffectDeps;
+impl With for WithEffectDeps {
+	type EndNode = WeakTrigger;
+	type Info = EffectDepInfo;
+	type StartNode = WeakEffect;
+
+	const DIR: petgraph::Direction = petgraph::Direction::Incoming;
+}
+
+pub struct WithEffectSubs;
+impl With for WithEffectSubs {
+	type EndNode = WeakTrigger;
+	type Info = EffectSubInfo;
+	type StartNode = WeakEffect;
+
+	const DIR: petgraph::Direction = petgraph::Direction::Outgoing;
 }
