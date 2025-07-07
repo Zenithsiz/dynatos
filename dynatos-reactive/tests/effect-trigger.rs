@@ -9,7 +9,7 @@ use {
 		cell::{Cell, OnceCell},
 		mem,
 	},
-	dynatos_reactive::{effect, Effect, Trigger},
+	dynatos_reactive::{effect, Effect, Trigger, WeakEffect, WeakTrigger},
 	zutil_cloned::cloned,
 };
 
@@ -175,4 +175,39 @@ fn running_stacked() {
 	// And that the bottom-level running effect is already inert
 	let running_bottom = RUNNING_BOTTOM.get().expect("Running effect missing");
 	assert!(running_bottom.is_inert());
+}
+
+#[test]
+fn weak_effect_empty() {
+	let effect = WeakEffect::<fn()>::new();
+	assert_eq!(effect.upgrade(), None);
+	assert!(!effect.try_run());
+
+	let unsize = effect.unsize();
+	assert_eq!(effect, unsize);
+}
+
+#[test]
+fn weak_effect_dropped() {
+	let effect = Effect::new(|| {}).downgrade();
+	assert_eq!(effect.upgrade(), None);
+	assert!(!effect.try_run());
+
+	let unsize = effect.unsize();
+	// TODO: The two should be equal, not different.
+	assert_ne!(effect, unsize);
+}
+
+#[test]
+fn weak_trigger_empty() {
+	let trigger = WeakTrigger::new();
+	assert_eq!(trigger.upgrade(), None);
+}
+
+#[test]
+fn trigger_upgrade() {
+	let trigger = Trigger::new();
+	let weak = trigger.downgrade();
+
+	assert_eq!(Some(trigger), weak.upgrade());
 }

@@ -83,7 +83,10 @@ impl<F: ?Sized> WeakEffect<F> {
 			// Note: If we failed upgrading, we simply create a `Weak`
 			//       that can never be upgraded. This is technically a
 			//       breaking change, since the weak count will be different,
-			//       but we don't care about that for now
+			//       but we don't care about that for now.
+			// TODO: For effects created with `WeakEffect::new`, this will result
+			//       in another effect that actually compares equal, but for others
+			//       it won't.
 			None => WeakEffect {
 				inner: Weak::<Inner<!>>::new(),
 			},
