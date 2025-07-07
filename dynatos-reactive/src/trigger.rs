@@ -74,7 +74,6 @@ impl Trigger {
 			// TODO: Add some way to turn off this warning at a global
 			//       scale, with something like
 			//       `fn without_warning(f: impl FnOnce() -> O) -> O`
-			#[cfg(debug_assertions)]
 			None => tracing::warn!(
 				trigger=?self,
 				location=%Loc::caller(),
@@ -85,9 +84,6 @@ impl Trigger {
 				try to use one of the `_raw` methods that don't gather \
 				subscribers to make it intentional"
 			),
-
-			#[cfg(not(debug_assertions))]
-			None => (),
 		}
 	}
 
@@ -155,8 +151,7 @@ impl Trigger {
 	fn fmt_debug(&self, mut s: fmt::DebugStruct<'_, '_>) -> Result<(), fmt::Error> {
 		s.field("inner", &self.id());
 
-		#[cfg(debug_assertions)]
-		s.field_with("defined_loc", |f| fmt::Display::fmt(&self.inner.defined_loc, f));
+		s.field_with("defined_loc", |f| fmt::Display::fmt(&self.defined_loc(), f));
 
 		s.finish()
 	}
@@ -266,7 +261,6 @@ impl fmt::Debug for WeakTrigger {
 }
 
 /// Trigger executor
-#[cfg_attr(not(debug_assertions), expect(dead_code, reason = "Only used in debug"))]
 pub struct TriggerExec {
 	/// Trigger defined location
 	trigger_defined_loc: Loc,
@@ -296,7 +290,6 @@ impl Drop for TriggerExec {
 				continue;
 			};
 
-			#[cfg(debug_assertions)]
 			tracing::trace!(
 				"Running effect due to trigger\nEffect   : {}\nGathered : {}\nTrigger  : {}\nExecution: {}",
 				effect.defined_loc(),
@@ -311,9 +304,6 @@ impl Drop for TriggerExec {
 				self.trigger_defined_loc,
 				self.exec_defined_loc,
 			);
-
-			#[cfg(not(debug_assertions))]
-			let _: Vec<_> = info;
 
 			effect.run();
 		}

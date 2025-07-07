@@ -165,7 +165,6 @@ pub fn with_effect_deps(effect: WeakEffect, f: impl WithFn<WithEffectDeps>) {
 /// Adds an effect dependency
 #[track_caller]
 pub fn add_effect_dep(effect: &Effect, trigger: &Trigger) {
-	#[cfg(debug_assertions)]
 	tracing::trace!(
 		"Adding effect dependency\nEffect  : {}\nTrigger : {}\nGathered: {}",
 		effect.defined_loc(),
@@ -183,7 +182,6 @@ pub fn add_effect_dep(effect: &Effect, trigger: &Trigger) {
 
 /// Adds an effect subscriber
 pub fn add_effect_sub(effect: &Effect, trigger: &Trigger, caller_loc: Loc) {
-	#[cfg(debug_assertions)]
 	tracing::trace!(
 		"Adding effect subscriber\nEffect  : {}\nTrigger : {}\nExecuted: {}",
 		effect.defined_loc(),
@@ -202,7 +200,6 @@ pub fn add_effect_sub(effect: &Effect, trigger: &Trigger, caller_loc: Loc) {
 }
 
 /// Exports the dependency graph as a dot graph.
-#[cfg(debug_assertions)]
 pub fn export_dot() -> String {
 	let dep_graph = &DEP_GRAPH.borrow();
 	let graph = dep_graph.graph.map(

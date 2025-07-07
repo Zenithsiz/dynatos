@@ -127,7 +127,6 @@ impl<F: ?Sized> Effect<F> {
 	}
 
 	/// Returns where this effect was defined
-	#[cfg_attr(not(debug_assertions), expect(dead_code, reason = "Only used in debug"))]
 	pub(crate) fn defined_loc(&self) -> Loc {
 		self.inner.defined_loc
 	}
@@ -273,8 +272,7 @@ impl<F: ?Sized> Effect<F> {
 
 		s.field("suppressed", &self.inner.suppressed.get());
 
-		#[cfg(debug_assertions)]
-		s.field_with("defined_loc", |f| fmt::Display::fmt(&self.inner.defined_loc, f));
+		s.field_with("defined_loc", |f| fmt::Display::fmt(&self.defined_loc(), f));
 
 		s.finish()
 	}
