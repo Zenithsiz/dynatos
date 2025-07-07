@@ -338,6 +338,3 @@ where
 pub fn running() -> Option<Effect> {
 	WORLD.effect_stack.top()
 }
-
-#[cfg(test)]
-mod tests;

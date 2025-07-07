@@ -1,10 +1,105 @@
-//! Tests
+//! Effect-trigger tests
+
+// Features
+#![feature(thread_local, proc_macro_hygiene, stmt_expr_attributes)]
 
 // Imports
 use {
-	super::{super::effect, *},
-	core::cell::{Cell, OnceCell},
+	core::{
+		cell::{Cell, OnceCell},
+		mem,
+	},
+	dynatos_reactive::{effect, Effect, Trigger},
+	zutil_cloned::cloned,
 };
+
+#[test]
+fn basic() {
+	/// Counts the number of times the effect was run
+	#[thread_local]
+	static TRIGGERS: Cell<usize> = Cell::new(0);
+
+	let trigger = Trigger::new();
+	#[cloned(trigger)]
+	let effect = Effect::new(move || {
+		trigger.gather_subs();
+		TRIGGERS.set(TRIGGERS.get() + 1);
+	});
+
+	assert_eq!(TRIGGERS.get(), 1, "Trigger was triggered early");
+
+	// Then trigger and ensure it was triggered
+	trigger.exec();
+	assert_eq!(TRIGGERS.get(), 2, "Trigger was not triggered");
+
+	// Finally drop the effect and try again
+	mem::drop(effect);
+	trigger.exec();
+	assert_eq!(TRIGGERS.get(), 2, "Trigger was triggered after effect was dropped");
+}
+
+#[test]
+fn trigger_exec_multiple() {
+	/// Counts the number of times the effect was run
+	#[thread_local]
+	static TRIGGERS: Cell<usize> = Cell::new(0);
+
+	let trigger = Trigger::new();
+	#[cloned(trigger)]
+	let _effect = Effect::new(move || {
+		trigger.gather_subs();
+		TRIGGERS.set(TRIGGERS.get() + 1);
+	});
+
+	let exec0 = trigger.exec();
+	assert_eq!(TRIGGERS.get(), 1, "Trigger was triggered when executing");
+	let exec1 = trigger.exec();
+
+	drop(exec1);
+	assert_eq!(
+		TRIGGERS.get(),
+		1,
+		"Trigger was triggered when dropping a single executor"
+	);
+
+	drop(exec0);
+	assert_eq!(
+		TRIGGERS.get(),
+		2,
+		"Trigger wasn't triggered when dropping last executor"
+	);
+}
+
+#[test]
+fn exec_multiple_same_effect() {
+	/// Counts the number of times the effect was run
+	#[thread_local]
+	static TRIGGERS: Cell<usize> = Cell::new(0);
+
+	let trigger0 = Trigger::new();
+	let trigger1 = Trigger::new();
+	#[cloned(trigger0, trigger1)]
+	let _effect = Effect::new(move || {
+		trigger0.gather_subs();
+		trigger1.gather_subs();
+		TRIGGERS.set(TRIGGERS.get() + 1);
+	});
+
+	let exec0 = trigger0.exec();
+	let exec1 = trigger1.exec();
+
+	drop((exec0, exec1));
+
+	assert_eq!(TRIGGERS.get(), 2, "Effect was run multiple times in same run queue");
+
+	trigger0.exec();
+
+	assert_eq!(
+		TRIGGERS.get(),
+		3,
+		"Effect wasn't run even when no other executors existed"
+	);
+}
 
 /// Ensures effects are executed only when stale
 #[test]
