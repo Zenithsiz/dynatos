@@ -22,7 +22,7 @@ pub use self::{
 
 // Imports
 use {
-	crate::{dep_graph::DEP_GRAPH, effect_stack::EFFECT_STACK, loc::Loc},
+	crate::{loc::Loc, WORLD},
 	core::{
 		cell::Cell,
 		fmt,
@@ -204,9 +204,13 @@ impl<F: ?Sized> Effect<F> {
 		//       stale when they actually don't need to be rerun (if dependencies change).
 		// TODO: Add some logging here to debug why an effect is being run?
 		self.inner.checking_deps.set(true);
-		DEP_GRAPH.with_effect_deps(self.downgrade().unsize(), move |trigger, _| {
-			DEP_GRAPH.with_trigger_deps(trigger, move |effect, _| _ = effect.try_run());
-		});
+		WORLD
+			.dep_graph
+			.with_effect_deps(self.downgrade().unsize(), move |trigger, _| {
+				WORLD
+					.dep_graph
+					.with_trigger_deps(trigger, move |effect, _| _ = effect.try_run());
+			});
 		self.inner.checking_deps.set(false);
 
 		// If we're suppressed or fresh, we don't need to run.
@@ -227,7 +231,7 @@ impl<F: ?Sized> Effect<F> {
 		F: EffectRun + 'static,
 	{
 		// Clear the dependencies/subscribers before running
-		DEP_GRAPH.clear_effect(self);
+		WORLD.dep_graph.clear_effect(self);
 
 		// Then run it
 		let ctx = EffectRunCtx::new();
@@ -332,7 +336,7 @@ where
 /// Returns the current running effect
 #[must_use]
 pub fn running() -> Option<Effect> {
-	EFFECT_STACK.top()
+	WORLD.effect_stack.top()
 }
 
 #[cfg(test)]

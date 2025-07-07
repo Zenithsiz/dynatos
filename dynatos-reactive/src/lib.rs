@@ -45,6 +45,7 @@ pub mod run_queue;
 pub mod signal;
 pub mod trigger;
 pub mod with_default;
+pub mod world;
 
 // Exports
 pub use self::{
@@ -75,4 +76,5 @@ pub use self::{
 	},
 	trigger::{Trigger, WeakTrigger},
 	with_default::{SignalWithDefault, WithDefault},
+	world::{World, WORLD},
 };

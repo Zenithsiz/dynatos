@@ -7,10 +7,6 @@ use {
 };
 
 /// Effect stack
-#[thread_local]
-pub static EFFECT_STACK: EffectStack = EffectStack::new();
-
-/// Effect stack
 pub struct EffectStack {
 	/// Stack
 	stack: RefCell<Vec<Effect>>,

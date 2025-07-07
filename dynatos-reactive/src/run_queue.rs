@@ -4,16 +4,12 @@
 use {
 	crate::{dep_graph::EffectDepInfo, WeakEffect},
 	core::{
-		cell::{LazyCell, RefCell},
+		cell::RefCell,
 		cmp::Reverse,
 		hash::{Hash, Hasher},
 	},
 	priority_queue::PriorityQueue,
 };
-
-/// Run queue
-#[thread_local]
-pub static RUN_QUEUE: LazyCell<RunQueue> = LazyCell::new(RunQueue::new);
 
 /// Inner item for the priority queue
 struct Item {

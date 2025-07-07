@@ -5,7 +5,7 @@
 
 // Imports
 use {
-	crate::{dep_graph::DEP_GRAPH, effect, loc::Loc, run_queue::RUN_QUEUE},
+	crate::{effect, loc::Loc, WORLD},
 	core::{
 		cell::LazyCell,
 		fmt,
@@ -68,7 +68,7 @@ impl Trigger {
 	#[track_caller]
 	pub fn gather_subs(&self) {
 		match effect::running() {
-			Some(effect) => DEP_GRAPH.add_effect_dep(&effect, self),
+			Some(effect) => WORLD.dep_graph.add_effect_dep(&effect, self),
 
 			// TODO: Add some way to turn off this warning at a global
 			//       scale, with something like
@@ -117,14 +117,14 @@ impl Trigger {
 	pub(crate) fn exec_inner(&self, caller_loc: Loc) -> TriggerExec {
 		// If there's a running effect, register it as our dependency
 		if let Some(effect) = effect::running() {
-			DEP_GRAPH.add_effect_sub(&effect, self, caller_loc);
+			WORLD.dep_graph.add_effect_sub(&effect, self, caller_loc);
 		}
 
 		// Increase the ref count
-		RUN_QUEUE.inc_ref();
+		WORLD.run_queue.inc_ref();
 
 		// Then add all subscribers to the run queue
-		DEP_GRAPH.with_trigger_subs(self.downgrade(), |sub, sub_info| {
+		WORLD.dep_graph.with_trigger_subs(self.downgrade(), |sub, sub_info| {
 			// If the effect doesn't exist anymore, skip it
 			let Some(effect) = sub.upgrade() else {
 				return;
@@ -137,7 +137,7 @@ impl Trigger {
 
 			// Then set the effect as stale and add it to the run queue
 			effect.set_stale();
-			RUN_QUEUE.push(effect.downgrade(), sub_info);
+			WORLD.run_queue.push(effect.downgrade(), sub_info);
 		});
 
 		TriggerExec {
@@ -278,13 +278,13 @@ pub struct TriggerExec {
 impl Drop for TriggerExec {
 	fn drop(&mut self) {
 		// Decrease the reference count, and if we weren't the last, quit
-		let Some(_exec_guard) = RUN_QUEUE.dec_ref() else {
+		let Some(_exec_guard) = WORLD.run_queue.dec_ref() else {
 			return;
 		};
 
 		// If we were the last, keep popping effects and running them until
 		// the run queue is empty
-		while let Some((sub, sub_info)) = RUN_QUEUE.pop() {
+		while let Some((sub, sub_info)) = WORLD.run_queue.pop() {
 			let Some(effect) = sub.upgrade() else {
 				continue;
 			};

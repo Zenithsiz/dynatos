@@ -3,14 +3,10 @@
 // Imports
 use {
 	crate::{loc::Loc, Effect, EffectRun, Trigger, WeakEffect, WeakTrigger},
-	core::cell::{LazyCell, RefCell},
+	core::cell::RefCell,
 	petgraph::prelude::{NodeIndex, StableGraph},
 	std::{collections::HashMap, error::Error as StdError},
 };
-
-/// Dependency graph
-#[thread_local]
-pub static DEP_GRAPH: LazyCell<DepGraph> = LazyCell::new(DepGraph::new);
 
 /// Effect dependency info
 #[derive(PartialEq, Eq, Clone, Hash, Debug)]
