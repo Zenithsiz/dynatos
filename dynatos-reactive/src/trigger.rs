@@ -67,7 +67,7 @@ impl Trigger {
 	/// effects. Previous effects will only be removed when they are dropped.
 	// TODO: Should we remove all existing subscribers before gathering them?
 	#[track_caller]
-	pub fn gather_subscribers(&self) {
+	pub fn gather_subs(&self) {
 		match effect::running() {
 			Some(effect) => dep_graph::add_effect_dep(&effect, self),
 
@@ -125,9 +125,9 @@ impl Trigger {
 		run_queue::inc_ref();
 
 		// Then add all subscribers to the run queue
-		dep_graph::with_trigger_subs(self.downgrade(), |subscriber, subscriber_info| {
+		dep_graph::with_trigger_subs(self.downgrade(), |sub, sub_info| {
 			// If the effect doesn't exist anymore, skip it
-			let Some(effect) = subscriber.upgrade() else {
+			let Some(effect) = sub.upgrade() else {
 				return;
 			};
 
@@ -138,7 +138,7 @@ impl Trigger {
 
 			// Then set the effect as stale and add it to the run queue
 			effect.set_stale();
-			run_queue::push(effect.downgrade(), subscriber_info);
+			run_queue::push(effect.downgrade(), sub_info);
 		});
 
 		TriggerExec {
@@ -285,18 +285,18 @@ impl Drop for TriggerExec {
 
 		// If we were the last, keep popping effects and running them until
 		// the run queue is empty
-		while let Some((subscriber, info)) = run_queue::pop() {
-			let Some(effect) = subscriber.upgrade() else {
+		while let Some((sub, sub_info)) = run_queue::pop() {
+			let Some(effect) = sub.upgrade() else {
 				continue;
 			};
 
 			tracing::trace!(
 				"Running effect due to trigger\nEffect   : {}\nGathered : {}\nTrigger  : {}\nExecution: {}",
 				effect.defined_loc(),
-				match info.is_empty() {
+				match sub_info.is_empty() {
 					true => "[]".to_owned(),
 					#[expect(clippy::format_collect, reason = "TODO")]
-					false => info
+					false => sub_info
 						.iter()
 						.map(|info| format!("\n         - {}", info.gathered_loc))
 						.collect::<String>(),
@@ -331,7 +331,7 @@ mod tests {
 		let trigger = Trigger::new();
 		#[cloned(trigger)]
 		let effect = Effect::new(move || {
-			trigger.gather_subscribers();
+			trigger.gather_subs();
 			TRIGGERS.set(TRIGGERS.get() + 1);
 		});
 
@@ -356,7 +356,7 @@ mod tests {
 		let trigger = Trigger::new();
 		#[cloned(trigger)]
 		let _effect = Effect::new(move || {
-			trigger.gather_subscribers();
+			trigger.gather_subs();
 			TRIGGERS.set(TRIGGERS.get() + 1);
 		});
 
@@ -389,8 +389,8 @@ mod tests {
 		let trigger1 = Trigger::new();
 		#[cloned(trigger0, trigger1)]
 		let _effect = Effect::new(move || {
-			trigger0.gather_subscribers();
-			trigger1.gather_subscribers();
+			trigger0.gather_subs();
+			trigger1.gather_subs();
 			TRIGGERS.set(TRIGGERS.get() + 1);
 		});
 
@@ -427,7 +427,7 @@ mod tests {
 		let _effects = array::from_fn::<_, N, _>(|_| {
 			Effect::new(
 				#[cloned(trigger)]
-				move || trigger.gather_subscribers(),
+				move || trigger.gather_subs(),
 			)
 		});
 

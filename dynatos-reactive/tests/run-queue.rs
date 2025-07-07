@@ -54,8 +54,8 @@ fn multiple() {
 	static COUNT: Cell<usize> = Cell::new(0);
 	#[cloned(a)]
 	let _effect = Effect::new(move || {
-		a.gather_subscribers();
-		a.gather_subscribers();
+		a.gather_subs();
+		a.gather_subs();
 		COUNT.set(COUNT.get() + 1);
 	});
 
@@ -81,7 +81,7 @@ fn order() {
 		.map(move |[lhs, rhs]| {
 			assert_ne!(lhs, rhs);
 			Effect::new(move || {
-				lhs.gather_subscribers();
+				lhs.gather_subs();
 				rhs.exec();
 			})
 		})
@@ -92,8 +92,8 @@ fn order() {
 
 	#[cloned(b)]
 	let _c = Effect::new(move || {
-		a_last.gather_subscribers();
-		b.gather_subscribers();
+		a_last.gather_subs();
+		b.gather_subs();
 		COUNT.set(COUNT.get() + 1);
 	});
 

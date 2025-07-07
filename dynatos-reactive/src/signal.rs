@@ -100,7 +100,7 @@ impl<T: ?Sized + 'static> SignalBorrow for Signal<T> {
 		Self: 'a;
 
 	fn borrow(&self) -> Self::Ref<'_> {
-		self.inner.trigger.gather_subscribers();
+		self.inner.trigger.gather_subs();
 
 		self.borrow_raw()
 	}

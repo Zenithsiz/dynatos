@@ -186,7 +186,7 @@ where
 	type Value = SignalTry<T>;
 
 	fn get_cloned(&self) -> Self::Value {
-		self.inner.trigger.gather_subscribers();
+		self.inner.trigger.gather_subs();
 		self.inner
 			.output
 			.borrow()

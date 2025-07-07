@@ -322,7 +322,7 @@ impl<F: Loader> AsyncSignal<F> {
 	#[must_use]
 	#[track_caller]
 	pub fn borrow_unloaded(&self) -> Option<BorrowRef<'_, F>> {
-		self.trigger.gather_subscribers();
+		self.trigger.gather_subs();
 
 		self.borrow_unloaded_raw()
 	}
@@ -399,7 +399,7 @@ impl<F: Loader> SignalBorrow for AsyncSignal<F> {
 		Self: 'a;
 
 	fn borrow(&self) -> Self::Ref<'_> {
-		self.trigger.gather_subscribers();
+		self.trigger.gather_subs();
 
 		self.borrow_raw()
 	}

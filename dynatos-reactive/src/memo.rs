@@ -91,7 +91,7 @@ impl<T: 'static, F: ?Sized> SignalBorrow for Memo<T, F> {
 		Self: 'a;
 
 	fn borrow(&self) -> Self::Ref<'_> {
-		self.effect.inner_fn().trigger.gather_subscribers();
+		self.effect.inner_fn().trigger.gather_subs();
 
 		self.borrow_raw()
 	}

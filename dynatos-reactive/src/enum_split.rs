@@ -99,7 +99,7 @@ impl<S, T: EnumSplitValue<S>> SignalBorrow for EnumSplitSignal<S, T> {
 		Self: 'a;
 
 	fn borrow(&self) -> Self::Ref<'_> {
-		self.effect.inner_fn().trigger.gather_subscribers();
+		self.effect.inner_fn().trigger.gather_subs();
 		self.borrow_raw()
 	}
 

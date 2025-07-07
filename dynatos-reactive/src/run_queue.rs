@@ -18,7 +18,7 @@ use {
 struct Item {
 	/// Subscriber
 	// TODO: Should the run queue use strong effects?
-	subscriber: WeakEffect,
+	sub: WeakEffect,
 
 	/// Info
 	info: Vec<EffectDepInfo>,
@@ -26,7 +26,7 @@ struct Item {
 
 impl PartialEq for Item {
 	fn eq(&self, other: &Self) -> bool {
-		self.subscriber == other.subscriber
+		self.sub == other.sub
 	}
 }
 
@@ -34,7 +34,7 @@ impl Eq for Item {}
 
 impl Hash for Item {
 	fn hash<H: Hasher>(&self, state: &mut H) {
-		self.subscriber.hash(state);
+		self.sub.hash(state);
 	}
 }
 
@@ -108,16 +108,16 @@ pub fn dec_ref() -> Option<ExecGuard> {
 }
 
 /// Pushes a subscriber to the queue.
-pub fn push(subscriber: WeakEffect, info: Vec<EffectDepInfo>) {
+pub fn push(sub: WeakEffect, info: Vec<EffectDepInfo>) {
 	let mut inner = RUN_QUEUE.borrow_mut();
 
 	let next = Reverse(inner.next);
-	inner.queue.push_decrease(Item { subscriber, info }, next);
+	inner.queue.push_decrease(Item { sub, info }, next);
 	inner.next += 1;
 }
 
 /// Pops a subscriber from the front of the queue
 pub fn pop() -> Option<(WeakEffect, Vec<EffectDepInfo>)> {
 	let (item, _) = RUN_QUEUE.borrow_mut().queue.pop()?;
-	Some((item.subscriber, item.info))
+	Some((item.sub, item.info))
 }
