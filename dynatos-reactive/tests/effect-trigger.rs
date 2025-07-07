@@ -205,6 +205,12 @@ fn weak_trigger_empty() {
 }
 
 #[test]
+fn weak_trigger_dropped() {
+	let trigger = Trigger::new().downgrade();
+	assert_eq!(trigger.upgrade(), None);
+}
+
+#[test]
 fn effect_upgrade() {
 	#[thread_local]
 	static COUNT: Cell<usize> = Cell::new(0);
