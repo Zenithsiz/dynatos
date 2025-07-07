@@ -80,7 +80,7 @@ impl<F: Loader> Inner<F> {
 		// Then spawn the future
 		// TODO: Allow using something other than `wasm_bindgen_futures`?
 		let restart_effect = self.restart_effect.clone().expect("Missing restart effect");
-		let fut = restart_effect.gather_dependencies(|| self.loader.load());
+		let fut = restart_effect.gather_deps(|| self.loader.load());
 		let (fut, handle) = future::abortable(fut);
 		#[cloned(signal)]
 		wasm_bindgen_futures::spawn_local(async move {

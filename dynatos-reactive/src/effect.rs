@@ -172,7 +172,7 @@ impl<F: ?Sized> Effect<F> {
 	/// Gathers dependencies for this effect.
 	///
 	/// All signals used within `gather` will have this effect as a dependency.
-	pub fn gather_dependencies<G, O>(&self, gather: G) -> O
+	pub fn gather_deps<G, O>(&self, gather: G) -> O
 	where
 		F: EffectRun + 'static,
 		G: FnOnce() -> O,

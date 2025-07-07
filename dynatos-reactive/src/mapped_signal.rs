@@ -150,7 +150,7 @@ where
 				input.update(|input| output.with(|output| set(input, output)));
 			});
 		});
-		set_effect.gather_dependencies(|| self::with_output_signal::<T, _>(&output_sig, |sig| sig.with(|_| ())));
+		set_effect.gather_deps(|| self::with_output_signal::<T, _>(&output_sig, |sig| sig.with(|_| ())));
 
 		set_weak_effect
 			.set(set_effect.downgrade())

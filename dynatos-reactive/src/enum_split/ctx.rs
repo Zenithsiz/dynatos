@@ -51,7 +51,7 @@ impl<S> EnumSplitValueUpdateCtx<'_, S> {
 			let _suppressed = cur_effect.suppress();
 			outer_signal.set(into_t(value));
 		});
-		write_back_effect.gather_dependencies(|| {
+		write_back_effect.gather_deps(|| {
 			signal.with(|_| ());
 		});
 
