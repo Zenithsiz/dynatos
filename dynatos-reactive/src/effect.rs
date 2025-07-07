@@ -22,7 +22,7 @@ pub use self::{
 
 // Imports
 use {
-	crate::{dep_graph::DEP_GRAPH, effect_stack, loc::Loc},
+	crate::{dep_graph::DEP_GRAPH, effect_stack::EFFECT_STACK, loc::Loc},
 	core::{
 		cell::Cell,
 		fmt,
@@ -332,7 +332,7 @@ where
 /// Returns the current running effect
 #[must_use]
 pub fn running() -> Option<Effect> {
-	effect_stack::top()
+	EFFECT_STACK.top()
 }
 
 #[cfg(test)]

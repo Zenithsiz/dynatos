@@ -6,27 +6,46 @@ use {
 	core::cell::RefCell,
 };
 
-/// Effect stack impl
-type EffectStackImpl<F> = RefCell<Vec<Effect<F>>>;
-
 /// Effect stack
 #[thread_local]
-static EFFECT_STACK: EffectStackImpl<dyn EffectRun> = EffectStackImpl::new(vec![]);
+pub static EFFECT_STACK: EffectStack = EffectStack::new();
 
-/// Pushes an effect to the stack.
-pub fn push<F>(f: Effect<F>)
-where
-	F: ?Sized + EffectRun,
-{
-	EFFECT_STACK.borrow_mut().push(f.unsize());
+/// Effect stack
+pub struct EffectStack {
+	/// Stack
+	stack: RefCell<Vec<Effect>>,
 }
 
-/// Pops an effect from the stack
-pub fn pop() {
-	EFFECT_STACK.borrow_mut().pop().expect("Missing added effect");
+impl EffectStack {
+	/// Creates a new, empty, effect stack
+	#[must_use]
+	pub const fn new() -> Self {
+		Self {
+			stack: RefCell::new(vec![]),
+		}
+	}
+
+	/// Pushes an effect to the stack.
+	pub fn push<F>(&self, f: Effect<F>)
+	where
+		F: ?Sized + EffectRun,
+	{
+		self.stack.borrow_mut().push(f.unsize());
+	}
+
+	/// Pops an effect from the stack
+	pub fn pop(&self) {
+		self.stack.borrow_mut().pop().expect("Missing added effect");
+	}
+
+	/// Returns the top effect of the stack
+	pub fn top(&self) -> Option<Effect> {
+		self.stack.borrow().last().cloned()
+	}
 }
 
-/// Returns the top effect of the stack
-pub fn top() -> Option<Effect> {
-	EFFECT_STACK.borrow().last().cloned()
+impl Default for EffectStack {
+	fn default() -> Self {
+		Self::new()
+	}
 }
