@@ -115,7 +115,7 @@ pub fn clear_effect<F: ?Sized + EffectRun>(effect: &Effect<F>) {
 }
 
 /// Function trait for [`with`] and friends.
-pub trait WithFn<W: With> = FnMut(&W::EndNode, Vec<W::Info>);
+pub trait WithFn<W: With> = FnMut(W::EndNode, Vec<W::Info>);
 
 /// Uses all dependencies/subscribers of a trigger/effect
 pub fn with<W>(start: W::StartNode, mut f: impl WithFn<W>)
@@ -145,7 +145,7 @@ where
 			.collect();
 
 		drop(dep_graph);
-		f(&end, effect_info);
+		f(end, effect_info);
 		dep_graph = DEP_GRAPH.borrow();
 	}
 }
