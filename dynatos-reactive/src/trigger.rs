@@ -312,12 +312,10 @@ impl Drop for TriggerExec {
 #[cfg(test)]
 mod tests {
 	// Imports
-	extern crate test;
 	use {
 		super::*,
 		crate::Effect,
-		core::{array, cell::Cell, mem},
-		test::Bencher,
+		core::{cell::Cell, mem},
 		zutil_cloned::cloned,
 	};
 
@@ -407,56 +405,5 @@ mod tests {
 			3,
 			"Effect wasn't run even when no other executors existed"
 		);
-	}
-
-	#[bench]
-	fn clone_100(bencher: &mut Bencher) {
-		let triggers = array::from_fn::<Trigger, 100, _>(|_| Trigger::new());
-		bencher.iter(|| {
-			for trigger in &triggers {
-				let trigger = test::black_box(trigger.clone());
-				mem::forget(trigger);
-			}
-		});
-	}
-
-	/// Benches triggering a trigger with `N` no-op effects.
-	fn trigger_noop_n<const N: usize>(bencher: &mut Bencher) {
-		let trigger = Trigger::new();
-		let _effects = array::from_fn::<_, N, _>(|_| {
-			Effect::new(
-				#[cloned(trigger)]
-				move || trigger.gather_subs(),
-			)
-		});
-
-		bencher.iter(|| {
-			trigger.exec();
-		});
-	}
-
-	#[bench]
-	fn trigger_empty(bencher: &mut Bencher) {
-		self::trigger_noop_n::<0>(bencher);
-	}
-
-	#[bench]
-	fn trigger_noop(bencher: &mut Bencher) {
-		self::trigger_noop_n::<1>(bencher);
-	}
-
-	#[bench]
-	fn trigger_noop_10(bencher: &mut Bencher) {
-		self::trigger_noop_n::<10>(bencher);
-	}
-
-	#[bench]
-	fn trigger_noop_100(bencher: &mut Bencher) {
-		self::trigger_noop_n::<100>(bencher);
-	}
-
-	#[bench]
-	fn trigger_noop_1000(bencher: &mut Bencher) {
-		self::trigger_noop_n::<1000>(bencher);
 	}
 }

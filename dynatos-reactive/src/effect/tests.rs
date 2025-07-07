@@ -1,14 +1,9 @@
 //! Tests
 
 // Imports
-extern crate test;
 use {
 	super::{super::effect, *},
-	core::{
-		cell::{Cell, OnceCell},
-		mem,
-	},
-	test::Bencher,
+	core::cell::{Cell, OnceCell},
 };
 
 /// Ensures effects are executed only when stale
@@ -85,39 +80,4 @@ fn running_stacked() {
 	// And that the bottom-level running effect is already inert
 	let running_bottom = RUNNING_BOTTOM.get().expect("Running effect missing");
 	assert!(running_bottom.is_inert());
-}
-
-#[bench]
-fn get_running_100_none(bencher: &mut Bencher) {
-	bencher.iter(|| {
-		for _ in 0_usize..100 {
-			let effect = effect::running();
-			test::black_box(effect);
-		}
-	});
-}
-
-#[bench]
-fn get_running_100_some(bencher: &mut Bencher) {
-	let effect = Effect::new_raw(move || ());
-
-	effect.gather_dependencies(|| {
-		bencher.iter(|| {
-			for _ in 0_usize..100 {
-				let effect = effect::running();
-				test::black_box(effect);
-			}
-		});
-	});
-}
-
-#[bench]
-fn create_10(bencher: &mut Bencher) {
-	bencher.iter(|| {
-		for _ in 0_usize..10 {
-			let effect = Effect::new(move || ());
-			test::black_box(&effect);
-			mem::forget(effect);
-		}
-	});
 }

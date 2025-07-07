@@ -203,8 +203,7 @@ impl<T: ?Sized + fmt::Debug> fmt::Debug for Signal<T> {
 #[cfg(test)]
 mod tests {
 	// Imports
-	extern crate test;
-	use {super::*, crate::Effect, core::array, test::Bencher, zutil_cloned::cloned};
+	use {super::*, crate::Effect, zutil_cloned::cloned};
 
 	#[test]
 	fn multiple_mut() {
@@ -219,60 +218,5 @@ mod tests {
 
 		let _a = a.borrow_mut();
 		let _b = b.borrow_mut();
-	}
-
-	#[bench]
-	fn clone_100(bencher: &mut Bencher) {
-		let signals = array::from_fn::<_, 100, _>(|_| Signal::new(0_i32));
-		bencher.iter(|| {
-			for signal in &signals {
-				let signal = test::black_box(signal.clone());
-				mem::forget(signal);
-			}
-		});
-	}
-
-	/// Reference for [`access_100`]
-	#[bench]
-	fn access_100_value(bencher: &mut Bencher) {
-		let values = array::from_fn::<_, 100, _>(|_| 123_usize);
-		bencher.iter(|| {
-			for value in &values {
-				test::black_box(*value);
-			}
-		});
-	}
-
-	#[bench]
-	fn access_100(bencher: &mut Bencher) {
-		let signals = array::from_fn::<_, 100, _>(|_| Signal::new(123_usize));
-		bencher.iter(|| {
-			for signal in &signals {
-				test::black_box(signal.get());
-			}
-		});
-	}
-
-	/// Reference for `update_100_*`
-	#[bench]
-	fn update_100_value(bencher: &mut Bencher) {
-		let mut values = array::from_fn::<_, 100, _>(|_| 123_usize);
-		bencher.iter(|| {
-			for value in &mut values {
-				*value += 1;
-				test::black_box(*value);
-			}
-		});
-	}
-
-	#[bench]
-	fn update_100_empty(bencher: &mut Bencher) {
-		let signals = array::from_fn::<_, 100, _>(|_| Signal::new(123_usize));
-		bencher.iter(|| {
-			for signal in &signals {
-				signal.update(|value| *value += 1);
-				test::black_box(signal);
-			}
-		});
 	}
 }
