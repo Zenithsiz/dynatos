@@ -10,7 +10,7 @@ use {
 
 /// Dependency graph
 #[thread_local]
-static DEP_GRAPH: LazyCell<RefCell<DepGraph>> = LazyCell::new(|| RefCell::new(DepGraph::new()));
+pub static DEP_GRAPH: LazyCell<DepGraph> = LazyCell::new(DepGraph::new);
 
 /// Effect dependency info
 #[derive(PartialEq, Eq, Clone, Hash, Debug)]
@@ -64,9 +64,9 @@ impl Edge {
 	}
 }
 
-/// Dependency graph
+/// Inner
 #[derive(Clone, Debug)]
-struct DepGraph {
+struct Inner {
 	/// Nodes
 	nodes: HashMap<Node, NodeIndex>,
 
@@ -74,154 +74,171 @@ struct DepGraph {
 	graph: StableGraph<Node, Edge>,
 }
 
+/// Dependency graph
+#[derive(Clone, Debug)]
+pub struct DepGraph {
+	/// Inner
+	inner: RefCell<Inner>,
+}
+
 impl DepGraph {
 	/// Creates a new dependency graph
 	#[must_use]
 	pub fn new() -> Self {
 		Self {
-			nodes: HashMap::new(),
-			graph: StableGraph::new(),
+			inner: RefCell::new(Inner {
+				nodes: HashMap::new(),
+				graph: StableGraph::new(),
+			}),
 		}
 	}
 
 	/// Gets the idx of a node, or creates it
-	pub fn get_or_insert_node(&mut self, node: Node) -> NodeIndex {
-		*self
+	fn get_or_insert_node(&self, node: Node) -> NodeIndex {
+		let mut inner = self.inner.borrow_mut();
+		let inner = &mut *inner;
+
+		*inner
 			.nodes
 			.entry(node)
-			.or_insert_with_key(|node| self.graph.add_node(node.clone()))
+			.or_insert_with_key(|node| inner.graph.add_node(node.clone()))
+	}
+
+	/// Clears an effect's dependencies and subscribers
+	pub fn clear_effect<F: ?Sized + EffectRun>(&self, effect: &Effect<F>) {
+		let mut inner = self.inner.borrow_mut();
+		let Some(&effect_idx) = inner.nodes.get(&Node::Effect(effect.downgrade().unsize())) else {
+			return;
+		};
+
+		let mut deps = inner.graph.neighbors_undirected(effect_idx).detach();
+		while let Some(edge) = deps.next_edge(&inner.graph) {
+			inner.graph.remove_edge(edge);
+		}
+	}
+
+	/// Uses all dependencies/subscribers of a trigger/effect
+	pub fn with<W>(&self, start: W::StartNode, mut f: impl WithFn<W>)
+	where
+		W: With,
+	{
+		let mut inner = self.inner.borrow();
+		let Some(&trigger_idx) = inner.nodes.get(&start.into()) else {
+			return;
+		};
+
+		// TODO: If we have multiple edges to a neighbor, will this go through them once or
+		//       once for each edge?
+		let mut neighbors = inner.graph.neighbors_directed(trigger_idx, W::DIR).detach();
+		loop {
+			let Some(effect_idx) = neighbors.next_node(&inner.graph) else {
+				break;
+			};
+
+			let end = TryFrom::try_from(inner.graph[effect_idx].clone())
+				.expect("Trigger/Effect had an edge to another trigger/effect");
+
+			let effect_info = inner
+				.graph
+				.edges_connecting(trigger_idx, effect_idx)
+				.map(|edge| TryFrom::try_from(edge.weight().clone()).expect("Trigger/effect had the wrong edge type"))
+				.collect();
+
+			drop(inner);
+			f(end, effect_info);
+			inner = self.inner.borrow();
+		}
+	}
+
+	/// Uses all subscribers of a trigger
+	pub fn with_trigger_subs(&self, trigger: WeakTrigger, f: impl WithFn<WithTriggerSubs>) {
+		self.with::<WithTriggerSubs>(trigger, f);
+	}
+
+	/// Uses all dependencies of a trigger
+	pub fn with_trigger_deps(&self, trigger: WeakTrigger, f: impl WithFn<WithTriggerDeps>) {
+		self.with::<WithTriggerDeps>(trigger, f);
+	}
+
+	/// Uses all subscribers of an effect
+	pub fn with_effect_subs(&self, effect: WeakEffect, f: impl WithFn<WithEffectSubs>) {
+		self.with::<WithEffectSubs>(effect, f);
+	}
+
+	/// Uses all dependencies of an effect
+	pub fn with_effect_deps(&self, effect: WeakEffect, f: impl WithFn<WithEffectDeps>) {
+		self.with::<WithEffectDeps>(effect, f);
+	}
+
+	/// Adds an effect dependency
+	#[track_caller]
+	pub fn add_effect_dep(&self, effect: &Effect, trigger: &Trigger) {
+		tracing::trace!(
+			"Adding effect dependency\nEffect  : {}\nTrigger : {}\nGathered: {}",
+			effect.defined_loc(),
+			trigger.defined_loc(),
+			Loc::caller(),
+		);
+
+		let effect_idx = self.get_or_insert_node(Node::Effect(effect.downgrade()));
+		let trigger_idx = self.get_or_insert_node(Node::Trigger(trigger.downgrade()));
+
+		self.inner
+			.borrow_mut()
+			.graph
+			.add_edge(trigger_idx, effect_idx, Edge::effect_dep());
+	}
+
+	/// Adds an effect subscriber
+	pub fn add_effect_sub(&self, effect: &Effect, trigger: &Trigger, caller_loc: Loc) {
+		tracing::trace!(
+			"Adding effect subscriber\nEffect  : {}\nTrigger : {}\nExecuted: {}",
+			effect.defined_loc(),
+			trigger.defined_loc(),
+			caller_loc,
+		);
+
+		let effect_idx = self.get_or_insert_node(Node::Effect(effect.downgrade()));
+		let trigger_idx = self.get_or_insert_node(Node::Trigger(trigger.downgrade()));
+
+		self.inner
+			.borrow_mut()
+			.graph
+			.add_edge(effect_idx, trigger_idx, Edge::effect_sub(caller_loc));
+	}
+
+	/// Exports the dependency graph as a dot graph.
+	pub fn export_dot(&self) -> String {
+		let inner = &self.inner.borrow();
+		let graph = inner.graph.map(
+			|_node_idx, node| match node {
+				Node::Trigger(trigger) => match trigger.upgrade() {
+					Some(trigger) => format!("Trigger({})", trigger.defined_loc()),
+					None => "Trigger(<dropped>)".to_owned(),
+				},
+				Node::Effect(effect) => match effect.upgrade() {
+					Some(effect) => format!("Effect({})", effect.defined_loc()),
+					None => "Effect(<dropped>)".to_owned(),
+				},
+			},
+			|_edge_idx, edge| match edge {
+				Edge::EffectDep(info) => format!("Gather({})", info.gathered_loc),
+				Edge::EffectSub(info) => format!("Exec({})", info.exec_loc),
+			},
+		);
+
+		petgraph::dot::Dot::new(&graph).to_string()
 	}
 }
 
-/// Clears an effect's dependencies and subscribers
-pub fn clear_effect<F: ?Sized + EffectRun>(effect: &Effect<F>) {
-	let mut dep_graph = DEP_GRAPH.borrow_mut();
-	let Some(&effect_idx) = dep_graph.nodes.get(&Node::Effect(effect.downgrade().unsize())) else {
-		return;
-	};
-
-	let mut deps = dep_graph.graph.neighbors_undirected(effect_idx).detach();
-	while let Some(edge) = deps.next_edge(&dep_graph.graph) {
-		dep_graph.graph.remove_edge(edge);
+impl Default for DepGraph {
+	fn default() -> Self {
+		Self::new()
 	}
 }
 
 /// Function trait for [`with`] and friends.
 pub trait WithFn<W: With> = FnMut(W::EndNode, Vec<W::Info>);
-
-/// Uses all dependencies/subscribers of a trigger/effect
-pub fn with<W>(start: W::StartNode, mut f: impl WithFn<W>)
-where
-	W: With,
-{
-	let mut dep_graph = DEP_GRAPH.borrow();
-	let Some(&trigger_idx) = dep_graph.nodes.get(&start.into()) else {
-		return;
-	};
-
-	// TODO: If we have multiple edges to a neighbor, will this go through them once or
-	//       once for each edge?
-	let mut neighbors = dep_graph.graph.neighbors_directed(trigger_idx, W::DIR).detach();
-	loop {
-		let Some(effect_idx) = neighbors.next_node(&dep_graph.graph) else {
-			break;
-		};
-
-		let end = TryFrom::try_from(dep_graph.graph[effect_idx].clone())
-			.expect("Trigger/Effect had an edge to another trigger/effect");
-
-		let effect_info = dep_graph
-			.graph
-			.edges_connecting(trigger_idx, effect_idx)
-			.map(|edge| TryFrom::try_from(edge.weight().clone()).expect("Trigger/effect had the wrong edge type"))
-			.collect();
-
-		drop(dep_graph);
-		f(end, effect_info);
-		dep_graph = DEP_GRAPH.borrow();
-	}
-}
-
-/// Uses all subscribers of a trigger
-pub fn with_trigger_subs(trigger: WeakTrigger, f: impl WithFn<WithTriggerSubs>) {
-	self::with::<WithTriggerSubs>(trigger, f);
-}
-
-/// Uses all dependencies of a trigger
-pub fn with_trigger_deps(trigger: WeakTrigger, f: impl WithFn<WithTriggerDeps>) {
-	self::with::<WithTriggerDeps>(trigger, f);
-}
-
-/// Uses all subscribers of an effect
-pub fn with_effect_subs(effect: WeakEffect, f: impl WithFn<WithEffectSubs>) {
-	self::with::<WithEffectSubs>(effect, f);
-}
-
-/// Uses all dependencies of an effect
-pub fn with_effect_deps(effect: WeakEffect, f: impl WithFn<WithEffectDeps>) {
-	self::with::<WithEffectDeps>(effect, f);
-}
-
-/// Adds an effect dependency
-#[track_caller]
-pub fn add_effect_dep(effect: &Effect, trigger: &Trigger) {
-	tracing::trace!(
-		"Adding effect dependency\nEffect  : {}\nTrigger : {}\nGathered: {}",
-		effect.defined_loc(),
-		trigger.defined_loc(),
-		Loc::caller(),
-	);
-
-	let mut dep_graph = DEP_GRAPH.borrow_mut();
-
-	let effect_idx = dep_graph.get_or_insert_node(Node::Effect(effect.downgrade()));
-	let trigger_idx = dep_graph.get_or_insert_node(Node::Trigger(trigger.downgrade()));
-
-	dep_graph.graph.add_edge(trigger_idx, effect_idx, Edge::effect_dep());
-}
-
-/// Adds an effect subscriber
-pub fn add_effect_sub(effect: &Effect, trigger: &Trigger, caller_loc: Loc) {
-	tracing::trace!(
-		"Adding effect subscriber\nEffect  : {}\nTrigger : {}\nExecuted: {}",
-		effect.defined_loc(),
-		trigger.defined_loc(),
-		caller_loc,
-	);
-
-	let mut dep_graph = DEP_GRAPH.borrow_mut();
-
-	let effect_idx = dep_graph.get_or_insert_node(Node::Effect(effect.downgrade()));
-	let trigger_idx = dep_graph.get_or_insert_node(Node::Trigger(trigger.downgrade()));
-
-	dep_graph
-		.graph
-		.add_edge(effect_idx, trigger_idx, Edge::effect_sub(caller_loc));
-}
-
-/// Exports the dependency graph as a dot graph.
-pub fn export_dot() -> String {
-	let dep_graph = &DEP_GRAPH.borrow();
-	let graph = dep_graph.graph.map(
-		|_node_idx, node| match node {
-			Node::Trigger(trigger) => match trigger.upgrade() {
-				Some(trigger) => format!("Trigger({})", trigger.defined_loc()),
-				None => "Trigger(<dropped>)".to_owned(),
-			},
-			Node::Effect(effect) => match effect.upgrade() {
-				Some(effect) => format!("Effect({})", effect.defined_loc()),
-				None => "Effect(<dropped>)".to_owned(),
-			},
-		},
-		|_edge_idx, edge| match edge {
-			Edge::EffectDep(info) => format!("Gather({})", info.gathered_loc),
-			Edge::EffectSub(info) => format!("Exec({})", info.exec_loc),
-		},
-	);
-
-	petgraph::dot::Dot::new(&graph).to_string()
-}
-
 
 /// Dep graph with
 #[expect(private_bounds, reason = "It's a sealed trait")]

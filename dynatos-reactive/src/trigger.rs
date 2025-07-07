@@ -5,7 +5,7 @@
 
 // Imports
 use {
-	crate::{dep_graph, effect, loc::Loc, run_queue},
+	crate::{dep_graph::DEP_GRAPH, effect, loc::Loc, run_queue},
 	core::{
 		cell::LazyCell,
 		fmt,
@@ -68,7 +68,7 @@ impl Trigger {
 	#[track_caller]
 	pub fn gather_subs(&self) {
 		match effect::running() {
-			Some(effect) => dep_graph::add_effect_dep(&effect, self),
+			Some(effect) => DEP_GRAPH.add_effect_dep(&effect, self),
 
 			// TODO: Add some way to turn off this warning at a global
 			//       scale, with something like
@@ -117,14 +117,14 @@ impl Trigger {
 	pub(crate) fn exec_inner(&self, caller_loc: Loc) -> TriggerExec {
 		// If there's a running effect, register it as our dependency
 		if let Some(effect) = effect::running() {
-			dep_graph::add_effect_sub(&effect, self, caller_loc);
+			DEP_GRAPH.add_effect_sub(&effect, self, caller_loc);
 		}
 
 		// Increase the ref count
 		run_queue::inc_ref();
 
 		// Then add all subscribers to the run queue
-		dep_graph::with_trigger_subs(self.downgrade(), |sub, sub_info| {
+		DEP_GRAPH.with_trigger_subs(self.downgrade(), |sub, sub_info| {
 			// If the effect doesn't exist anymore, skip it
 			let Some(effect) = sub.upgrade() else {
 				return;
