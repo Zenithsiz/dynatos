@@ -20,6 +20,9 @@ pub struct World {
 	/// "raw" mode ref count
 	raw_ref_count: Cell<usize>,
 
+	/// "unloaded" mode ref count
+	unloaded_ref_count: Cell<usize>,
+
 	/// Dependency graph
 	pub dep_graph: DepGraph,
 
@@ -35,10 +38,11 @@ impl World {
 	#[must_use]
 	pub fn new() -> Self {
 		Self {
-			raw_ref_count: Cell::new(0),
-			dep_graph:     DepGraph::new(),
-			effect_stack:  EffectStack::new(),
-			run_queue:     RunQueue::new(),
+			raw_ref_count:      Cell::new(0),
+			unloaded_ref_count: Cell::new(0),
+			dep_graph:          DepGraph::new(),
+			effect_stack:       EffectStack::new(),
+			run_queue:          RunQueue::new(),
 		}
 	}
 
@@ -47,10 +51,21 @@ impl World {
 		self.raw_ref_count.get() > 0
 	}
 
+	/// Returns if in "unloaded" mode
+	pub const fn is_unloaded(&self) -> bool {
+		self.unloaded_ref_count.get() > 0
+	}
+
 	/// Enters "raw" mode
 	pub fn set_raw(&self) -> RawGuard {
 		self.raw_ref_count.update(|count| count + 1);
 		RawGuard(())
+	}
+
+	/// Enters "unloaded" mode
+	pub fn set_unloaded(&self) -> UnloadedGuard {
+		self.unloaded_ref_count.update(|count| count + 1);
+		UnloadedGuard(())
 	}
 }
 
@@ -67,5 +82,14 @@ pub struct RawGuard(());
 impl Drop for RawGuard {
 	fn drop(&mut self) {
 		WORLD.raw_ref_count.update(|count| count - 1);
+	}
+}
+
+/// Guard type for entering "unloaded" mode.
+pub struct UnloadedGuard(());
+
+impl Drop for UnloadedGuard {
+	fn drop(&mut self) {
+		WORLD.unloaded_ref_count.update(|count| count - 1);
 	}
 }

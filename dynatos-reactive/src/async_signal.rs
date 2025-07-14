@@ -6,6 +6,7 @@ use {
 		effect,
 		loc::Loc,
 		trigger::TriggerExec,
+		world::UnloadedGuard,
 		Effect,
 		EffectRun,
 		SignalBorrow,
@@ -20,6 +21,7 @@ use {
 		SignalWith,
 		SignalWithDefaultImpl,
 		Trigger,
+		WORLD,
 	},
 	core::{
 		cell::{self, RefCell},
@@ -325,9 +327,7 @@ impl<F: Loader> AsyncSignal<F> {
 	#[must_use]
 	#[track_caller]
 	pub fn borrow_unloaded(&self) -> Option<BorrowRef<'_, F>> {
-		self.trigger.gather_subs();
-		let inner = self.inner.borrow();
-		inner.value.is_some().then(|| BorrowRef(inner))
+		self::with_unloaded(|| self.borrow())
 	}
 
 	/// Borrows the value, without loading it or gathering subscribers
@@ -410,8 +410,12 @@ impl<F: Loader> SignalBorrow for AsyncSignal<F> {
 			// If there's already a value, return it
 			Some(_) => Some(BorrowRef(inner)),
 
-			// Otherwise, start loading
+			// Otherwise, start loading if not in "unloaded" mode
 			None => {
+				if WORLD.is_unloaded() {
+					return None;
+				}
+
 				drop(inner);
 				self.inner.borrow_mut().start_loading(self);
 				None
@@ -535,4 +539,29 @@ where
 	fn load(&mut self) -> Self::Fut {
 		(self)()
 	}
+}
+
+/// Enters "unloaded" mode within the supplied closure.
+///
+/// Within "unloaded" mode, async signals will not start loading
+/// their contents when accessed.
+#[track_caller]
+pub fn with_unloaded<F, O>(f: F) -> O
+where
+	F: FnOnce() -> O,
+{
+	let _guard = WORLD.set_unloaded();
+	f()
+}
+
+/// Enters "unloaded" mode with a guard
+///
+/// See [`with_unloaded`] for details.
+pub fn enter_unloaded() -> UnloadedGuard {
+	WORLD.set_unloaded()
+}
+
+/// Returns if "unloaded" mode is on
+pub fn is_unloaded() -> bool {
+	WORLD.is_unloaded()
 }
