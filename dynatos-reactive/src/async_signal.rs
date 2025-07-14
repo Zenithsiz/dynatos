@@ -301,6 +301,7 @@ impl<F: Loader> AsyncSignal<F> {
 	///
 	/// If unloaded, starts loading it
 	#[must_use]
+	#[track_caller]
 	pub fn get(&self) -> Option<F::Output>
 	where
 		F::Output: Copy,
@@ -312,6 +313,7 @@ impl<F: Loader> AsyncSignal<F> {
 	///
 	/// If unloaded, starts loading it
 	#[must_use]
+	#[track_caller]
 	pub fn get_cloned(&self) -> Option<F::Output>
 	where
 		F::Output: Clone,
