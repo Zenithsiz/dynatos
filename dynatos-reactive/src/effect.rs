@@ -22,7 +22,7 @@ pub use self::{
 
 // Imports
 use {
-	crate::{loc::Loc, WORLD},
+	crate::{loc::Loc, world::RawGuard, WORLD},
 	core::{
 		cell::Cell,
 		fmt,
@@ -360,6 +360,13 @@ where
 {
 	let _guard = WORLD.set_raw();
 	f()
+}
+
+/// Enters "raw" mode with a guard
+///
+/// See [`with_raw`] for details.
+pub fn enter_raw() -> RawGuard {
+	WORLD.set_raw()
 }
 
 /// Returns if "raw" mode is on
