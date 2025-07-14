@@ -261,7 +261,7 @@ where
 			signal: self,
 			// TODO: Should we actually use another flag for this instead of hijacking
 			//       the raw flag?
-			write_query_on_drop: effect::is_raw(),
+			write_query_on_drop: !effect::is_raw(),
 		}
 	}
 }
