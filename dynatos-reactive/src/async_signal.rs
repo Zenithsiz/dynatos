@@ -31,7 +31,6 @@ use {
 	},
 	futures::{future, stream::AbortHandle},
 	std::rc::Rc,
-	tokio::sync::Notify,
 	zutil_cloned::cloned,
 };
 
@@ -100,11 +99,9 @@ impl<F: Loader> Inner<F> {
 			inner.handle = None;
 			drop(inner);
 
-			// Finally trigger and awake all waiters.
-			// TODO: Notify using the trigger?
+			// Finally trigger
 			let _suppress_restart = restart_effect.suppress();
 			signal.trigger.exec_inner(caller_loc);
-			signal.notify.notify_waiters();
 		});
 		self.handle = Some(handle);
 
@@ -138,9 +135,6 @@ pub struct AsyncSignal<F: Loader> {
 
 	/// Trigger
 	trigger: Trigger,
-
-	/// Notify
-	notify: Rc<Notify>,
 }
 
 impl<F: Loader> AsyncSignal<F> {
@@ -160,7 +154,6 @@ impl<F: Loader> AsyncSignal<F> {
 				handle: None,
 			})),
 			trigger: Trigger::new(),
-			notify:  Rc::new(Notify::new()),
 		};
 
 		signal.inner.borrow_mut().restart_effect = Some(Effect::<RestartEffectFn<F>>::new_raw(
@@ -232,73 +225,6 @@ impl<F: Loader> AsyncSignal<F> {
 		self.inner.borrow().is_loading()
 	}
 
-	/// Waits for the value to be loaded.
-	///
-	/// If not loading, waits until the loading starts, but does not start it.
-	pub async fn wait(&self) -> BorrowRef<'_, F> {
-		let inner = self.inner.borrow();
-		self.wait_inner(inner).await
-	}
-
-	/// Loads the inner value.
-	///
-	/// If already loaded, returns it without loading.
-	///
-	/// Otherwise, this will start loading.
-	///
-	/// If this future is dropped before completion, the loading
-	/// will be cancelled.
-	pub async fn load(&self) -> BorrowRef<'_, F> {
-		#![expect(
-			clippy::await_holding_refcell_ref,
-			reason = "False positive, we drop it when awaiting"
-		)]
-
-		// If the value is loaded, return it
-		let mut inner = self.inner.borrow_mut();
-		if inner.value.is_some() {
-			drop(inner);
-			return BorrowRef(self.inner.borrow());
-		}
-
-		// Else start loading, and setup a defer to stop loading if we get cancelled.
-		// Note: Stopping loading is a no-op if `wait` successfully returns, we only
-		//       care if we're dropped early.
-		let created_loader = inner.start_loading(self);
-		scopeguard::defer! {
-			if created_loader {
-				self.stop_loading();
-			}
-		}
-
-		// Then wait for the value
-		drop(inner);
-		self.wait_inner(self.inner.borrow()).await
-	}
-
-	async fn wait_inner<'a>(&'a self, mut inner: cell::Ref<'a, Inner<F>>) -> BorrowRef<'a, F> {
-		#![expect(
-			clippy::await_holding_refcell_ref,
-			reason = "False positive, we drop it when awaiting"
-		)]
-
-		loop {
-			// Register a handle to be notified
-			let notified = self.notify.notified();
-			drop(inner);
-
-			// Then await on it
-			notified.await;
-
-			// Finally return the value
-			// Note: If in the meantime the value got overwritten, we wait again
-			inner = self.inner.borrow();
-			if inner.value.is_some() {
-				break BorrowRef(inner);
-			}
-		}
-	}
-
 	/// Borrows the value, without loading it
 	#[must_use]
 	#[track_caller]
@@ -319,7 +245,6 @@ impl<F: Loader> Clone for AsyncSignal<F> {
 		Self {
 			inner:   Rc::clone(&self.inner),
 			trigger: self.trigger.clone(),
-			notify:  Rc::clone(&self.notify),
 		}
 	}
 }
