@@ -205,10 +205,10 @@ impl<F: ?Sized> Effect<F> {
 		// TODO: Add some logging here to debug why an effect is being run?
 		self.inner.checking_deps.set(true);
 		WORLD
-			.dep_graph
+			.dep_graph()
 			.with_effect_deps(self.downgrade().unsize(), move |trigger, _| {
 				WORLD
-					.dep_graph
+					.dep_graph()
 					.with_trigger_deps(trigger, move |effect, _| _ = effect.try_run());
 			});
 		self.inner.checking_deps.set(false);
@@ -231,7 +231,7 @@ impl<F: ?Sized> Effect<F> {
 		F: EffectRun + 'static,
 	{
 		// Clear the dependencies/subscribers before running
-		WORLD.dep_graph.clear_effect(self);
+		WORLD.dep_graph().clear_effect(self);
 
 		// Then run it
 		let ctx = EffectRunCtx::new();
@@ -338,7 +338,7 @@ where
 /// Returns the current running effect
 #[must_use]
 pub fn running() -> Option<Effect> {
-	WORLD.effect_stack.top()
+	WORLD.effect_stack().top()
 }
 
 /// Enters "raw" mode within the supplied closure.

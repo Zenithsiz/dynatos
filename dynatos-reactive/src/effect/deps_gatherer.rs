@@ -20,7 +20,7 @@ impl<'a, F: ?Sized> EffectDepsGatherer<'a, F> {
 		F: EffectRun,
 	{
 		// Push the effect onto the stack
-		WORLD.effect_stack.push(effect.clone().unsize());
+		WORLD.effect_stack().push(effect.clone().unsize());
 
 		Self(PhantomData)
 	}
@@ -29,6 +29,6 @@ impl<'a, F: ?Sized> EffectDepsGatherer<'a, F> {
 impl<F: ?Sized> Drop for EffectDepsGatherer<'_, F> {
 	fn drop(&mut self) {
 		// Pop our effect from the stack
-		WORLD.effect_stack.pop();
+		WORLD.effect_stack().pop();
 	}
 }

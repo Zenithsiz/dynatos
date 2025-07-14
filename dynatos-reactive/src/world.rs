@@ -12,10 +12,6 @@ pub static WORLD: LazyCell<World> = LazyCell::new(World::new);
 
 /// World
 #[derive(Debug)]
-#[expect(
-	clippy::partial_pub_fields,
-	reason = "TODO: Make these private and hand out references"
-)]
 pub struct World {
 	/// "raw" mode ref count
 	raw_ref_count: Cell<usize>,
@@ -24,13 +20,13 @@ pub struct World {
 	unloaded_ref_count: Cell<usize>,
 
 	/// Dependency graph
-	pub dep_graph: DepGraph,
+	dep_graph: DepGraph,
 
 	/// Effect stack
-	pub effect_stack: EffectStack,
+	effect_stack: EffectStack,
 
 	/// Run queue
-	pub run_queue: RunQueue,
+	run_queue: RunQueue,
 }
 
 impl World {
@@ -44,6 +40,24 @@ impl World {
 			effect_stack:       EffectStack::new(),
 			run_queue:          RunQueue::new(),
 		}
+	}
+
+	/// Returns the dependency graph
+	#[must_use]
+	pub const fn dep_graph(&self) -> &DepGraph {
+		&self.dep_graph
+	}
+
+	/// Returns the effect stack
+	#[must_use]
+	pub const fn effect_stack(&self) -> &EffectStack {
+		&self.effect_stack
+	}
+
+	/// Returns the run queue
+	#[must_use]
+	pub const fn run_queue(&self) -> &RunQueue {
+		&self.run_queue
 	}
 
 	/// Returns if in "raw" mode

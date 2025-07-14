@@ -73,7 +73,7 @@ impl Trigger {
 		}
 
 		match effect::running() {
-			Some(effect) => WORLD.dep_graph.add_effect_dep(&effect, self),
+			Some(effect) => WORLD.dep_graph().add_effect_dep(&effect, self),
 
 			// TODO: Add some way to turn off this warning at a global
 			//       scale, with something like
@@ -129,14 +129,14 @@ impl Trigger {
 
 		// If there's a running effect, register it as our dependency
 		if let Some(effect) = effect::running() {
-			WORLD.dep_graph.add_effect_sub(&effect, self, caller_loc);
+			WORLD.dep_graph().add_effect_sub(&effect, self, caller_loc);
 		}
 
 		// Increase the ref count
-		WORLD.run_queue.inc_ref();
+		WORLD.run_queue().inc_ref();
 
 		// Then add all subscribers to the run queue
-		WORLD.dep_graph.with_trigger_subs(self.downgrade(), |sub, sub_info| {
+		WORLD.dep_graph().with_trigger_subs(self.downgrade(), |sub, sub_info| {
 			// If the effect doesn't exist anymore, skip it
 			let Some(effect) = sub.upgrade() else {
 				return;
@@ -149,7 +149,7 @@ impl Trigger {
 
 			// Then set the effect as stale and add it to the run queue
 			effect.set_stale();
-			WORLD.run_queue.push(effect.downgrade(), sub_info);
+			WORLD.run_queue().push(effect.downgrade(), sub_info);
 		});
 
 		Some(TriggerExec {
@@ -295,13 +295,13 @@ pub struct TriggerExec {
 impl Drop for TriggerExec {
 	fn drop(&mut self) {
 		// Decrease the reference count, and if we weren't the last, quit
-		let Some(_exec_guard) = WORLD.run_queue.dec_ref() else {
+		let Some(_exec_guard) = WORLD.run_queue().dec_ref() else {
 			return;
 		};
 
 		// If we were the last, keep popping effects and running them until
 		// the run queue is empty
-		while let Some((sub, sub_info)) = WORLD.run_queue.pop() {
+		while let Some((sub, sub_info)) = WORLD.run_queue().pop() {
 			let Some(effect) = sub.upgrade() else {
 				continue;
 			};
