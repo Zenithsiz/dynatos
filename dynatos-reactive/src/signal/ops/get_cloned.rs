@@ -39,6 +39,7 @@ pub trait SignalGetCloned {
 	type Value;
 
 	/// Gets the signal value, by cloning it.
+	#[track_caller]
 	fn get_cloned(&self) -> Self::Value;
 
 	/// Gets the signal value, by cloning it without gathering dependencies.
@@ -54,7 +55,6 @@ where
 {
 	type Value = <S::Value<'static> as SignalGetClone>::Value;
 
-	#[track_caller]
 	fn get_cloned(&self) -> Self::Value {
 		self.with(|value| self::convert_inner::<S>(value.clone_value()))
 	}
