@@ -299,30 +299,6 @@ impl<F: Loader> AsyncSignal<F> {
 		}
 	}
 
-	/// Copies the inner value, if loaded.
-	///
-	/// If unloaded, starts loading it
-	#[must_use]
-	#[track_caller]
-	pub fn get(&self) -> Option<F::Output>
-	where
-		F::Output: Copy,
-	{
-		self.borrow().as_deref().copied()
-	}
-
-	/// Clones the inner value, if loaded.
-	///
-	/// If unloaded, starts loading it
-	#[must_use]
-	#[track_caller]
-	pub fn get_cloned(&self) -> Option<F::Output>
-	where
-		F::Output: Clone,
-	{
-		self.borrow().as_deref().cloned()
-	}
-
 	/// Borrows the value, without loading it
 	#[must_use]
 	#[track_caller]
