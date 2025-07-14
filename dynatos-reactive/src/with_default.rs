@@ -72,13 +72,6 @@ impl<S: SignalBorrow, T> SignalBorrow for WithDefault<S, T> {
 			default: &self.default,
 		}
 	}
-
-	fn borrow_raw(&self) -> Self::Ref<'_> {
-		BorrowRef {
-			value:   self.inner.borrow_raw(),
-			default: &self.default,
-		}
-	}
 }
 
 impl<S, T> SignalWith for WithDefault<S, T>
@@ -95,16 +88,6 @@ where
 		F: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
 		self.inner.with(|value| match value.into() {
-			Some(value) => f(value),
-			None => f(&self.default),
-		})
-	}
-
-	fn with_raw<F, O>(&self, f: F) -> O
-	where
-		F: for<'a> FnOnce(Self::Value<'a>) -> O,
-	{
-		self.inner.with_raw(|value| match value.into() {
 			Some(value) => f(value),
 			None => f(&self.default),
 		})
@@ -136,10 +119,6 @@ where
 	fn set(&self, new_value: T) {
 		self.inner.set(Some(new_value));
 	}
-
-	fn set_raw(&self, new_value: T) {
-		self.inner.set_raw(Some(new_value));
-	}
 }
 
 impl<S, T> SignalSet<Option<T>> for WithDefault<S, T>
@@ -148,10 +127,6 @@ where
 {
 	fn set(&self, new_value: Option<T>) {
 		self.inner.set(new_value);
-	}
-
-	fn set_raw(&self, new_value: Option<T>) {
-		self.inner.set_raw(new_value);
 	}
 }
 
@@ -165,10 +140,6 @@ where
 	fn replace(&self, new_value: T) -> Self::Value {
 		self.inner.replace(Some(new_value)).unwrap_or(self.default)
 	}
-
-	fn replace_raw(&self, new_value: T) -> Self::Value {
-		self.inner.replace_raw(Some(new_value)).unwrap_or(self.default)
-	}
 }
 
 impl<S, T> SignalReplace<Option<T>> for WithDefault<S, T>
@@ -180,10 +151,6 @@ where
 
 	fn replace(&self, new_value: Option<T>) -> Self::Value {
 		self.inner.replace(new_value).unwrap_or(self.default)
-	}
-
-	fn replace_raw(&self, new_value: Option<T>) -> Self::Value {
-		self.inner.replace_raw(new_value).unwrap_or(self.default)
 	}
 }
 
@@ -232,13 +199,6 @@ where
 
 		BorrowRefMut { value }
 	}
-
-	fn borrow_mut_raw(&self) -> Self::RefMut<'_> {
-		let mut value = self.inner.borrow_mut_raw();
-		value.get_or_insert(self.default);
-
-		BorrowRefMut { value }
-	}
 }
 
 impl<S, T> SignalUpdate for WithDefault<S, T>
@@ -253,13 +213,6 @@ where
 		F: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
 		self.inner.update(|value| f(value.get_or_insert(self.default)))
-	}
-
-	fn update_raw<F, O>(&self, f: F) -> O
-	where
-		F: for<'a> FnOnce(Self::Value<'a>) -> O,
-	{
-		self.inner.update_raw(|value| f(value.get_or_insert(self.default)))
 	}
 }
 

@@ -101,10 +101,6 @@ impl<S, T: EnumSplitValue<S>> SignalBorrow for EnumSplitSignal<S, T> {
 
 	fn borrow(&self) -> Self::Ref<'_> {
 		self.effect.inner_fn().trigger.gather_subs();
-		self.borrow_raw()
-	}
-
-	fn borrow_raw(&self) -> Self::Ref<'_> {
 		let effect_fn = self.effect.inner_fn();
 
 		let inner = effect_fn.inner.borrow();
@@ -119,10 +115,6 @@ impl<S, T: EnumSplitValue<S>> SignalGetCloned for EnumSplitSignal<S, T> {
 
 	fn get_cloned(&self) -> Self::Value {
 		self.borrow()
-	}
-
-	fn get_cloned_raw(&self) -> Self::Value {
-		self.borrow_raw()
 	}
 }
 

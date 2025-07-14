@@ -194,15 +194,6 @@ where
 			.expect("Output signal was missing")
 			.clone()
 	}
-
-	fn get_cloned_raw(&self) -> Self::Value {
-		self.inner
-			.output
-			.borrow()
-			.as_ref()
-			.expect("Output signal was missing")
-			.clone()
-	}
 }
 
 /// Output signal type
@@ -267,10 +258,6 @@ impl<T> SignalGetCloned for MappedSignal<T> {
 
 	fn get_cloned(&self) -> Self::Value {
 		self.0.get_cloned().into_ok()
-	}
-
-	fn get_cloned_raw(&self) -> Self::Value {
-		self.0.get_cloned_raw().into_ok()
 	}
 }
 

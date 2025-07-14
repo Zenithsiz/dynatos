@@ -1,7 +1,7 @@
 //! [`SignalUpdate`]
 
 // Imports
-use {super::SignalBorrowMut, core::ops::DerefMut};
+use {super::SignalBorrowMut, crate::effect, core::ops::DerefMut};
 
 /// Auto trait implemented for all signals that want a default implementation of `SignalUpdate`
 ///
@@ -24,7 +24,10 @@ pub trait SignalUpdate {
 	#[track_caller]
 	fn update_raw<F, O>(&self, f: F) -> O
 	where
-		F: for<'a> FnOnce(Self::Value<'a>) -> O;
+		F: for<'a> FnOnce(Self::Value<'a>) -> O,
+	{
+		effect::with_raw(|| self.update(f))
+	}
 }
 
 impl<S, T> SignalUpdate for S
@@ -39,14 +42,6 @@ where
 		F: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
 		let mut borrow = self.borrow_mut();
-		f(&mut borrow)
-	}
-
-	fn update_raw<F, O>(&self, f: F) -> O
-	where
-		F: for<'a> FnOnce(Self::Value<'a>) -> O,
-	{
-		let mut borrow = self.borrow_mut_raw();
 		f(&mut borrow)
 	}
 }

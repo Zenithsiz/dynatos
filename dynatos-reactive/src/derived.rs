@@ -144,10 +144,6 @@ impl<T: 'static, F: ?Sized + DerivedRun<T> + 'static> SignalBorrow for Derived<T
 	fn borrow(&self) -> Self::Ref<'_> {
 		self.effect.inner_fn().trigger.gather_subs();
 
-		self.borrow_raw()
-	}
-
-	fn borrow_raw(&self) -> Self::Ref<'_> {
 		let effect_fn = self.effect.inner_fn();
 		let mut value = effect_fn.value.borrow();
 

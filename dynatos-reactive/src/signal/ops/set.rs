@@ -1,7 +1,7 @@
 //! [`SignalSet`]
 
 // Imports
-use crate::{SignalUpdate, Trigger};
+use crate::{effect, SignalUpdate, Trigger};
 
 /// Types which may be set by [`SignalSet`]
 pub trait SignalSetWith<T>: Sized {
@@ -33,7 +33,9 @@ pub trait SignalSet<Value> {
 
 	/// Sets the signal value without updating dependencies
 	#[track_caller]
-	fn set_raw(&self, new_value: Value);
+	fn set_raw(&self, new_value: Value) {
+		effect::with_raw(|| self.set(new_value));
+	}
 }
 
 impl<S, T> SignalSet<T> for S
@@ -42,10 +44,6 @@ where
 {
 	fn set(&self, new_value: T) {
 		self.update(|value| SignalSetWith::set_value(value, new_value));
-	}
-
-	fn set_raw(&self, new_value: T) {
-		self.update_raw(|value| SignalSetWith::set_value(value, new_value));
 	}
 }
 
@@ -63,14 +61,6 @@ macro impl_tuple($($S:ident : $T:ident),* $(,)?) {
 			let ( $( $S, )* ) = self;
 			let ( $( $T, )* ) = new_value;
 			$( $S.set($T); )*
-		}
-
-		fn set_raw(&self, new_value: ( $( $T, )* )) {
-			// Note: Here we don't need the no-op exec, since the triggers won't be
-			//       executing anyway, given that we're raw.
-			let ( $( $S, )* ) = self;
-			let ( $( $T, )* ) = new_value;
-			$( $S.set_raw($T); )*
 		}
 	}
 }

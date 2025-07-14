@@ -340,3 +340,29 @@ where
 pub fn running() -> Option<Effect> {
 	WORLD.effect_stack.top()
 }
+
+/// Enters "raw" mode within the supplied closure.
+///
+/// Within "raw" mode, effects will not gather dependencies or subscribers,
+/// meaning that reads don't imply a dependency and writes don't imply an execution.
+///
+/// # Implementations
+/// Signal implementations should not check for "raw" mode in `Drop` impls, or anytime
+/// *after* the user calls a signal operation. This means that, for example, when mutably
+/// borrowing a signal, you should call `Trigger::exec` before returning and save the value
+/// in the returned reference. This ensures that `with_raw` only needs to encapsulate the
+/// parts of the code that directly call signal operations, instead of requiring it over
+/// a large portion of the code, where the user could unintentionally ignore some other signals.
+#[track_caller]
+pub fn with_raw<F, O>(f: F) -> O
+where
+	F: FnOnce() -> O,
+{
+	let _guard = WORLD.set_raw();
+	f()
+}
+
+/// Returns if "raw" mode is on
+pub fn is_raw() -> bool {
+	WORLD.is_raw()
+}

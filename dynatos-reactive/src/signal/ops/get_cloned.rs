@@ -2,7 +2,7 @@
 
 // Imports
 use {
-	crate::SignalWith,
+	crate::{effect, SignalWith},
 	core::{any::TypeId, mem},
 };
 
@@ -41,8 +41,11 @@ pub trait SignalGetCloned {
 	/// Gets the signal value, by cloning it.
 	fn get_cloned(&self) -> Self::Value;
 
-	/// Gets the signal value, by cloning it without adding dependencies.
-	fn get_cloned_raw(&self) -> Self::Value;
+	/// Gets the signal value, by cloning it without gathering dependencies.
+	#[track_caller]
+	fn get_cloned_raw(&self) -> Self::Value {
+		effect::with_raw(|| self.get_cloned())
+	}
 }
 
 impl<S> SignalGetCloned for S
@@ -54,11 +57,6 @@ where
 	#[track_caller]
 	fn get_cloned(&self) -> Self::Value {
 		self.with(|value| self::convert_inner::<S>(value.clone_value()))
-	}
-
-	#[track_caller]
-	fn get_cloned_raw(&self) -> Self::Value {
-		self.with_raw(|value| self::convert_inner::<S>(value.clone_value()))
 	}
 }
 

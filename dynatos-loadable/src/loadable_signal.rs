@@ -213,17 +213,6 @@ where
 			None => Loadable::Empty,
 		}
 	}
-
-	fn borrow_raw(&self) -> Self::Ref<'_> {
-		let res = self.inner.borrow_raw();
-		match res {
-			Some(res) => match &*res {
-				Ok(_) => Loadable::Loaded(BorrowRef(res)),
-				Err(err) => Loadable::Err(err.clone()),
-			},
-			None => Loadable::Empty,
-		}
-	}
 }
 
 impl<F, T, E> SignalWith for LoadableSignal<F>
@@ -239,14 +228,6 @@ where
 		F2: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
 		let value = self.borrow();
-		f(value.as_deref())
-	}
-
-	fn with_raw<F2, O>(&self, f: F2) -> O
-	where
-		F2: for<'a> FnOnce(Self::Value<'a>) -> O,
-	{
-		let value = self.borrow_raw();
 		f(value.as_deref())
 	}
 }
@@ -314,17 +295,6 @@ where
 			None => Loadable::Empty,
 		}
 	}
-
-	fn borrow_mut_raw(&self) -> Self::RefMut<'_> {
-		let res = self.inner.borrow_mut_raw();
-		match res {
-			Some(res) => match &*res {
-				Ok(_) => Loadable::Loaded(BorrowRefMut(res)),
-				Err(err) => Loadable::Err(err.clone()),
-			},
-			None => Loadable::Empty,
-		}
-	}
 }
 
 impl<F, T, E> SignalUpdate for LoadableSignal<F>
@@ -340,14 +310,6 @@ where
 		F2: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
 		let mut value = self.borrow_mut();
-		f(value.as_deref_mut())
-	}
-
-	fn update_raw<F2, O>(&self, f: F2) -> O
-	where
-		F2: for<'a> FnOnce(Self::Value<'a>) -> O,
-	{
-		let mut value = self.borrow_mut_raw();
 		f(value.as_deref_mut())
 	}
 }

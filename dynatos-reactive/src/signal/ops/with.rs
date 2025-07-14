@@ -1,7 +1,7 @@
 //! [`SignalWith`]
 
 // Imports
-use {super::SignalBorrow, core::ops::Deref};
+use {super::SignalBorrow, crate::effect, core::ops::Deref};
 
 /// Auto trait implemented for all signals that want a default implementation of `SignalWith`
 ///
@@ -20,11 +20,14 @@ pub trait SignalWith {
 	where
 		F: for<'a> FnOnce(Self::Value<'a>) -> O;
 
-	/// Uses the signal value without adding any dependencies
+	/// Uses the signal value without gathering dependencies
 	#[track_caller]
 	fn with_raw<F, O>(&self, f: F) -> O
 	where
-		F: for<'a> FnOnce(Self::Value<'a>) -> O;
+		F: for<'a> FnOnce(Self::Value<'a>) -> O,
+	{
+		effect::with_raw(|| self.with(f))
+	}
 }
 
 impl<S, T> SignalWith for S
@@ -39,14 +42,6 @@ where
 		F: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
 		let borrow = self.borrow();
-		f(&borrow)
-	}
-
-	fn with_raw<F, O>(&self, f: F) -> O
-	where
-		F: for<'a> FnOnce(Self::Value<'a>) -> O,
-	{
-		let borrow = self.borrow_raw();
 		f(&borrow)
 	}
 }

@@ -16,6 +16,7 @@ use {
 		ops::{Deref, DerefMut},
 	},
 	dynatos_reactive::{
+		effect,
 		signal,
 		Effect,
 		EffectRun,
@@ -152,10 +153,6 @@ where
 	fn borrow(&self) -> Self::Ref<'_> {
 		BorrowRef(self.inner.borrow())
 	}
-
-	fn borrow_raw(&self) -> Self::Ref<'_> {
-		BorrowRef(self.inner.borrow_raw())
-	}
 }
 
 impl<T> SignalReplace<T::Value> for QuerySignal<T>
@@ -168,10 +165,6 @@ where
 	fn replace(&self, new_value: T::Value) -> Self::Value {
 		mem::replace(&mut *self.borrow_mut(), new_value)
 	}
-
-	fn replace_raw(&self, new_value: T::Value) -> Self::Value {
-		mem::replace(&mut *self.borrow_mut_raw(), new_value)
-	}
 }
 
 impl<T, U> SignalSet<U> for QuerySignal<T>
@@ -181,10 +174,6 @@ where
 {
 	fn set(&self, new_value: U) {
 		*self.borrow_mut() = T::into_query_value(new_value);
-	}
-
-	fn set_raw(&self, new_value: U) {
-		*self.borrow_mut_raw() = T::into_query_value(new_value);
 	}
 }
 
@@ -270,17 +259,9 @@ where
 		BorrowRefMut {
 			value,
 			signal: self,
-			write_query_on_drop: true,
-		}
-	}
-
-	fn borrow_mut_raw(&self) -> Self::RefMut<'_> {
-		// TODO: Should we be updating the location on drop?
-		let value = self.inner.borrow_mut_raw();
-		BorrowRefMut {
-			value,
-			signal: self,
-			write_query_on_drop: false,
+			// TODO: Should we actually use another flag for this instead of hijacking
+			//       the raw flag?
+			write_query_on_drop: effect::is_raw(),
 		}
 	}
 }

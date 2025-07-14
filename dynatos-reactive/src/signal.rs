@@ -103,10 +103,6 @@ impl<T: ?Sized + 'static> SignalBorrow for Signal<T> {
 	fn borrow(&self) -> Self::Ref<'_> {
 		self.inner.trigger.gather_subs();
 
-		self.borrow_raw()
-	}
-
-	fn borrow_raw(&self) -> Self::Ref<'_> {
 		let value = self.inner.value.borrow();
 		BorrowRef(value)
 	}
@@ -117,10 +113,6 @@ impl<T: 'static> SignalReplace<T> for Signal<T> {
 
 	fn replace(&self, new_value: T) -> Self::Value {
 		mem::replace(&mut self.borrow_mut(), new_value)
-	}
-
-	fn replace_raw(&self, new_value: T) -> Self::Value {
-		mem::replace(&mut self.borrow_mut_raw(), new_value)
 	}
 }
 
@@ -165,15 +157,7 @@ impl<T: ?Sized + 'static> SignalBorrowMut for Signal<T> {
 		let value = self.inner.value.borrow_mut();
 		BorrowRefMut {
 			value,
-			_trigger_exec: Some(self.inner.trigger.exec()),
-		}
-	}
-
-	fn borrow_mut_raw(&self) -> Self::RefMut<'_> {
-		let value = self.inner.value.borrow_mut();
-		BorrowRefMut {
-			value,
-			_trigger_exec: None,
+			_trigger_exec: self.inner.trigger.exec(),
 		}
 	}
 }

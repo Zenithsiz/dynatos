@@ -3,6 +3,7 @@
 // Imports
 use {
 	crate::{
+		effect,
 		loc::Loc,
 		trigger::TriggerExec,
 		Effect,
@@ -323,16 +324,15 @@ impl<F: Loader> AsyncSignal<F> {
 	#[track_caller]
 	pub fn borrow_unloaded(&self) -> Option<BorrowRef<'_, F>> {
 		self.trigger.gather_subs();
-
-		self.borrow_unloaded_raw()
+		let inner = self.inner.borrow();
+		inner.value.is_some().then(|| BorrowRef(inner))
 	}
 
 	/// Borrows the value, without loading it or gathering subscribers
 	#[must_use]
 	#[track_caller]
 	pub fn borrow_unloaded_raw(&self) -> Option<BorrowRef<'_, F>> {
-		let inner = self.inner.borrow();
-		inner.value.is_some().then(|| BorrowRef(inner))
+		effect::with_raw(|| self.borrow_unloaded())
 	}
 }
 
@@ -403,10 +403,6 @@ impl<F: Loader> SignalBorrow for AsyncSignal<F> {
 	fn borrow(&self) -> Self::Ref<'_> {
 		self.trigger.gather_subs();
 
-		self.borrow_raw()
-	}
-
-	fn borrow_raw(&self) -> Self::Ref<'_> {
 		let inner = self.inner.borrow();
 		match &inner.value {
 			// If there's already a value, return it
@@ -433,14 +429,6 @@ where
 		F2: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
 		let value = self.borrow();
-		f(value.as_deref())
-	}
-
-	fn with_raw<F2, O>(&self, f: F2) -> O
-	where
-		F2: for<'a> FnOnce(Self::Value<'a>) -> O,
-	{
-		let value = self.borrow_raw();
 		f(value.as_deref())
 	}
 }
@@ -494,24 +482,11 @@ impl<F: Loader> SignalBorrowMut for AsyncSignal<F> {
 		// Then get the value
 		match inner.value.is_some() {
 			true => Some(BorrowRefMut {
-				_trigger_on_drop: Some(self.trigger.exec()),
+				_trigger_on_drop: self.trigger.exec(),
 				value:            inner,
 			}),
 			false => None,
 		}
-	}
-
-	fn borrow_mut_raw(&self) -> Self::RefMut<'_> {
-		// Note: We don't load when mutably borrowing, since that's probably
-		//       not what the user wants
-		// TODO: Should we even stop loading if the value was set in the meantime?
-		let inner = self.inner.borrow_mut();
-
-		// Then get the value
-		inner.value.is_some().then(|| BorrowRefMut {
-			_trigger_on_drop: None,
-			value:            inner,
-		})
 	}
 }
 
@@ -526,14 +501,6 @@ where
 		F2: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
 		let mut value = self.borrow_mut();
-		f(value.as_deref_mut())
-	}
-
-	fn update_raw<F2, O>(&self, f: F2) -> O
-	where
-		F2: for<'a> FnOnce(Self::Value<'a>) -> O,
-	{
-		let mut value = self.borrow_mut_raw();
 		f(value.as_deref_mut())
 	}
 }

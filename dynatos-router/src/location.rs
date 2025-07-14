@@ -67,10 +67,6 @@ impl SignalBorrow for Location {
 	fn borrow(&self) -> Self::Ref<'_> {
 		BorrowRef(self.0.borrow())
 	}
-
-	fn borrow_raw(&self) -> Self::Ref<'_> {
-		BorrowRef(self.0.borrow_raw())
-	}
 }
 
 /// Reference type for [`SignalBorrowMut`] impl
@@ -112,11 +108,6 @@ impl SignalBorrowMut for Location {
 
 	fn borrow_mut(&self) -> Self::RefMut<'_> {
 		let value = self.0.borrow_mut();
-		BorrowRefMut(value)
-	}
-
-	fn borrow_mut_raw(&self) -> Self::RefMut<'_> {
-		let value = self.0.borrow_mut_raw();
 		BorrowRefMut(value)
 	}
 }

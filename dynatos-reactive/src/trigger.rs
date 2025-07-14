@@ -67,6 +67,11 @@ impl Trigger {
 	/// effects. Previous effects will only be removed when they are dropped.
 	#[track_caller]
 	pub fn gather_subs(&self) {
+		// If the world is in "raw" mode, don't gather anything
+		if WORLD.is_raw() {
+			return;
+		}
+
 		match effect::running() {
 			Some(effect) => WORLD.dep_graph.add_effect_dep(&effect, self),
 
@@ -96,7 +101,7 @@ impl Trigger {
 		clippy::must_use_candidate,
 		reason = "The user can just immediately drop the value to execute if they don't care"
 	)]
-	pub fn exec(&self) -> TriggerExec {
+	pub fn exec(&self) -> Option<TriggerExec> {
 		self.exec_inner(Loc::caller())
 	}
 
@@ -105,7 +110,7 @@ impl Trigger {
 	/// This is useful to ensure that another trigger
 	/// doesn't execute the run queue and just appends to
 	/// it instead.
-	pub fn exec_noop() -> TriggerExec {
+	pub fn exec_noop() -> Option<TriggerExec> {
 		/// No-op trigger
 		#[thread_local]
 		static NOOP_TRIGGER: LazyCell<Trigger> = LazyCell::new(Trigger::new);
@@ -114,7 +119,14 @@ impl Trigger {
 	}
 
 	/// Inner function for [`Self::exec`]
-	pub(crate) fn exec_inner(&self, caller_loc: Loc) -> TriggerExec {
+	pub(crate) fn exec_inner(&self, caller_loc: Loc) -> Option<TriggerExec> {
+		// If the world is in "raw" mode, don't execute anything
+		// TODO: Should we still return just a `TriggerExec`, but make
+		//       it not do anything on drop?
+		if WORLD.is_raw() {
+			return None;
+		}
+
 		// If there's a running effect, register it as our dependency
 		if let Some(effect) = effect::running() {
 			WORLD.dep_graph.add_effect_sub(&effect, self, caller_loc);
@@ -140,10 +152,10 @@ impl Trigger {
 			WORLD.run_queue.push(effect.downgrade(), sub_info);
 		});
 
-		TriggerExec {
+		Some(TriggerExec {
 			trigger_defined_loc: self.defined_loc(),
 			exec_defined_loc:    caller_loc,
-		}
+		})
 	}
 
 	/// Formats this trigger into `s`

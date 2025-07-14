@@ -61,17 +61,6 @@ where
 			Loadable::Loaded(_) => Loadable::Loaded(LoadableBorrow(borrow)),
 		}
 	}
-
-	/// Borrows this signal as a `Loadable<Borrow<T>, E>`, without adding a dependency
-	#[track_caller]
-	fn borrow_loadable_raw(&self) -> Loadable<LoadableBorrow<S::Ref<'_>>, E> {
-		let borrow = self.borrow_raw();
-		match &*borrow {
-			Loadable::Empty => Loadable::Empty,
-			Loadable::Err(err) => Loadable::Err(err.clone()),
-			Loadable::Loaded(_) => Loadable::Loaded(LoadableBorrow(borrow)),
-		}
-	}
 }
 
 /// Loadable mutable borrow.
@@ -132,16 +121,6 @@ where
 	/// Borrows this signal as a `Loadable<Borrow<T>, E>`
 	fn borrow_mut_loadable(&self) -> Loadable<LoadableBorrow<S::RefMut<'_>>, E> {
 		let borrow = self.borrow_mut();
-		match &*borrow {
-			Loadable::Empty => Loadable::Empty,
-			Loadable::Err(err) => Loadable::Err(err.clone()),
-			Loadable::Loaded(_) => Loadable::Loaded(LoadableBorrow(borrow)),
-		}
-	}
-
-	/// Borrows this signal as a `Loadable<Borrow<T>, E>`, without adding a dependency
-	fn borrow_mut_loadable_raw(&self) -> Loadable<LoadableBorrow<S::RefMut<'_>>, E> {
-		let borrow = self.borrow_mut_raw();
 		match &*borrow {
 			Loadable::Empty => Loadable::Empty,
 			Loadable::Err(err) => Loadable::Err(err.clone()),

@@ -1,5 +1,8 @@
 //! [`SignalBorrowMut`]
 
+// Imports
+use crate::effect;
+
 /// Signal borrow
 pub trait SignalBorrowMut {
 	/// Mutable reference type
@@ -15,5 +18,7 @@ pub trait SignalBorrowMut {
 	// TODO: Better name than `_raw`?
 	// TODO: Allow using a different reference than `Self::RefMut`?
 	#[track_caller]
-	fn borrow_mut_raw(&self) -> Self::RefMut<'_>;
+	fn borrow_mut_raw(&self) -> Self::RefMut<'_> {
+		effect::with_raw(|| self.borrow_mut())
+	}
 }
