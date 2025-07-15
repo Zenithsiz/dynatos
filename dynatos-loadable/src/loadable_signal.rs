@@ -130,10 +130,7 @@ where
 	E: Clone + fmt::Debug + 'static,
 {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		let loadable = self.borrow_unloaded();
-		f.debug_struct("LoadableSignal")
-			.field("loadable", &loadable.as_deref())
-			.finish()
+		f.debug_tuple("LoadableSignal").field(&self.inner).finish()
 	}
 }
 

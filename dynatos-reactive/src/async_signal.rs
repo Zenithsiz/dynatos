@@ -9,6 +9,7 @@ use {
 		world::UnloadedGuard,
 		Effect,
 		EffectRun,
+		EffectRunCtx,
 		SignalBorrow,
 		SignalBorrowMut,
 		SignalGetClone,
@@ -35,6 +36,7 @@ use {
 };
 
 /// Inner
+// TODO: Make `value` and `handle` `Rc<RefCell<...>>`s?
 struct Inner<F: Loader> {
 	/// Value
 	value: Option<F::Output>,
@@ -42,16 +44,9 @@ struct Inner<F: Loader> {
 	/// Loader
 	loader: F,
 
-	/// Restart effect
-	// TODO: Not have this in an option just to be able to initialize it
-	restart_effect: Option<Effect<RestartEffectFn<F>>>,
-
 	/// Task handle
 	handle: Option<AbortHandle>,
 }
-
-/// Type for [`Inner::restart_effect`]'s effect
-type RestartEffectFn<F: Loader> = impl EffectRun;
 
 impl<F: Loader> Inner<F> {
 	/// See [`AsyncSignal::stop_loading`]
@@ -67,8 +62,25 @@ impl<F: Loader> Inner<F> {
 	}
 
 	/// See [`AsyncSignal::start_loading`]
+	///
+	/// # Parent
+	/// You need to pass the parent of this inner to load a signal.
+	/// This is so that we can keep a reference to it later to write
+	/// the value without requiring a `&mut self` the whole time.
+	///
+	/// You can either pass the signal itself (if you have it, such as
+	/// inside of the methods of [`AsyncSignal`]), or just the effect
+	/// function itself (if you don't have the [`AsyncSignal`], such as
+	/// inside of the [`EffectRun`] impl of [`EffectFn`]).
+	///
+	/// A subtle difference between them is that when passing in a [`InnerParentRef::EffectFn`],
+	/// the loader is called inside of the current environment, meaning any dependencies
+	/// will be gathered into the currently running effect.
+	///
+	/// Meanwhile, when passing [`InnerParentRef::Signal`], the loader is called while gathering
+	/// dependencies for it's effect instead.
 	#[track_caller]
-	pub fn start_loading(&mut self, signal: &AsyncSignal<F>) -> bool
+	pub fn start_loading(&mut self, parent: InnerParentRef<'_, F>) -> bool
 	where
 		F: Loader,
 	{
@@ -81,42 +93,51 @@ impl<F: Loader> Inner<F> {
 
 		// Then spawn the future
 		// TODO: Allow using something other than `wasm_bindgen_futures`?
-		let restart_effect = self.restart_effect.clone().expect("Missing restart effect");
-		let fut = restart_effect.gather_deps(|| self.loader.load());
+		let (fut, effect_fn) = match parent {
+			InnerParentRef::Signal(signal) => {
+				let fut = signal.load.gather_deps(|| self.loader.load());
+				(fut, signal.load.inner_fn())
+			},
+			InnerParentRef::EffectFn(effect_fn) => {
+				let fut = self.loader.load();
+				(fut, effect_fn)
+			},
+		};
 		let (fut, handle) = future::abortable(fut);
-		#[cloned(signal)]
+		#[cloned(inner = effect_fn.inner, trigger = effect_fn.trigger)]
 		wasm_bindgen_futures::spawn_local(async move {
 			// Load the value
 			// Note: If we get aborted, just remove the handle
 			let Ok(value) = fut.await else {
-				signal.inner.borrow_mut().handle = None;
+				inner.borrow_mut().handle = None;
 				return;
 			};
 
 			// Then write it and remove the handle
-			let mut inner = signal.inner.borrow_mut();
+			let mut inner = inner.borrow_mut();
 			inner.value = Some(value);
 			inner.handle = None;
 			drop(inner);
 
 			// Finally trigger
-			let _suppress_restart = restart_effect.suppress();
-			signal.trigger.exec_inner(caller_loc);
+			trigger.exec_inner(caller_loc);
 		});
 		self.handle = Some(handle);
 
 		true
 	}
 
-	/// See [`AsyncSignal::restart_loading`]
+	/// See [`AsyncSignal::restart_loading`].
+	///
+	/// See [`Inner::start_loading`] for details on `parent`
 	#[track_caller]
-	pub fn restart_loading(&mut self, signal: &AsyncSignal<F>) -> bool
+	pub fn restart_loading(&mut self, parent: InnerParentRef<'_, F>) -> bool
 	where
 		F: Loader,
 	{
 		// cancel the existing future, if any
 		let had_fut = self.stop_loading();
-		assert!(self.start_loading(signal), "Should start loading");
+		assert!(self.start_loading(parent), "Should start loading");
 
 		had_fut
 	}
@@ -128,13 +149,25 @@ impl<F: Loader> Inner<F> {
 	}
 }
 
+/// A reference to an [`AsyncSignal`], either as the signal itself,
+/// or just the effect fn.
+enum InnerParentRef<'a, F: Loader> {
+	Signal(&'a AsyncSignal<F>),
+	EffectFn(&'a EffectFn<F>),
+}
+
+impl<F: Loader> Clone for InnerParentRef<'_, F> {
+	fn clone(&self) -> Self {
+		*self
+	}
+}
+
+impl<F: Loader> Copy for InnerParentRef<'_, F> {}
+
 /// Async signal
 pub struct AsyncSignal<F: Loader> {
-	/// Inner
-	inner: Rc<RefCell<Inner<F>>>,
-
-	/// Trigger
-	trigger: Trigger,
+	/// Load effect
+	load: Effect<EffectFn<F>>,
 }
 
 impl<F: Loader> AsyncSignal<F> {
@@ -144,27 +177,17 @@ impl<F: Loader> AsyncSignal<F> {
 	/// future will be restarted.
 	#[track_caller]
 	#[must_use]
-	#[define_opaque(RestartEffectFn)]
 	pub fn new(loader: F) -> Self {
-		let signal = Self {
-			inner:   Rc::new(RefCell::new(Inner {
-				value: None,
-				loader,
-				restart_effect: None,
-				handle: None,
-			})),
-			trigger: Trigger::new(),
-		};
-
-		signal.inner.borrow_mut().restart_effect = Some(Effect::<RestartEffectFn<F>>::new_raw(
-			#[cloned(signal)]
-			move || {
-				// TODO: Fix the exec location coming from here
-				signal.restart_loading();
-			},
-		));
-
-		signal
+		Self {
+			load: Effect::new_raw(EffectFn {
+				inner:   Rc::new(RefCell::new(Inner {
+					value: None,
+					loader,
+					handle: None,
+				})),
+				trigger: Trigger::new(),
+			}),
+		}
 	}
 
 	/// Stops the loading future.
@@ -175,7 +198,7 @@ impl<F: Loader> AsyncSignal<F> {
 		reason = "The user may not care whether the future existed"
 	)]
 	pub fn stop_loading(&self) -> bool {
-		self.inner.borrow_mut().stop_loading()
+		self.load.inner_fn().inner.borrow_mut().stop_loading()
 	}
 
 	/// Starts a new loading future.
@@ -195,7 +218,11 @@ impl<F: Loader> AsyncSignal<F> {
 	where
 		F: Loader,
 	{
-		self.inner.borrow_mut().start_loading(self)
+		self.load
+			.inner_fn()
+			.inner
+			.borrow_mut()
+			.start_loading(InnerParentRef::Signal(self))
 	}
 
 	/// Restarts the currently loading future.
@@ -216,13 +243,17 @@ impl<F: Loader> AsyncSignal<F> {
 	where
 		F: Loader,
 	{
-		self.inner.borrow_mut().restart_loading(self)
+		self.load
+			.inner_fn()
+			.inner
+			.borrow_mut()
+			.restart_loading(InnerParentRef::Signal(self))
 	}
 
 	/// Returns if there exists a loading future.
 	#[must_use]
 	pub fn is_loading(&self) -> bool {
-		self.inner.borrow().is_loading()
+		self.load.inner_fn().inner.borrow().is_loading()
 	}
 
 	/// Borrows the value, without loading it
@@ -243,8 +274,7 @@ impl<F: Loader> AsyncSignal<F> {
 impl<F: Loader> Clone for AsyncSignal<F> {
 	fn clone(&self) -> Self {
 		Self {
-			inner:   Rc::clone(&self.inner),
-			trigger: self.trigger.clone(),
+			load: self.load.clone(),
 		}
 	}
 }
@@ -255,8 +285,14 @@ where
 	F::Output: fmt::Debug,
 {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-		let value = self.borrow_unloaded();
-		f.debug_struct("AsyncSignal").field("value", &value.as_deref()).finish()
+		let effect_fn = self.load.inner_fn();
+		let inner = effect_fn.inner.borrow();
+		f.debug_struct("AsyncSignal")
+			.field("value", &inner.value)
+			.field("handle", &inner.handle)
+			.field("effect", &self.load)
+			.field("trigger", &effect_fn.trigger)
+			.finish()
 	}
 }
 
@@ -304,9 +340,10 @@ impl<F: Loader> SignalBorrow for AsyncSignal<F> {
 		Self: 'a;
 
 	fn borrow(&self) -> Self::Ref<'_> {
-		self.trigger.gather_subs();
+		let effect_fn = self.load.inner_fn();
+		effect_fn.trigger.gather_subs();
 
-		let inner = self.inner.borrow();
+		let inner = effect_fn.inner.borrow();
 		match &inner.value {
 			// If there's already a value, return it
 			Some(_) => Some(BorrowRef(inner)),
@@ -318,7 +355,7 @@ impl<F: Loader> SignalBorrow for AsyncSignal<F> {
 				}
 
 				drop(inner);
-				self.inner.borrow_mut().start_loading(self);
+				effect_fn.inner.borrow_mut().start_loading(InnerParentRef::Signal(self));
 				None
 			},
 		}
@@ -384,12 +421,13 @@ impl<F: Loader> SignalBorrowMut for AsyncSignal<F> {
 		// Note: We don't load when mutably borrowing, since that's probably
 		//       not what the user wants
 		// TODO: Should we even stop loading if the value was set in the meantime?
-		let inner = self.inner.borrow_mut();
+		let effect_fn = self.load.inner_fn();
+		let inner = effect_fn.inner.borrow_mut();
 
 		// Then get the value
 		match inner.value.is_some() {
 			true => Some(BorrowRefMut {
-				_trigger_on_drop: self.trigger.exec(),
+				_trigger_on_drop: effect_fn.trigger.exec(),
 				value:            inner,
 			}),
 			false => None,
@@ -465,4 +503,21 @@ pub fn enter_unloaded() -> UnloadedGuard {
 /// Returns if "unloaded" mode is on
 pub fn is_unloaded() -> bool {
 	WORLD.is_unloaded()
+}
+
+/// Effect function
+struct EffectFn<F: Loader> {
+	/// Inner
+	inner: Rc<RefCell<Inner<F>>>,
+
+	/// Trigger
+	trigger: Trigger,
+}
+
+impl<F: Loader> EffectRun for EffectFn<F> {
+	effect::effect_run_impl_inner! {}
+
+	fn run(&self, _ctx: EffectRunCtx<'_>) {
+		self.inner.borrow_mut().restart_loading(InnerParentRef::EffectFn(self));
+	}
 }
