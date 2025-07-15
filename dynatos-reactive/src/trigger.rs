@@ -163,7 +163,7 @@ impl Trigger {
 	fn fmt_debug(&self, mut s: fmt::DebugStruct<'_, '_>) -> Result<(), fmt::Error> {
 		s.field("inner", &self.id());
 
-		s.field_with("defined_loc", |f| fmt::Display::fmt(&self.defined_loc(), f));
+		s.field("defined_loc", &self.defined_loc());
 
 		s.finish()
 	}

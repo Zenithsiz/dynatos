@@ -277,7 +277,7 @@ impl<F: ?Sized> Effect<F> {
 
 		s.field("suppressed", &self.inner.suppressed.get());
 
-		s.field_with("defined_loc", |f| fmt::Display::fmt(&self.defined_loc(), f));
+		s.field("defined_loc", &self.defined_loc());
 
 		s.finish()
 	}
