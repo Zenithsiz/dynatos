@@ -161,7 +161,7 @@ impl Trigger {
 	/// Formats this trigger into `s`
 	#[coverage(off)]
 	fn fmt_debug(&self, mut s: fmt::DebugStruct<'_, '_>) -> Result<(), fmt::Error> {
-		s.field("inner", &self.id());
+		s.field("id", &self.id());
 
 		s.field("defined_loc", &self.defined_loc());
 
