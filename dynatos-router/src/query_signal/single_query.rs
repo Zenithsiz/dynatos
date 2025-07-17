@@ -58,7 +58,7 @@ impl<T: FromStr> QueryParse for SingleQuery<T> {
 		let value = match &**queries {
 			[] => return Loadable::Empty,
 			[value] => value,
-			[first, ref rest @ ..] => {
+			[first, rest @ ..] => {
 				tracing::warn!(?self.key, ?first, ?rest, "Ignoring duplicate queries, using first");
 				first
 			},

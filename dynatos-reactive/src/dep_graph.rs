@@ -2,10 +2,10 @@
 
 // Imports
 use {
-	crate::{loc::Loc, Effect, EffectRun, Trigger, WeakEffect, WeakTrigger},
-	core::cell::RefCell,
+	crate::{Effect, EffectRun, Trigger, WeakEffect, WeakTrigger, loc::Loc},
+	core::{cell::RefCell, error::Error as StdError},
 	petgraph::prelude::{NodeIndex, StableGraph},
-	std::{collections::HashMap, error::Error as StdError},
+	std::collections::HashMap,
 };
 
 /// Effect dependency info

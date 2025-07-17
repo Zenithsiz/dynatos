@@ -4,7 +4,6 @@
 #![feature(
 	proc_macro_hygiene,
 	stmt_expr_attributes,
-	let_chains,
 	negative_impls,
 	type_alias_impl_trait,
 	trait_alias

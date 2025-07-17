@@ -144,6 +144,3 @@ clippy.missing_trait_methods = "allow"
 
 # TODO: Should we move to `alloc`?
 clippy.std_instead_of_alloc = "allow"
-
-# Until `wasm_bindgen` themselves fix it upstream, we can't fix ourselves
-rust.wasm_c_abi = "allow"

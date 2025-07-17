@@ -31,6 +31,3 @@ wasm-bindgen             = "0.2.100"
 web-sys                  = "0.3.77"
 
 [workspace.lints]
-
-# Until `wasm_bindgen` themselves fix it upstream, we can't fix ourselves
-rust.wasm_c_abi = "allow"
