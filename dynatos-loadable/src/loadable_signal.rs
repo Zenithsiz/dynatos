@@ -24,6 +24,9 @@ use {
 	},
 };
 
+// TODO: Allow the loader to return a `Loadable<impl Future<Output = Result<T, E>>, E>`,
+//       or even just `Loadable<impl Future<Output = Loadable<T, E>>, E>`
+
 /// Loadable signal.
 ///
 /// Wrapper around an [`AsyncSignal`].
