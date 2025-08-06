@@ -4,7 +4,8 @@
 use {
 	crate::{Effect, EffectRun, Trigger, WeakEffect, WeakTrigger, loc::Loc},
 	core::{cell::RefCell, error::Error as StdError},
-	petgraph::prelude::{NodeIndex, StableGraph},
+	itertools::Itertools,
+	petgraph::prelude::{EdgeRef, NodeIndex, StableGraph},
 	std::collections::HashMap,
 };
 
@@ -118,31 +119,40 @@ impl DepGraph {
 	where
 		W: With,
 	{
-		let mut inner = self.inner.borrow();
+		let inner = self.inner.borrow();
 		let Some(&trigger_idx) = inner.nodes.get(&start.into()) else {
 			return;
 		};
 
-		// TODO: If we have multiple edges to a neighbor, will this go through them once or
-		//       once for each edge?
-		let mut neighbors = inner.graph.neighbors_directed(trigger_idx, W::DIR).detach();
-		loop {
-			let Some(effect_idx) = neighbors.next_node(&inner.graph) else {
-				break;
-			};
+		// Go through all neighbors, grouping together neighbors with multiple
+		// edges into just one call to `f`.
+		// TODO: Don't allocate here by iterating detached?
+		let neighbors = inner
+			.graph
+			.edges_directed(trigger_idx, W::DIR)
+			.chunk_by(|edge| match W::DIR {
+				petgraph::Direction::Outgoing => edge.target(),
+				petgraph::Direction::Incoming => edge.source(),
+			})
+			.into_iter()
+			.map(|(end, info)| {
+				let end = <W::EndNode>::try_from(inner.graph[end].clone())
+					.expect("Trigger/Effect had an edge to another trigger/effect");
 
-			let end = TryFrom::try_from(inner.graph[effect_idx].clone())
-				.expect("Trigger/Effect had an edge to another trigger/effect");
+				let info = info
+					.map(|effect_info| {
+						<W::Info>::try_from(effect_info.weight().clone())
+							.expect("Trigger/effect had the wrong edge type")
+					})
+					.collect();
 
-			let effect_info = inner
-				.graph
-				.edges_connecting(trigger_idx, effect_idx)
-				.map(|edge| TryFrom::try_from(edge.weight().clone()).expect("Trigger/effect had the wrong edge type"))
-				.collect();
+				(end, info)
+			})
+			.collect::<Vec<_>>();
 
-			drop(inner);
-			f(end, effect_info);
-			inner = self.inner.borrow();
+		drop(inner);
+		for (end, info) in neighbors {
+			f(end, info);
 		}
 	}
 
