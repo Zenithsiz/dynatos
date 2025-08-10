@@ -10,7 +10,7 @@ use {
 ///
 /// This allows it to work with the following types:
 /// - `bool`
-/// - `Signal<B>`
+/// - [`Signal`], [`Derived`], [`Memo`], [`WithDefault`]
 /// - `impl Fn() -> B`
 ///
 /// Where `B` is any of the types above.

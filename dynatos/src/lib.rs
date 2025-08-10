@@ -13,6 +13,7 @@ mod object_attach_context;
 mod object_attach_effect;
 mod object_attach_value;
 mod object_dyn_prop;
+mod to_dyn_prop;
 mod with_dyn_pred;
 mod with_dyn_text;
 
@@ -27,7 +28,8 @@ pub use {
 		object_attach_context::{ObjectAttachContext, ObjectWithContext},
 		object_attach_effect::{ObjectAttachEffect, ObjectWithEffect},
 		object_attach_value::{ObjectAttachValue, ObjectWithValue},
-		object_dyn_prop::{ObjectDynProp, ObjectWithDynProp, ToDynProp},
+		object_dyn_prop::{ObjectDynProp, ObjectWithDynProp},
+		to_dyn_prop::ToDynProp,
 		with_dyn_pred::WithDynPred,
 		with_dyn_text::WithDynText,
 	},
