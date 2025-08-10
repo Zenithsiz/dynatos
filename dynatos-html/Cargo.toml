@@ -15,9 +15,10 @@ itertools = { workspace = true }
 js-sys = { workspace = true }
 tracing = { workspace = true }
 wasm-bindgen = { workspace = true }
-web-sys = { workspace = true, features = [
+web-sys = { features = [
 	"ClipboardEvent",
 	"Comment",
+	"CssStyleDeclaration",
 	"Document",
 	"DragEvent",
 	"Element",
@@ -34,7 +35,7 @@ web-sys = { workspace = true, features = [
 	"Text",
 	"WheelEvent",
 	"Window",
-] }
+], workspace = true }
 
 [lints]
 workspace = true

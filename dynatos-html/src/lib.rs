@@ -10,7 +10,7 @@ pub mod weak_ref;
 
 // Exports
 pub use self::{
-	event_listener::{ev, ElementAddListener, EventListener, EventTargetAddListener, EventTargetWithListener},
+	event_listener::{ElementAddListener, EventListener, EventTargetAddListener, EventTargetWithListener, ev},
 	weak_ref::WeakRef,
 };
 
@@ -285,6 +285,37 @@ where
 		self.as_ref()
 			.set_attribute(attr.as_ref(), value.as_ref())
 			.map(|()| self)
+	}
+}
+
+/// Extension trait to add a css property in a builder-style.
+#[extend::ext_sized(name = HtmlElementWithCssProp)]
+pub impl<T> T
+where
+	T: AsRef<web_sys::HtmlElement>,
+{
+	fn with_css_prop<A, V>(self, attr: A, value: Option<V>) -> Self
+	where
+		A: AsRef<str>,
+		V: AsRef<str>,
+	{
+		let attr = attr.as_ref();
+		let value = value.as_ref().map(V::as_ref);
+		self.try_with_css_prop(attr, value)
+			.unwrap_or_else(|err| panic!("Unable to set element css property {attr:?} to {value:?}: {err:?}"))
+	}
+
+	fn try_with_css_prop<A, V>(self, attr: A, value: Option<V>) -> Result<Self, JsValue>
+	where
+		A: AsRef<str>,
+		V: AsRef<str>,
+	{
+		match value {
+			Some(value) => self.as_ref().style().set_property(attr.as_ref(), value.as_ref())?,
+			None => _ = self.as_ref().style().remove_property(attr.as_ref())?,
+		}
+
+		Ok(self)
 	}
 }
 
