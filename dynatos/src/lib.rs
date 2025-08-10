@@ -3,8 +3,6 @@
 // Features
 #![feature(unboxed_closures, unsize, never_type)]
 
-// TODO: Deduplicate most of the `With.*` type we have here.
-
 // Modules
 mod element_dyn_attr;
 mod element_dyn_children;
@@ -15,19 +13,23 @@ mod object_attach_context;
 mod object_attach_effect;
 mod object_attach_value;
 mod object_dyn_prop;
+mod with_dyn_pred;
+mod with_dyn_text;
 
 // Exports
 pub use {
 	self::{
 		element_dyn_attr::{ElementDynAttr, ElementWithDynAttr},
 		element_dyn_children::{ElementDynChildren, ElementWithDynChildren, WithDynNodes},
-		html_element_dyn_css_prop::{DynCssPropPred, HtmlElementDynCssProp, HtmlElementWithDynCssProp, WithDynCssProp},
+		html_element_dyn_css_prop::{HtmlElementDynCssProp, HtmlElementWithDynCssProp},
 		node_dyn_child::{NodeDynChild, NodeWithDynChild, ToDynNode},
-		node_dyn_text::{NodeDynText, NodeWithDynText, WithDynText},
+		node_dyn_text::{NodeDynText, NodeWithDynText},
 		object_attach_context::{ObjectAttachContext, ObjectWithContext},
 		object_attach_effect::{ObjectAttachEffect, ObjectWithEffect},
 		object_attach_value::{ObjectAttachValue, ObjectWithValue},
 		object_dyn_prop::{ObjectDynProp, ObjectWithDynProp, ToDynProp},
+		with_dyn_pred::WithDynPred,
+		with_dyn_text::WithDynText,
 	},
 	dynatos_macros::*,
 };
