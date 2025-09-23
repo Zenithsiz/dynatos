@@ -23,7 +23,7 @@ pub struct Handle<T: 'static> {
 
 impl<T: 'static> Handle<T> {
 	/// Converts this handle to an opaque handle
-	pub fn into_opaque(self) -> OpaqueHandle {
+	pub const fn into_opaque(self) -> OpaqueHandle {
 		// Create the opaque handle and forget ourselves
 		// Note: This is to ensure we don't try to take the value in the [`Drop`] impl
 		let handle = OpaqueHandle {

@@ -113,7 +113,7 @@ where
 
 /// Converts a handle to an opaque handle
 #[must_use]
-pub fn to_opaque<T>(handle: Handle<T>) -> OpaqueHandle
+pub const fn to_opaque<T>(handle: Handle<T>) -> OpaqueHandle
 where
 	T: 'static,
 {
