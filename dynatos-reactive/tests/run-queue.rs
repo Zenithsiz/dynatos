@@ -1,7 +1,7 @@
 //! Run queue tests
 
 // Features
-#![feature(thread_local, proc_macro_hygiene, stmt_expr_attributes, array_windows)]
+#![feature(thread_local, proc_macro_hygiene, stmt_expr_attributes)]
 
 // Imports
 use {
