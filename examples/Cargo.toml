@@ -17,17 +17,17 @@ dynatos-util     = { path = "../dynatos-util" }
 
 zutil-cloned = { git = "https://github.com/Zenithsiz/zutil", rev = "978fa5df733d59fc691812ce2fa6072bf901dc7f" }
 
-anyhow                   = "1.0.98"
+anyhow                   = "1.0.100"
 console_error_panic_hook = "0.1.7"
-duplicate                = "2.0.0"
+duplicate                = "2.0.1"
 extend                   = "1.2.0"
 itertools                = "0.14.0"
-js-sys                   = "0.3.77"
-tracing                  = "0.1.41"
-tracing-subscriber       = "0.3.19"
+js-sys                   = "0.3.83"
+tracing                  = "0.1.44"
+tracing-subscriber       = "0.3.22"
 tracing-web              = "0.1.3"
-url                      = "2.5.4"
-wasm-bindgen             = "0.2.100"
-web-sys                  = "0.3.77"
+url                      = "2.5.8"
+wasm-bindgen             = "0.2.106"
+web-sys                  = "0.3.83"
 
 [workspace.lints]
