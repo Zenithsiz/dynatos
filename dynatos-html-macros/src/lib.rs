@@ -153,8 +153,8 @@ impl Node {
 							tag if let Some(tag) = tag.strip_prefix(":") => {
 								// Use the tag as the value if none is provided
 								let value = value.as_deref().unwrap_or(tag);
-								let value = syn::parse_str::<syn::Ident>(value)
-									.expect("Unable to parse attribute value as an identifier");
+								let value = syn::parse_str::<syn::Expr>(value)
+									.expect("Unable to parse attribute value as an expression");
 								syn::parse_quote! {
 									dynatos_html::ElementWithAttr::with_attr(&#el, #tag, #value);
 								}
