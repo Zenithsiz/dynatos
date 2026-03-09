@@ -180,23 +180,13 @@ fn parse_ident<'a>(s: &mut &'a str) -> Option<&'a str> {
 	Some(ident)
 }
 
-/// Parses an attribute value, `"..."` or just `...`
+/// Parses an attribute value, `"..."`
 fn parse_attr_value<'a>(s: &mut &'a str) -> Result<&'a str, anyhow::Error> {
-	// If it starts with a `"`, go until another `"`
-	if self::eat(s, '"').is_some() {
-		let end = s.find('"').context("Expected `\"` after `attr=\"...`")?;
-		let value = &s[..end];
-		*s = &s[end + 1..];
-		return Ok(value);
-	}
-
-	// Otherwise, read until we find whitespace or `>`
-	// TODO: Is reading until whitespace correct here?
-	let end = s
-		.find(|ch: char| ch.is_whitespace() || matches!(ch, '>'))
-		.unwrap_or(s.len());
+	self::eat(s, '"').context("Expected a `\"` after `attr=`")?;
+	let end = s.find('"').context("Expected `\"` after `attr=\"...`")?;
 	let value = &s[..end];
-	*s = &s[end..];
+	*s = &s[end + 1..];
+
 	Ok(value)
 }
 

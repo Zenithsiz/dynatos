@@ -5,7 +5,7 @@
 
 // Imports
 use {
-	dynatos_html::{html, JsResultContext},
+	dynatos_html::{JsResultContext, html},
 	dynatos_reactive::{Signal, SignalBorrowMut, SignalGet, SignalSet},
 	tracing_subscriber::prelude::*,
 	web_sys::HtmlElement,
@@ -52,11 +52,11 @@ fn counter() -> HtmlElement {
 	let sub = move |_ev| *value.borrow_mut() -= 1;
 
 	html!(
-		"<div>
-			<button @Click=clear>Clear</button>
-			<button @Click=add>+</button>
-			<button @Click=sub>-</button>
+		r#"<div>
+			<button @Click="clear">Clear</button>
+			<button @Click="add">+</button>
+			<button @Click="sub">-</button>
 			<span>Value: %{value.get()}%.</span>
-		</div>"
+		</div>"#
 	)
 }
