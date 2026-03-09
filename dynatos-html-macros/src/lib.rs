@@ -156,7 +156,7 @@ impl Node {
 								let value = syn::parse_str::<syn::Expr>(value)
 									.expect("Unable to parse attribute value as an expression");
 								syn::parse_quote! {
-									dynatos_html::ElementWithAttr::with_attr(&#el, #tag, #value);
+									dynatos_html::ElementWithAttr::with_attr(&#el, #tag, &#value);
 								}
 							},
 
