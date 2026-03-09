@@ -7,6 +7,7 @@
 use {
 	dynatos_html_parser::{XHtml, XHtmlNode},
 	proc_macro::TokenStream,
+	quote::ToTokens,
 	std::{
 		fs,
 		path::{Path, PathBuf},
@@ -221,48 +222,71 @@ impl Node {
 				}
 			},
 			XHtmlNode::Text(text) => {
-				// If we're an empty text node, return `None`.
+				// If we're an empty text node, we can simply not add it
 				if text.trim().is_empty() {
 					return None;
 				}
 
+				// Otherwise, process the arguments.
+				// Note: If we have any dynamic arguments, we need to create a
+				//       closure to evaluate it inside, but we need to evaluate
+				//       any statics outside this closure, because they might be
+				//       temporaries that we can't capture.
+				//       To do this, we first "flatten" every non-dynamic argument,
+				//       grouping nearby constants and statics, then we evaluate
+				//       those statics outside using `ToString`, and move the evaluated
+				//       strings inside of the closure.
 				let args = self::split_text_args(text);
+				let args = self::flatten_text_args(&args);
 
-				// If we have just a single constant argument, return a simple version
-				if let [TextArg::Cons(text)] = &*args {
-					return Some(Self {
-						ty:   NodeTy::Text,
-						expr: syn::parse_quote! { dynatos_html::text(#text) },
-					});
-				}
-
-				// Otherwise, we'll format a string with dynamic text
-				let fmt = args
+				let args_idents = args
 					.iter()
-					.map(|arg| match arg {
-						TextArg::Cons(text) => text,
-						TextArg::Argument(_) => "{}",
+					.enumerate()
+					.map(|(idx, _)| syn::Ident::new(&format!("_{idx}"), proc_macro2::Span::call_site()))
+					.collect::<Vec<_>>();
+
+				let (args_static, args_static_idents) = args
+					.iter()
+					.zip(&args_idents)
+					.filter_map(|(arg, ident)| {
+						let expr = arg.try_as_static_arg_ref()?;
+						let expr: syn::Expr = syn::parse_quote! { std::string::ToString::to_string(&#expr) };
+
+						Some((expr, ident))
 					})
-					.collect::<String>();
+					.unzip::<_, _, Vec<_>, Vec<_>>();
 
 				let args = args
-					.into_iter()
-					.filter_map(|arg| match arg {
-						TextArg::Cons(_) => None,
-						TextArg::Argument(arg) => {
-							let arg = syn::parse_str::<syn::Expr>(arg).expect("Unable to parse argument expression");
-							Some(arg)
-						},
+					.iter()
+					.zip(&args_idents)
+					.map(|(arg, ident)| match arg {
+						TextArg::Cons(s) => TextArg::Cons(s),
+						TextArg::DynArg(expr) => TextArg::DynArg(expr.clone()),
+						TextArg::StaticArg(_) => TextArg::StaticArg(syn::parse_quote! { #ident }),
 					})
 					.collect::<Vec<_>>();
 
-				Self {
-					ty:   NodeTy::Text,
-					expr: syn::parse_quote! { dynatos::NodeWithDynText::with_dyn_text(
-						dynatos_html::text(""),
-						move || format!(#fmt, #(#args),*)
-					)},
-				}
+				let text: syn::Expr = match self::format_text_args(&args, true) {
+					TextArg::Cons(s) => syn::parse_quote! {
+						dynatos_html::text(#s)
+					},
+					TextArg::DynArg(expr) => syn::parse_quote! {
+						dynatos::NodeWithDynText::with_dyn_text(
+							dynatos_html::text(""),
+							move || #expr
+						)
+					},
+					TextArg::StaticArg(expr) => syn::parse_quote! {
+						dynatos_html::text(&#expr)
+					},
+				};
+
+				let expr = syn::parse_quote! {
+					match ( #( #args_static, )* ) {
+						( #( #args_static_idents, )* ) => #text,
+					}
+				};
+				Self { ty: NodeTy::Text, expr }
 			},
 			XHtmlNode::Comment(comment) => Self {
 				ty:   NodeTy::Comment {},
@@ -280,12 +304,26 @@ impl quote::ToTokens for Node {
 	}
 }
 
+#[derive(Clone, Debug)]
+#[derive(strum::EnumIs, strum::EnumTryAs)]
 enum TextArg<'a> {
 	/// Constant
 	Cons(&'a str),
 
-	/// Argument
-	Argument(&'a str),
+	/// Dynamic argument
+	DynArg(syn::Expr),
+
+	/// Static argument
+	StaticArg(syn::Expr),
+}
+
+impl ToTokens for TextArg<'_> {
+	fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+		match self {
+			Self::Cons(s) => s.to_tokens(tokens),
+			Self::DynArg(expr) | Self::StaticArg(expr) => expr.to_tokens(tokens),
+		}
+	}
 }
 
 /// Splits a string into constants and arguments
@@ -295,7 +333,9 @@ fn split_text_args(mut text: &str) -> Vec<TextArg<'_>> {
 		// Find the first escape
 		#[expect(clippy::mixed_read_write_in_expression, reason = "False positive")]
 		let Some(start) = text.find("%{") else {
-			args.push(TextArg::Cons(text));
+			if !text.is_empty() {
+				args.push(TextArg::Cons(text));
+			}
 			text = &text[text.len()..];
 			continue;
 		};
@@ -304,10 +344,80 @@ fn split_text_args(mut text: &str) -> Vec<TextArg<'_>> {
 			panic!("Expected `}}%`, found {:?}", &text[start..]);
 		};
 
-		args.push(TextArg::Cons(&text[..start]));
-		args.push(TextArg::Argument(&text[start..][2..end]));
+		if start != 0 {
+			args.push(TextArg::Cons(&text[..start]));
+		}
+
+		enum ArgKind {
+			Dyn,
+			Static,
+		}
+		let arg = &text[start..][2..end];
+		let (kind, arg) = match arg {
+			arg if let Some(arg) = arg.strip_prefix("static") => (ArgKind::Static, arg),
+			arg if let Some(arg) = arg.strip_prefix("dyn") => (ArgKind::Dyn, arg),
+			_ => (ArgKind::Dyn, arg),
+		};
+		let arg = syn::parse_str::<syn::Expr>(arg).expect("Unable to parse argument expression");
+		let arg = match kind {
+			ArgKind::Dyn => TextArg::DynArg(arg),
+			ArgKind::Static => TextArg::StaticArg(arg),
+		};
+		args.push(arg);
+
 		text = &text[start..][end + 2..];
 	}
 
 	args
+}
+
+/// Flattens text arguments.
+///
+/// Joins nearby strings and static arguments.
+fn flatten_text_args<'a>(mut args: &[TextArg<'a>]) -> Vec<TextArg<'a>> {
+	let mut new_args = vec![];
+	while !args.is_empty() {
+		let Some(next_dyn_arg) = args.iter().position(TextArg::is_dyn_arg) else {
+			new_args.push(self::format_text_args(args, false));
+			break;
+		};
+		new_args.push(self::format_text_args(&args[..next_dyn_arg], false));
+		new_args.push(args[next_dyn_arg].clone());
+		args = &args[next_dyn_arg + 1..];
+	}
+
+	new_args
+}
+
+/// Formats text arguments
+fn format_text_args<'a>(args: &[TextArg<'a>], to_string: bool) -> TextArg<'a> {
+	// If we're just a single argument, just return it as-is.
+	if let [arg] = args {
+		return arg.clone();
+	}
+
+	let fmt = args
+		.iter()
+		.map(|arg| match arg {
+			TextArg::Cons(text) => text,
+			TextArg::DynArg(_) | TextArg::StaticArg(_) => "{}",
+		})
+		.collect::<String>();
+
+	let fmt_args = args
+		.iter()
+		.filter_map(|arg| match arg {
+			TextArg::Cons(_) => None,
+			TextArg::DynArg(arg) | TextArg::StaticArg(arg) => Some(arg),
+		})
+		.collect::<Vec<_>>();
+
+	let fmt = match to_string {
+		true => syn::parse_quote! { format!(#fmt, #(#fmt_args),*) },
+		false => syn::parse_quote! { format_args!(#fmt, #(#fmt_args),*) },
+	};
+	match args.iter().any(TextArg::is_dyn_arg) {
+		true => TextArg::DynArg(fmt),
+		false => TextArg::StaticArg(fmt),
+	}
 }
