@@ -180,7 +180,6 @@ where
 impl<T> SignalGetCloned for TryMappedSignal<T>
 where
 	T: Try<Residual: Residual<Signal<T::Output>>>,
-
 	SignalTry<T>: Clone,
 {
 	type Value = SignalTry<T>;
@@ -294,7 +293,7 @@ mod tests {
 	use {
 		super::*,
 		crate::SignalGet,
-		core::{assert_matches::assert_matches, cell::Cell},
+		core::{assert_matches, cell::Cell},
 	};
 
 	#[test]

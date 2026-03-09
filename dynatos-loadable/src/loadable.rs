@@ -7,12 +7,12 @@ use {
 		ops::{ControlFlow, Deref, DerefMut, FromResidual, Residual, Try},
 	},
 	dynatos_reactive::{
-		enum_split::{EnumSplitValue, EnumSplitValueUpdateCtx, SignalStorage},
 		Signal,
 		SignalGetClone,
 		SignalGetCopy,
 		SignalSet,
 		SignalSetWith,
+		enum_split::{EnumSplitValue, EnumSplitValueUpdateCtx, SignalStorage},
 	},
 };
 
@@ -180,9 +180,7 @@ impl<T, E> Loadable<&T, E> {
 	{
 		self.map(|value| *value)
 	}
-}
 
-impl<T, E> Loadable<&T, E> {
 	/// Clones the inner value
 	pub fn cloned(self) -> Loadable<T, E>
 	where

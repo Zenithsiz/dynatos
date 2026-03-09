@@ -74,7 +74,7 @@ fn order() {
 	let a_first = a.first().expect("Empty `a`s").clone();
 	let a_last = a.last().expect("Empty `a`s").clone();
 
-	#[expect(clippy::redundant_clone, reason = "False positive")]
+	#[expect(clippy::redundant_iter_cloned, reason = "False positive")]
 	let _a_effects = a
 		.array_windows()
 		.cloned()

@@ -3,7 +3,6 @@
 // Imports
 use {
 	crate::{
-		effect::EffectSuppressed,
 		Effect,
 		EffectRun,
 		EffectRunCtx,
@@ -12,6 +11,7 @@ use {
 		SignalGetDefaultImpl,
 		SignalWithDefaultImpl,
 		Trigger,
+		effect::EffectSuppressed,
 	},
 	core::{
 		cell::{self, RefCell},
@@ -49,6 +49,7 @@ impl<T, F> Memo<T, F> {
 }
 
 // TODO: `F: ?Sized`
+#[expect(clippy::multiple_inherent_impl, reason = "We'll add a bound eventually")]
 impl<T, F> Memo<T, F> {
 	/// Suppresses the update of the memo'd value
 	#[track_caller]

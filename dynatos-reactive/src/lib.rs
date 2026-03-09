@@ -25,7 +25,6 @@
 	macro_metavar_expr,
 	try_trait_v2,
 	try_trait_v2_residual,
-	assert_matches,
 	never_type,
 	unwrap_infallible,
 	arbitrary_self_types,
@@ -52,7 +51,7 @@ pub mod world;
 pub use self::{
 	async_signal::AsyncSignal,
 	derived::Derived,
-	effect::{effect_run_impl_inner, Effect, EffectRun, EffectRunCtx, WeakEffect},
+	effect::{Effect, EffectRun, EffectRunCtx, WeakEffect, effect_run_impl_inner},
 	enum_split::{EnumSplitSignal, SignalEnumSplit},
 	mapped_signal::{MappedSignal, SignalMapped, TryMappedSignal},
 	memo::Memo,
@@ -77,5 +76,5 @@ pub use self::{
 	},
 	trigger::{Trigger, WeakTrigger},
 	with_default::{SignalWithDefault, WithDefault},
-	world::{World, WORLD},
+	world::{WORLD, World},
 };
