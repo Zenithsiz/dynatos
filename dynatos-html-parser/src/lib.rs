@@ -5,7 +5,6 @@
 
 // Imports
 use {
-	anyhow::Context,
 	core::{
 		iter,
 		ops::{ControlFlow, Try},
@@ -24,7 +23,7 @@ pub struct XHtml<'a> {
 
 impl<'a> XHtml<'a> {
 	/// Parses an `XHtml` document
-	pub fn parse(mut s: &'a str) -> Result<Self, anyhow::Error> {
+	pub fn parse(mut s: &'a str) -> Result<Self, Error> {
 		// Parse all children until `s` is empty.
 		let children = iter::from_fn(|| match s.is_empty() {
 			true => None,
@@ -51,12 +50,12 @@ pub enum XHtmlNode<'a> {
 
 impl<'a> XHtmlNode<'a> {
 	/// Parses a node from a string
-	fn parse(s: &mut &'a str) -> Result<Self, anyhow::Error> {
+	fn parse(s: &mut &'a str) -> Result<Self, Error> {
 		// If it starts with a comment, read until the end of the comment.
 		let comment_start = "<!--";
 		let comment_end = "-->";
 		if s.starts_with(comment_start) {
-			let end = s.find(comment_end).context("Expected `-->` after `<!--`")?;
+			let end = s.find(comment_end).ok_or(Error::CommentEnd)?;
 			let comment = &s[comment_start.len()..end];
 			*s = &s[end + comment_end.len()..];
 			return Ok(Self::Comment(comment));
@@ -94,7 +93,7 @@ pub struct XHtmlElement<'a> {
 
 impl<'a> XHtmlElement<'a> {
 	/// Parses a node from a string
-	fn parse(s: &mut &'a str) -> Result<Self, anyhow::Error> {
+	fn parse(s: &mut &'a str) -> Result<Self, Error> {
 		// Parse the element start
 		let start = self::parse_element_start(s)?;
 		let name = start.name;
@@ -115,12 +114,12 @@ impl<'a> XHtmlElement<'a> {
 			true => (vec![], None),
 			false => {
 				let res = self::parse_element_children(s)?;
-
-				anyhow::ensure!(
-					name == res.close_name,
-					"Expected `{name}`, found `{:?}`, before {s:?}",
-					res.close_name
-				);
+				if name != res.close_name {
+					return Err(Error::WrongClose {
+						open_name:  name.to_owned(),
+						close_name: res.close_name.to_owned(),
+					});
+				}
 
 				(res.children, Some(res.inner_span_end))
 			},
@@ -181,9 +180,9 @@ fn parse_ident<'a>(s: &mut &'a str) -> Option<&'a str> {
 }
 
 /// Parses an attribute value, `"..."`
-fn parse_attr_value<'a>(s: &mut &'a str) -> Result<&'a str, anyhow::Error> {
-	self::eat(s, '"').context("Expected a `\"` after `attr=`")?;
-	let end = s.find('"').context("Expected `\"` after `attr=\"...`")?;
+fn parse_attr_value<'a>(s: &mut &'a str) -> Result<&'a str, Error> {
+	self::eat(s, '"').ok_or(Error::AttrValueQuoteStart)?;
+	let end = s.find('"').ok_or(Error::AttrValueQuoteEnd)?;
 	let value = &s[..end];
 	*s = &s[end + 1..];
 
@@ -197,15 +196,17 @@ struct ParsedElementStart<'a> {
 }
 
 /// Parses an element start, `<{name}` or `<>`
-fn parse_element_start<'a>(s: &mut &'a str) -> Result<ParsedElementStart<'a>, anyhow::Error> {
-	anyhow::ensure!(self::eat(s, '<').is_some(), "Expected `<`, found {s:?}");
+fn parse_element_start<'a>(s: &mut &'a str) -> Result<ParsedElementStart<'a>, Error> {
+	if self::eat(s, '<').is_none() {
+		return Err(Error::ElementStart);
+	}
 
 	self::eat_whitespace(s);
 	let (name, is_empty) = match self::eat(s, '>') {
 		Some(_) => ("", true),
 		None => match self::parse_ident(s) {
 			Some(name) => (name, false),
-			None => anyhow::bail!("Expected identifier, found {s:?}"),
+			None => return Err(Error::Identifier),
 		},
 	};
 
@@ -220,7 +221,7 @@ struct ParsedElementAttrs<'a> {
 
 /// Parses an element's attributes, a mix of `attr1=value1 attr2=value2` or `attr1 attr2`,
 /// followed with `>` or `/>`.
-fn parse_element_attrs<'a>(s: &mut &'a str) -> Result<ParsedElementAttrs<'a>, anyhow::Error> {
+fn parse_element_attrs<'a>(s: &mut &'a str) -> Result<ParsedElementAttrs<'a>, Error> {
 	let mut is_self_closing = false;
 	let attrs = iter::from_fn(|| {
 		self::eat_whitespace(s);
@@ -232,7 +233,7 @@ fn parse_element_attrs<'a>(s: &mut &'a str) -> Result<ParsedElementAttrs<'a>, an
 					return None;
 				}
 				let Some(attr) = self::parse_ident(s) else {
-					return Some(Err(anyhow::anyhow!("Expected identifier, found {s:?}")));
+					return Some(Err(Error::Identifier));
 				};
 				let value = self::eat(s, '=').map(|_| self::parse_attr_value(s)).transpose();
 
@@ -240,8 +241,7 @@ fn parse_element_attrs<'a>(s: &mut &'a str) -> Result<ParsedElementAttrs<'a>, an
 			},
 		}
 	})
-	.collect::<Result<_, anyhow::Error>>()
-	.context("Unable to parse all attributes")?;
+	.collect::<Result<_, Error>>()?;
 
 	Ok(ParsedElementAttrs { attrs, is_self_closing })
 }
@@ -254,7 +254,7 @@ struct ParsedElementChildren<'a> {
 }
 
 /// Parses all children of a tag, along with it's closing tag, `<tag 1><tag 2>...</{name}>`
-fn parse_element_children<'a>(s: &mut &'a str) -> Result<ParsedElementChildren<'a>, anyhow::Error> {
+fn parse_element_children<'a>(s: &mut &'a str) -> Result<ParsedElementChildren<'a>, Error> {
 	let mut children = vec![];
 	let (close_name, inner_span_end) = loop {
 		let inner_span_end = *s;
@@ -318,4 +318,26 @@ fn span_from_start_end<'a>(start: &'a str, end: &'a str) -> &'a str {
 	//      |.......|: Len: end - start
 
 	&start[..start.len() - end.len()]
+}
+
+// TODO: This should have a span associated
+#[derive(thiserror::Error, Debug)]
+pub enum Error {
+	#[error("Expected `-->` after `<!--`")]
+	CommentEnd,
+
+	#[error("Expected `<`")]
+	ElementStart,
+
+	#[error("Expected an identifier")]
+	Identifier,
+
+	#[error("Expected a `\"` after `attr=`")]
+	AttrValueQuoteStart,
+
+	#[error("Expected `\"` after `attr=\"...`")]
+	AttrValueQuoteEnd,
+
+	#[error("Expected `{open_name}`, found `{close_name:?}`")]
+	WrongClose { open_name: String, close_name: String },
 }
