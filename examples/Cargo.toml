@@ -17,7 +17,7 @@ dynatos-util     = { path = "../dynatos-util" }
 
 zutil-cloned = { git = "https://github.com/Zenithsiz/zutil", rev = "978fa5df733d59fc691812ce2fa6072bf901dc7f" }
 
-anyhow                   = "1.0.100"
+app-error                = "0.1.0"
 console_error_panic_hook = "0.1.7"
 duplicate                = "2.0.1"
 extend                   = "1.2.0"

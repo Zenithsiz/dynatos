@@ -16,7 +16,6 @@ pub use self::{
 
 // Imports
 use {
-	core::fmt,
 	itertools::Itertools,
 	js_sys::Reflect,
 	wasm_bindgen::{JsCast, JsValue},
@@ -375,18 +374,13 @@ where
 	}
 }
 
-/// Extension trait to be able to use `.context` on `Result<T, JsValue>`.
+/// Extension trait to be able to use [`.context`](app_error::AppError::context)
+/// on a `Result<T, JsValue>`.
+#[cfg(feature = "app-error")]
 #[extend::ext(name = JsResultContext)]
 pub impl<T> Result<T, JsValue> {
-	fn context<C>(self, context: C) -> Result<T, anyhow::Error>
-	where
-		C: fmt::Display + Send + Sync + 'static,
-	{
-		self.map_err(|err| {
-			let err = format!("{err:?}");
-			let err = anyhow::Error::msg(err);
-			err.context(context)
-		})
+	fn context(self, context: &'static str) -> Result<T, app_error::AppError> {
+		self.map_err(|err| app_error::AppError::fmt(format!("{err:?}")).context(context))
 	}
 }
 

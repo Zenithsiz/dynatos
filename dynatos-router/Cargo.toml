@@ -13,7 +13,6 @@ dynatos-util     = { workspace = true }
 
 zutil-cloned = { workspace = true }
 
-anyhow       = { workspace = true }
 duplicate    = { workspace = true }
 extend       = { workspace = true }
 js-sys       = { workspace = true }

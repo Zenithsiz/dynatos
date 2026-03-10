@@ -37,7 +37,8 @@ dynatos-util           = { path = "dynatos-util" }
 # zutil
 zutil-cloned = { git = "https://github.com/Zenithsiz/zutil", rev = "978fa5df733d59fc691812ce2fa6072bf901dc7f" }
 
-anyhow               = "1.0.100"
+anyhow               = "1.0.102"
+app-error            = "0.1.0"
 convert_case         = "0.10.0"
 derive_more          = "2.1.1"
 derive_utils         = "0.15.0"
@@ -106,6 +107,10 @@ clippy.pattern_type_mismatch = "allow"
 # We sometimes need to explicitly panic
 clippy.panic       = "allow"
 clippy.unreachable = "allow"
+
+# We create these `Error` types inside of submodules,
+# intending to be used as `module::Error`
+clippy.error_impl_error = "allow"
 
 # Misc.
 clippy.arbitrary_source_item_ordering    = "allow"

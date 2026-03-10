@@ -8,7 +8,7 @@ edition = "2024"
 dynatos-html-macros = { workspace = true }
 dynatos-util        = { workspace = true }
 
-anyhow = { workspace = true }
+app-error = { optional = true, workspace = true }
 duplicate = { workspace = true }
 extend = { workspace = true }
 itertools = { workspace = true }
@@ -36,6 +36,9 @@ web-sys = { features = [
 	"WheelEvent",
 	"Window",
 ], workspace = true }
+
+[features]
+app-error = ["dep:app-error"]
 
 [lints]
 workspace = true

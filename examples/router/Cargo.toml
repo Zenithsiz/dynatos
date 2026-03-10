@@ -12,7 +12,7 @@ dynatos-reactive = { workspace = true }
 dynatos-router   = { workspace = true }
 dynatos-util     = { workspace = true }
 
-anyhow                   = { workspace = true }
+app-error                = { workspace = true }
 console_error_panic_hook = { workspace = true }
 extend                   = { workspace = true }
 tracing                  = { workspace = true }

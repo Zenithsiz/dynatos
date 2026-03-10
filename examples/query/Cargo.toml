@@ -15,7 +15,7 @@ dynatos-util     = { workspace = true }
 
 zutil-cloned = { workspace = true }
 
-anyhow                   = { workspace = true }
+app-error                = { workspace = true }
 console_error_panic_hook = { workspace = true }
 extend                   = { workspace = true }
 tracing                  = { workspace = true }

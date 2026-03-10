@@ -3,10 +3,13 @@
 version = 4
 
 [[package]]
-name = "anyhow"
-version = "1.0.100"
+name = "app-error"
+version = "0.1.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "a23eb6b1614318a8071c9b2521f36b424b2c83db5eb3a0fead4a6c0809af6e61"
+checksum = "32a03f14a783259cead5d653e52213b378718e63d61662e6e883de1d50e9e39d"
+dependencies = [
+ "itertools",
+]
 
 [[package]]
 name = "bitflags"
@@ -49,7 +52,7 @@ dependencies = [
 name = "counter"
 version = "0.1.0"
 dependencies = [
- "anyhow",
+ "app-error",
  "console_error_panic_hook",
  "dynatos",
  "dynatos-html",
@@ -68,7 +71,7 @@ dependencies = [
 name = "counter-no-macros"
 version = "0.1.0"
 dependencies = [
- "anyhow",
+ "app-error",
  "console_error_panic_hook",
  "dynatos",
  "dynatos-html",
@@ -164,7 +167,7 @@ version = "0.1.0"
 name = "dynatos-html"
 version = "0.1.0"
 dependencies = [
- "anyhow",
+ "app-error",
  "duplicate",
  "dynatos-html-macros",
  "dynatos-util",
@@ -192,7 +195,7 @@ dependencies = [
 name = "dynatos-html-parser"
 version = "0.1.0"
 dependencies = [
- "anyhow",
+ "thiserror",
  "unicode-xid",
 ]
 
@@ -200,7 +203,6 @@ dependencies = [
 name = "dynatos-loadable"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "duplicate",
  "dynatos-reactive",
  "dynatos-util",
@@ -244,7 +246,6 @@ dependencies = [
 name = "dynatos-router"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "duplicate",
  "dynatos-context",
  "dynatos-html",
@@ -265,7 +266,6 @@ dependencies = [
 name = "dynatos-util"
 version = "0.1.0"
 dependencies = [
- "anyhow",
  "duplicate",
  "extend",
 ]
@@ -727,7 +727,7 @@ dependencies = [
 name = "query"
 version = "0.1.0"
 dependencies = [
- "anyhow",
+ "app-error",
  "console_error_panic_hook",
  "dynatos",
  "dynatos-context",
@@ -768,7 +768,7 @@ dependencies = [
 name = "router"
 version = "0.1.0"
 dependencies = [
- "anyhow",
+ "app-error",
  "console_error_panic_hook",
  "dynatos",
  "dynatos-context",

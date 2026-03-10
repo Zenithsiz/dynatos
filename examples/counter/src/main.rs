@@ -5,6 +5,7 @@
 
 // Imports
 use {
+	app_error::AppError,
 	dynatos_html::{JsResultContext, html},
 	dynatos_reactive::{Signal, SignalBorrowMut, SignalGet, SignalSet},
 	tracing_subscriber::prelude::*,
@@ -30,7 +31,7 @@ fn main() {
 	}
 }
 
-fn run() -> Result<(), anyhow::Error> {
+fn run() -> Result<(), AppError> {
 	let window = web_sys::window().expect("Unable to get window");
 	let document = window.document().expect("Unable to get document");
 	let body = document.body().expect("Unable to get document body");

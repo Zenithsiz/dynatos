@@ -8,7 +8,6 @@ edition = "2024"
 dynatos-reactive = { workspace = true }
 dynatos-util     = { workspace = true }
 
-anyhow       = { workspace = true }
 duplicate    = { workspace = true }
 extend       = { workspace = true }
 tracing      = { workspace = true }

@@ -6,11 +6,11 @@ edition = "2024"
 [dependencies]
 
 dynatos          = { workspace = true }
-dynatos-html     = { workspace = true }
+dynatos-html     = { features = ["app-error"], workspace = true }
 dynatos-reactive = { workspace = true }
 dynatos-util     = { workspace = true }
 
-anyhow                   = { workspace = true }
+app-error                = { workspace = true }
 console_error_panic_hook = { workspace = true }
 extend                   = { workspace = true }
 tracing                  = { workspace = true }

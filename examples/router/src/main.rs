@@ -5,9 +5,10 @@
 
 // Imports
 use {
+	app_error::AppError,
 	core::cell::LazyCell,
 	dynatos::{NodeWithDynChild, ObjectWithContext},
-	dynatos_html::{html, NodeWithChildren, NodeWithText},
+	dynatos_html::{NodeWithChildren, NodeWithText, html},
 	dynatos_reactive::SignalGetCloned,
 	dynatos_router::Location,
 	tracing_subscriber::prelude::*,
@@ -32,7 +33,7 @@ fn main() {
 	}
 }
 
-fn run() -> Result<(), anyhow::Error> {
+fn run() -> Result<(), AppError> {
 	let window = web_sys::window().expect("Unable to get window");
 	let document = window.document().expect("Unable to get document");
 	let body = document.body().expect("Unable to get document body");
