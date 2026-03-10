@@ -259,6 +259,29 @@ impl_children_tuple! {
 	C0(0), C1(1), C2(2), C3(3), C4(4), C5(5), C6(6), C7(7), C8(8), C9(9);
 }
 
+/// Extension trait to add an attribute
+#[extend::ext_sized(name = ElementAddAttr)]
+pub impl web_sys::Element {
+	fn add_attr<A, V>(&self, attr: A, value: V)
+	where
+		A: AsRef<str>,
+		V: AsRef<str>,
+	{
+		let attr = attr.as_ref();
+		let value = value.as_ref();
+		self.try_add_attr(attr, value)
+			.unwrap_or_else(|err| panic!("Unable to set element attribute {attr:?} to {value:?}: {err:?}"));
+	}
+
+	fn try_add_attr<A, V>(&self, attr: A, value: V) -> Result<(), JsValue>
+	where
+		A: AsRef<str>,
+		V: AsRef<str>,
+	{
+		self.set_attribute(attr.as_ref(), value.as_ref())
+	}
+}
+
 /// Extension trait to add an attribute in a builder-style.
 #[extend::ext_sized(name = ElementWithAttr)]
 pub impl<T> T
