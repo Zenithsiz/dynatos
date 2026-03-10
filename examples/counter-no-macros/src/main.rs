@@ -46,19 +46,19 @@ fn counter() -> HtmlElement {
 			let value = value.clone();
 			html::button()
 				.with_text("Clear")
-				.with_event_listener::<ev::Click>(move |_ev| value.set(0))
+				.with_event_listener::<ev!(click)>(move |_ev| value.set(0))
 		},
 		{
 			let value = value.clone();
 			html::button()
 				.with_text("+")
-				.with_event_listener::<ev::Click>(move |_ev| *value.borrow_mut() += 1)
+				.with_event_listener::<ev!(click)>(move |_ev| *value.borrow_mut() += 1)
 		},
 		{
 			let value = value.clone();
 			html::button()
 				.with_text("-")
-				.with_event_listener::<ev::Click>(move |_ev| *value.borrow_mut() -= 1)
+				.with_event_listener::<ev!(click)>(move |_ev| *value.borrow_mut() -= 1)
 		},
 		html::span().with_dyn_text(move || format!("Value: {}.", value.get())),
 	])

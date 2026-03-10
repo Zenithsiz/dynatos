@@ -3,7 +3,7 @@
 // Imports
 use {
 	crate::Location,
-	dynatos_html::{ev, html, ElementWithAttr, EventTargetWithListener},
+	dynatos_html::{ElementWithAttr, EventTargetWithListener, ev, html},
 	dynatos_reactive::{SignalBorrow, SignalSet},
 	web_sys::HtmlElement,
 };
@@ -17,7 +17,7 @@ where
 {
 	html::a()
 		.with_attr("href", new_location.as_ref())
-		.with_event_listener::<ev::Click>(move |ev| {
+		.with_event_listener::<ev!(click)>(move |ev| {
 			ev.prevent_default();
 			dynatos_context::with_expect::<Location, _, _>(|location| {
 				let new_location = new_location.as_ref();

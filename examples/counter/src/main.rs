@@ -54,9 +54,9 @@ fn counter() -> HtmlElement {
 
 	html!(
 		r#"<div>
-			<button @Click="clear">Clear</button>
-			<button @Click="add">+</button>
-			<button @Click="sub">-</button>
+			<button @click="clear">Clear</button>
+			<button @click="add">+</button>
+			<button @click="sub">-</button>
 			<span>Value: %{value.get()}%.</span>
 		</div>"#
 	)

@@ -62,7 +62,7 @@ fn page() -> HtmlElement {
 		html::br(),
 		#[cloned(query)]
 		html::button()
-			.with_event_listener::<ev::Click>(move |_ev| {
+			.with_event_listener::<ev!(click)>(move |_ev| {
 				if let Loadable::Loaded(value) = &mut *query.borrow_mut() {
 					*value += 1;
 				}
@@ -70,7 +70,7 @@ fn page() -> HtmlElement {
 			.with_text("Add"),
 		html::br(),
 		html::button()
-			.with_event_listener::<ev::Click>(move |_ev| {
+			.with_event_listener::<ev!(click)>(move |_ev| {
 				query.set(6);
 			})
 			.with_text("6"),

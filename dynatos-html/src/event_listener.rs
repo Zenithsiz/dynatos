@@ -4,7 +4,7 @@
 use {
 	crate::WeakRef,
 	dynatos_util::TryOrReturnExt,
-	wasm_bindgen::{closure::Closure, convert::FromWasmAbi, JsCast},
+	wasm_bindgen::{JsCast, closure::Closure, convert::FromWasmAbi},
 	web_sys::js_sys,
 };
 
@@ -94,8 +94,16 @@ pub trait EventListener {
 	fn name() -> &'static str;
 }
 
+pub macro ev($Event:ident) {
+	self::ev::$Event
+}
+
 /// Events
-pub mod ev {
+#[expect(
+	nonstandard_style,
+	reason = "Macro-generated code, the types aren't accessed directly and instead go through a macro"
+)]
+mod ev {
 	// Imports
 	use {
 		super::EventListener,
@@ -115,74 +123,39 @@ pub mod ev {
 
 	macro define_events(
 		$(
-			$( #[ doc = $ev_doc:literal ] )*
-			$Event:ident($ArgTy:ty) = $name:literal;
+			$Event:ident: $ArgTy:ty;
 		)*
 	) {
 		$(
-			$( #[ doc = $ev_doc ] )*
 			pub struct $Event;
 
 			impl EventListener for $Event {
 				type Event = $ArgTy;
 
 				fn name() -> &'static str {
-					$name
+					stringify!($Event)
 				}
 			}
 		)*
 	}
 
 	define_events! {
-		/// `load` Event
-		Load(Event) = "load";
-
-		/// `click` Event
-		Click(PointerEvent) = "click";
-
-		/// `change` Event
-		Change(Event) = "change";
-
-		/// `input` Event
-		Input(InputEvent) = "input";
-
-		/// `submit` Event
-		Submit(SubmitEvent) = "submit";
-
-		/// `blur` Event
-		Blur(FocusEvent) = "blur";
-
-		/// `dblclick` Event
-		DoubleClick(MouseEvent) = "dblclick";
-
-		/// `wheel` Event
-		Wheel(WheelEvent) = "wheel";
-
-		/// `paste` Event
-		Paste(ClipboardEvent) = "paste";
-
-		/// `drop` Event
-		Drop(DragEvent) = "drop";
-
-		/// `dragstart` Event
-		DragStart(DragEvent) = "dragstart";
-
-		/// `dragover` Event
-		DragOver(DragEvent) = "dragover";
-
-		/// `popstate` Event
-		PopState(PopStateEvent) = "popstate";
-
-		/// `pointermove` event
-		PointerMove(PointerEvent) = "pointermove";
-
-		/// `pointerdown` event
-		PointerDown(PointerEvent) = "pointerdown";
-
-		/// `pointerup` event
-		PointerUp(PointerEvent) = "pointerup";
-
-		/// `pointerout` event
-		PointerOut(PointerEvent) = "pointerout";
+		load: Event;
+		click: PointerEvent;
+		change: Event;
+		input: InputEvent;
+		submit: SubmitEvent;
+		blur: FocusEvent;
+		dblclick: MouseEvent;
+		wheel: WheelEvent;
+		paste: ClipboardEvent;
+		drop: DragEvent;
+		dragstart: DragEvent;
+		dragover: DragEvent;
+		popstate: PopStateEvent;
+		pointermove: PointerEvent;
+		pointerdown: PointerEvent;
+		pointerup: PointerEvent;
+		pointerout: PointerEvent;
 	}
 }
