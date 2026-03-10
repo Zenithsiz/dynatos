@@ -1246,7 +1246,8 @@ dependencies = [
 [[package]]
 name = "zutil-cloned"
 version = "0.1.0"
-source = "git+https://github.com/Zenithsiz/zutil?rev=978fa5df733d59fc691812ce2fa6072bf901dc7f#978fa5df733d59fc691812ce2fa6072bf901dc7f"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e2c735d6a4ffcc2f59af6177967ee0e25e9938411d5137ae421bd16e1524f2eb"
 dependencies = [
  "quote",
  "syn",

@@ -34,9 +34,6 @@ dynatos-router         = { path = "dynatos-router" }
 dynatos-title          = { path = "dynatos-title" }
 dynatos-util           = { path = "dynatos-util" }
 
-# zutil
-zutil-cloned = { git = "https://github.com/Zenithsiz/zutil", rev = "978fa5df733d59fc691812ce2fa6072bf901dc7f" }
-
 anyhow               = "1.0.102"
 app-error            = "0.1.0"
 convert_case         = "0.10.0"
@@ -66,6 +63,7 @@ url                  = "2.5.7"
 wasm-bindgen         = "0.2.106"
 wasm-bindgen-futures = "0.4.56"
 web-sys              = "0.3.83"
+zutil-cloned         = "0.1.0"
 
 [workspace.lints]
 
