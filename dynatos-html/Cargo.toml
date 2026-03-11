@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 
 dynatos-html-macros = { workspace = true }
+dynatos-html-parser = { workspace = true }
 dynatos-util        = { workspace = true }
 
 app-error = { optional = true, workspace = true }
@@ -13,6 +14,7 @@ duplicate = { workspace = true }
 extend = { workspace = true }
 itertools = { workspace = true }
 js-sys = { workspace = true }
+thiserror = { workspace = true }
 tracing = { workspace = true }
 wasm-bindgen = { workspace = true }
 web-sys = { features = [

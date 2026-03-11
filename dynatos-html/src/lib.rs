@@ -1,16 +1,18 @@
 //! Html wrappers for `dynatos`
 
 // Features
-#![feature(decl_macro)]
+#![feature(decl_macro, if_let_guard, macro_metavar_expr)]
 
 // Modules
 mod event_listener;
 pub mod html;
+pub mod parse;
 pub mod weak_ref;
 
 // Exports
 pub use self::{
 	event_listener::{ElementAddListener, EventListener, EventTargetAddListener, EventTargetWithListener, ev},
+	parse::{parse, parse_html_element},
 	weak_ref::WeakRef,
 };
 
@@ -478,3 +480,6 @@ pub impl js_sys::Object {
 		value.dyn_into().map_err(GetError::WrongType)
 	}
 }
+
+/// Html namespace
+const HTML_NAMESPACE: &str = "http://www.w3.org/1999/xhtml";

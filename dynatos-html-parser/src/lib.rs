@@ -88,6 +88,7 @@ pub struct XHtmlElement<'a> {
 	pub children: Vec<XHtmlNode<'a>>,
 
 	/// Inner span
+	// TODO: Rename this to `span`?
 	pub inner: Option<&'a str>,
 }
 

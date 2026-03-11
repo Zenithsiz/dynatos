@@ -2,12 +2,10 @@
 
 // Imports
 use {
+	crate::HTML_NAMESPACE,
 	wasm_bindgen::{JsCast, JsValue},
 	web_sys::{HtmlCanvasElement, HtmlElement, HtmlImageElement, HtmlInputElement, HtmlTextAreaElement},
 };
-
-/// Html namespace
-const HTML_NAMESPACE: &str = "http://www.w3.org/1999/xhtml";
 
 /// Expands to `stringify!($el_name)`, if present, otherwise to `$fn_name`
 macro el_name {
