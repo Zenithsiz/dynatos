@@ -5,7 +5,6 @@
 
 // Modules
 mod element_dyn_attr;
-mod element_dyn_children;
 mod html_element_dyn_css_prop;
 mod node_dyn_child;
 mod node_dyn_text;
@@ -21,9 +20,8 @@ mod with_dyn_text;
 pub use {
 	self::{
 		element_dyn_attr::{ElementDynAttr, ElementWithDynAttr},
-		element_dyn_children::{ElementDynChildren, ElementWithDynChildren, WithDynNodes},
 		html_element_dyn_css_prop::{HtmlElementDynCssProp, HtmlElementWithDynCssProp},
-		node_dyn_child::{NodeDynChild, NodeWithDynChild, ToDynNode},
+		node_dyn_child::{NodeDynChild, NodeWithDynChild, WithDynNodes},
 		node_dyn_text::{NodeDynText, NodeWithDynText},
 		object_attach_context::{ObjectAttachContext, ObjectWithContext},
 		object_attach_effect::{ObjectAttachEffect, ObjectWithEffect},

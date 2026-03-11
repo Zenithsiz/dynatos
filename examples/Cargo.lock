@@ -136,6 +136,25 @@ dependencies = [
 ]
 
 [[package]]
+name = "dyn-child"
+version = "0.1.0"
+dependencies = [
+ "app-error",
+ "console_error_panic_hook",
+ "dynatos",
+ "dynatos-html",
+ "dynatos-reactive",
+ "dynatos-util",
+ "extend",
+ "tracing",
+ "tracing-subscriber",
+ "tracing-web",
+ "wasm-bindgen",
+ "web-sys",
+ "zutil-cloned",
+]
+
+[[package]]
 name = "dynatos"
 version = "0.1.0"
 dependencies = [

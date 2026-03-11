@@ -7,8 +7,8 @@ use {
 		cell::{LazyCell, RefCell},
 		ops::Deref,
 	},
-	dynatos_html::{html, WeakRef},
-	dynatos_reactive::{derived::DerivedRun, Derived, Effect, Memo, Signal, SignalWith, WithDefault},
+	dynatos_html::{WeakRef, html},
+	dynatos_reactive::{Derived, Effect, Memo, Signal, SignalWith, WithDefault, derived::DerivedRun},
 	dynatos_util::TryOrReturnExt,
 	std::sync::LazyLock,
 	wasm_bindgen::JsCast,
@@ -24,7 +24,7 @@ where
 	#[track_caller]
 	fn add_dyn_child<C>(&self, child: C)
 	where
-		C: ToDynNode + 'static,
+		C: WithDynNodes + 'static,
 	{
 		// Create the value to attach
 		// Note: It's important that we only keep a `WeakRef` to the node.
@@ -32,63 +32,52 @@ where
 		//       the node alive, causing a leak.
 		// Note: We have an empty `<template>` so that we can track the position
 		//       of the node, in case of `f` returning `None`.
-		// TODO: Find a better solution for when `f` returns `None` that doesn't involve
-		//       adding an element to the dom?
+		// TODO: Find a better solution than using an empty `<template>` element?
 		let node = WeakRef::new(self.as_ref());
-		let prev_child = RefCell::new(None::<web_sys::Node>);
+		let prev_children = RefCell::new(vec![]);
 		let empty_child = web_sys::Node::from(html::template());
 		let child_effect = Effect::try_new(move || {
 			// Try to get the node
 			let node = node.get().or_return()?;
 
-			// Get the new child
-			let new_child = child.to_node();
-
-			// Check if someone's messed with our previous child
-			// TODO: At this point should we give up, since we lost the position?
-			//       The behavior of trying again might be worse.
-			let mut prev_child = prev_child.borrow_mut();
-			if let Some(child) = &*prev_child &&
-				!node.contains(Some(child))
+			// Replaces a previous child with anew child at an index.
+			// If no previous child existed at this position, adds it.
+			let replace_prev_child = |prev_children: &mut Vec<_>, idx: usize, new_node| match prev_children.get_mut(idx)
 			{
-				tracing::warn!("Reactive child was removed externally, re-inserting");
-				*prev_child = None;
+				Some(prev_node) => {
+					node.replace_child(&new_node, prev_node)
+						.expect("Unable to replace reactive child");
+
+					*prev_node = new_node;
+				},
+				None => {
+					let after_last_existing = prev_children.last().and_then(web_sys::Node::next_sibling);
+
+					node.insert_before(&new_node, after_last_existing.as_ref())
+						.expect("Unable to add reactive child");
+
+					prev_children.push(new_node);
+				},
+			};
+
+			// Add/replace all new children
+			let mut idx = 0;
+			let mut prev_children = prev_children.borrow_mut();
+			child.with_children(|new_node| {
+				replace_prev_child(&mut prev_children, idx, new_node);
+				idx += 1;
+			});
+
+			// Then remove any leftovers (except for the very first node)
+			for prev_node in prev_children.drain(idx.max(1)..) {
+				node.remove_child(&prev_node).expect("Unable to remove reactive child");
 			}
 
-			// Then check if we need to substitute in the empty child
-			let new_child = match new_child {
-				// If the new child is the same as the old one, we can return
-				Some(child) if prev_child.as_ref() == Some(&child) => return,
-
-				// Otherwise, if this is a duplicate node, warn and use an empty child
-				// Note: The typical browser behavior would be to remove the previous
-				//       child, then add ours. Unfortunately, removing other nodes might
-				//       cause another dyn child to panic due to it's previous node being
-				//       missing.
-				Some(child) if node.contains(Some(&child)) => {
-					tracing::warn!("Attempted to add a reactive node multiple times");
-					empty_child.clone()
-				},
-
-				// Otherwise, use the new child
-				Some(child) => child,
-
-				// Finally, if no child was given, use the empty child
-				None => empty_child.clone(),
-			};
-
-			// Then update the node
-			match &mut *prev_child {
-				// If we already have a node, replace it
-				Some(prev_child) => node
-					.replace_child(&new_child, prev_child)
-					.expect("Unable to replace reactive child"),
-
-				// Otherwise, we're running for the first time, so append the child
-				None => node.append_child(&new_child).expect("Unable to append reactive child"),
-			};
-
-			*prev_child = Some(new_child);
+			// If we were going to end up empty, replace the first child
+			// with an empty child to keep our position instead.
+			if idx == 0 {
+				replace_prev_child(&mut prev_children, 0, empty_child.clone());
+			}
 		})
 		.or_return()?;
 
@@ -109,7 +98,7 @@ where
 	#[track_caller]
 	fn with_dyn_child<C>(self, child: C) -> Self
 	where
-		C: ToDynNode + 'static,
+		C: WithDynNodes + 'static,
 	{
 		self.add_dyn_child(child);
 		self
@@ -122,23 +111,24 @@ where
 /// - `impl Fn() -> N`
 /// - `web_sys::{Node, Element, HtmlElement}`
 /// - `Option<N>`
+/// - `Vec<N>`, `[N; _]`, `[N]`
 /// - [`Signal`], [`Derived`], [`Memo`], [`WithDefault`]
 /// - `LazyCell<N, impl Fn() -> N>`
 /// - `!`
 ///
 /// Where `N` is any of the types above.
-pub trait ToDynNode {
-	/// Retrieves / Computes the inner node
-	fn to_node(&self) -> Option<web_sys::Node>;
+pub trait WithDynNodes {
+	/// Calls `f` with all nodes.
+	fn with_children(&self, f: impl FnMut(web_sys::Node));
 }
 
-impl<F, N> ToDynNode for F
+impl<F, N> WithDynNodes for F
 where
 	F: Fn() -> N,
-	N: ToDynNode,
+	N: WithDynNodes,
 {
-	fn to_node(&self) -> Option<web_sys::Node> {
-		self().to_node()
+	fn with_children(&self, f: impl FnMut(web_sys::Node)) {
+		self().with_children(f);
 	}
 }
 
@@ -152,63 +142,92 @@ where
 	[web_sys::Element];
 	[web_sys::HtmlElement];
 )]
-impl ToDynNode for Ty {
-	fn to_node(&self) -> Option<web_sys::Node> {
+impl WithDynNodes for Ty {
+	fn with_children(&self, mut f: impl FnMut(web_sys::Node)) {
 		let node = self.dyn_ref::<web_sys::Node>().expect("Unable to cast to element");
-		Some(node.clone())
+		f(node.clone());
 	}
 }
 
-impl<N> ToDynNode for Option<N>
+impl<N> WithDynNodes for Option<N>
 where
-	N: ToDynNode,
+	N: WithDynNodes,
 {
-	fn to_node(&self) -> Option<web_sys::Node> {
-		self.as_ref().and_then(N::to_node)
+	fn with_children(&self, f: impl FnMut(web_sys::Node)) {
+		if let Some(child) = self {
+			child.with_children(f);
+		}
+	}
+}
+
+impl<N> WithDynNodes for Vec<N>
+where
+	N: WithDynNodes,
+{
+	fn with_children(&self, f: impl FnMut(web_sys::Node)) {
+		(**self).with_children(f);
+	}
+}
+
+impl<Node, const N: usize> WithDynNodes for [Node; N]
+where
+	Node: WithDynNodes,
+{
+	fn with_children(&self, f: impl FnMut(web_sys::Node)) {
+		self.as_slice().with_children(f);
+	}
+}
+
+impl<N> WithDynNodes for [N]
+where
+	N: WithDynNodes,
+{
+	fn with_children(&self, mut f: impl FnMut(web_sys::Node)) {
+		for child in self {
+			child.with_children(&mut f);
+		}
 	}
 }
 
 // TODO: Allow impl for `impl SignalWith<Value: ToDynNode>`
 #[duplicate::duplicate_item(
 	Generics Ty;
-	[T] [Signal<T> where T: ToDynNode + 'static];
-	[T, F] [Derived<T, F> where T: ToDynNode + 'static, F: ?Sized + DerivedRun<T> + 'static];
-	[T, F] [Memo<T, F> where T: ToDynNode + 'static, F: ?Sized + 'static];
-	[S, T] [WithDefault<S, T> where Self: for<'a> SignalWith<Value<'a>: Deref<Target: ToDynNode>>];
+	[T] [Signal<T> where T: WithDynNodes + 'static];
+	[T, F] [Derived<T, F> where T: WithDynNodes + 'static, F: ?Sized + DerivedRun<T> + 'static];
+	[T, F] [Memo<T, F> where T: WithDynNodes + 'static, F: ?Sized + 'static];
+	[S, T] [WithDefault<S, T> where Self: for<'a> SignalWith<Value<'a>: Deref<Target: WithDynNodes>>];
 )]
-impl<Generics> ToDynNode for Ty {
-	fn to_node(&self) -> Option<web_sys::Node> {
+impl<Generics> WithDynNodes for Ty {
+	fn with_children(&self, f: impl FnMut(web_sys::Node)) {
 		#[allow(
 			clippy::allow_attributes,
 			clippy::redundant_closure_for_method_calls,
 			reason = "In some branches it isn't redundant"
 		)]
-		self.with(|value| value.to_node())
+		self.with(|value| value.with_children(f));
 	}
 }
 
-impl<N, F> ToDynNode for LazyCell<N, F>
+impl<N, F> WithDynNodes for LazyCell<N, F>
 where
-	N: ToDynNode,
+	N: WithDynNodes,
 	F: FnOnce() -> N,
 {
-	fn to_node(&self) -> Option<web_sys::Node> {
-		(**self).to_node()
+	fn with_children(&self, f: impl FnMut(web_sys::Node)) {
+		(**self).with_children(f);
 	}
 }
 
-impl<N, F> ToDynNode for LazyLock<N, F>
+impl<N, F> WithDynNodes for LazyLock<N, F>
 where
-	N: ToDynNode,
+	N: WithDynNodes,
 	F: FnOnce() -> N,
 {
-	fn to_node(&self) -> Option<web_sys::Node> {
-		(**self).to_node()
+	fn with_children(&self, f: impl FnMut(web_sys::Node)) {
+		(**self).with_children(f);
 	}
 }
 
-impl ToDynNode for ! {
-	fn to_node(&self) -> Option<web_sys::Node> {
-		*self
-	}
+impl WithDynNodes for ! {
+	fn with_children(&self, _f: impl FnMut(web_sys::Node)) {}
 }

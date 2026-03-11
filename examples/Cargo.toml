@@ -1,6 +1,6 @@
 [workspace]
 
-members  = ["counter", "counter-no-macros", "import-html", "query", "router"]
+members  = ["counter", "counter-no-macros", "dyn-child", "import-html", "query", "router"]
 resolver = "2"
 
 [workspace.dependencies]
