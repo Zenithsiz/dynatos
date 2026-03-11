@@ -19,8 +19,13 @@ where
 	where
 		E: EventListener,
 	{
+		self.add_event_listener_untyped(E::name(), f);
+	}
+
+	/// Adds an untyped event listener to this target
+	fn add_event_listener_untyped<Ev: FromWasmAbi>(&self, event_type: &str, f: impl Fn(Ev) + 'static) {
 		// Build the closure
-		let closure = Closure::<dyn Fn(E::Event)>::new(f)
+		let closure = Closure::<dyn Fn(Ev)>::new(f)
 			.into_js_value()
 			.dyn_into::<js_sys::Function>()
 			.expect("Should be a valid function");
@@ -28,7 +33,7 @@ where
 		// Then add it
 		// TODO: Can this fail? On MDN, nothing seems to mention it can throw.
 		self.as_ref()
-			.add_event_listener_with_callback(E::name(), &closure)
+			.add_event_listener_with_callback(event_type, &closure)
 			.expect("Unable to add event listener");
 	}
 }
