@@ -31,5 +31,5 @@ pub use {
 		with_dyn_pred::WithDynPred,
 		with_dyn_text::WithDynText,
 	},
-	dynatos_macros::*,
+	dynatos_html_reactive_macros::*,
 };

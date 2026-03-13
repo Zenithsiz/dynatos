@@ -203,7 +203,7 @@ impl Node {
 								dynatos_html::NodeAddChildren::add_child(&#el, #child);
 							},
 							NodeTy::Expr => syn::parse_quote! {
-								dynatos::NodeDynChild::add_dyn_child(&#el, #child);
+								dynatos_html_reactive::NodeDynChild::add_dyn_child(&#el, #child);
 							},
 						};
 
@@ -271,7 +271,7 @@ impl Node {
 						dynatos_html::text(#s)
 					},
 					TextArg::DynArg(expr) => syn::parse_quote! {
-						dynatos::NodeWithDynText::with_dyn_text(
+						dynatos_html_reactive::NodeWithDynText::with_dyn_text(
 							dynatos_html::text(""),
 							move || #expr
 						)

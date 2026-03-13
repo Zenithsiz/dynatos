@@ -5,10 +5,10 @@ edition = "2024"
 
 [dependencies]
 
-dynatos          = { workspace = true }
-dynatos-html     = { features = ["app-error"], workspace = true }
-dynatos-reactive = { workspace = true }
-dynatos-util     = { workspace = true }
+dynatos-html          = { features = ["app-error"], workspace = true }
+dynatos-html-reactive = { workspace = true }
+dynatos-reactive      = { workspace = true }
+dynatos-util          = { workspace = true }
 
 zutil-cloned = { workspace = true }
 

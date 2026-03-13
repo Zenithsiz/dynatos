@@ -1,5 +1,5 @@
 [package]
-name    = "dynatos-macros"
+name    = "dynatos-html-reactive-macros"
 version = "0.1.0"
 edition = "2024"
 

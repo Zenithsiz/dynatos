@@ -7,8 +7,8 @@
 use {
 	app_error::AppError,
 	core::cell::LazyCell,
-	dynatos::{NodeWithDynChild, ObjectWithContext},
 	dynatos_html::{NodeWithChildren, NodeWithText, html},
+	dynatos_html_reactive::{NodeWithDynChild, ObjectWithContext},
 	dynatos_reactive::SignalGetCloned,
 	dynatos_router::Location,
 	tracing_subscriber::prelude::*,

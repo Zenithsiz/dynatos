@@ -48,8 +48,8 @@ version = "0.1.0"
 dependencies = [
  "app-error",
  "console_error_panic_hook",
- "dynatos",
  "dynatos-html",
+ "dynatos-html-reactive",
  "dynatos-reactive",
  "dynatos-util",
  "extend",
@@ -67,8 +67,8 @@ version = "0.1.0"
 dependencies = [
  "app-error",
  "console_error_panic_hook",
- "dynatos",
  "dynatos-html",
+ "dynatos-html-reactive",
  "dynatos-reactive",
  "dynatos-util",
  "extend",
@@ -141,8 +141,8 @@ version = "0.1.0"
 dependencies = [
  "app-error",
  "console_error_panic_hook",
- "dynatos",
  "dynatos-html",
+ "dynatos-html-reactive",
  "dynatos-reactive",
  "dynatos-util",
  "extend",
@@ -152,24 +152,6 @@ dependencies = [
  "wasm-bindgen",
  "web-sys",
  "zutil-cloned",
-]
-
-[[package]]
-name = "dynatos"
-version = "0.1.0"
-dependencies = [
- "duplicate",
- "dynatos-context",
- "dynatos-html",
- "dynatos-macros",
- "dynatos-reactive",
- "dynatos-router",
- "dynatos-util",
- "extend",
- "js-sys",
- "tracing",
- "wasm-bindgen",
- "web-sys",
 ]
 
 [[package]]
@@ -215,6 +197,33 @@ dependencies = [
 ]
 
 [[package]]
+name = "dynatos-html-reactive"
+version = "0.1.0"
+dependencies = [
+ "duplicate",
+ "dynatos-context",
+ "dynatos-html",
+ "dynatos-html-reactive-macros",
+ "dynatos-reactive",
+ "dynatos-router",
+ "dynatos-util",
+ "extend",
+ "js-sys",
+ "tracing",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "dynatos-html-reactive-macros"
+version = "0.1.0"
+dependencies = [
+ "derive_utils",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "dynatos-loadable"
 version = "0.1.0"
 dependencies = [
@@ -224,15 +233,6 @@ dependencies = [
  "extend",
  "tracing",
  "zutil-cloned",
-]
-
-[[package]]
-name = "dynatos-macros"
-version = "0.1.0"
-dependencies = [
- "derive_utils",
- "quote",
- "syn",
 ]
 
 [[package]]
@@ -544,8 +544,8 @@ version = "0.1.0"
 dependencies = [
  "app-error",
  "console_error_panic_hook",
- "dynatos",
  "dynatos-html",
+ "dynatos-html-reactive",
  "dynatos-reactive",
  "dynatos-util",
  "extend",
@@ -716,9 +716,9 @@ version = "0.1.0"
 dependencies = [
  "app-error",
  "console_error_panic_hook",
- "dynatos",
  "dynatos-context",
  "dynatos-html",
+ "dynatos-html-reactive",
  "dynatos-loadable",
  "dynatos-reactive",
  "dynatos-router",
@@ -748,9 +748,9 @@ version = "0.1.0"
 dependencies = [
  "app-error",
  "console_error_panic_hook",
- "dynatos",
  "dynatos-context",
  "dynatos-html",
+ "dynatos-html-reactive",
  "dynatos-reactive",
  "dynatos-router",
  "dynatos-util",

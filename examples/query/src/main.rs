@@ -6,8 +6,8 @@
 // Imports
 use {
 	app_error::AppError,
-	dynatos::{NodeWithDynText, ObjectWithContext},
 	dynatos_html::{EventTargetWithListener, NodeWithChildren, NodeWithText, ev, html},
+	dynatos_html_reactive::{NodeWithDynText, ObjectWithContext},
 	dynatos_loadable::Loadable,
 	dynatos_reactive::{SignalBorrowMut, SignalGetCloned, SignalSet},
 	dynatos_router::{Location, QuerySignal, SingleQuery},

@@ -5,12 +5,12 @@ edition = "2024"
 
 [dependencies]
 
-dynatos          = { workspace = true }
-dynatos-context  = { workspace = true }
-dynatos-html     = { workspace = true }
-dynatos-reactive = { workspace = true }
-dynatos-router   = { workspace = true }
-dynatos-util     = { workspace = true }
+dynatos-context       = { workspace = true }
+dynatos-html          = { workspace = true }
+dynatos-html-reactive = { workspace = true }
+dynatos-reactive      = { workspace = true }
+dynatos-router        = { workspace = true }
+dynatos-util          = { workspace = true }
 
 app-error                = { workspace = true }
 console_error_panic_hook = { workspace = true }

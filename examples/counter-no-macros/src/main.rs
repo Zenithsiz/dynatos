@@ -3,8 +3,8 @@
 // Imports
 use {
 	app_error::AppError,
-	dynatos::NodeWithDynText,
 	dynatos_html::{EventTargetWithListener, JsResultContext, NodeWithChildren, NodeWithText, ev, html},
+	dynatos_html_reactive::NodeWithDynText,
 	dynatos_reactive::{Signal, SignalBorrowMut, SignalGet, SignalSet},
 	tracing_subscriber::prelude::*,
 	web_sys::HtmlElement,

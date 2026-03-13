@@ -98,24 +98,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "dynatos"
-version = "0.1.0"
-dependencies = [
- "duplicate",
- "dynatos-context",
- "dynatos-html",
- "dynatos-macros",
- "dynatos-reactive",
- "dynatos-router",
- "dynatos-util",
- "extend",
- "js-sys",
- "tracing",
- "wasm-bindgen",
- "web-sys",
-]
-
-[[package]]
 name = "dynatos-builder"
 version = "0.1.0"
 dependencies = [
@@ -174,6 +156,33 @@ dependencies = [
 ]
 
 [[package]]
+name = "dynatos-html-reactive"
+version = "0.1.0"
+dependencies = [
+ "duplicate",
+ "dynatos-context",
+ "dynatos-html",
+ "dynatos-html-reactive-macros",
+ "dynatos-reactive",
+ "dynatos-router",
+ "dynatos-util",
+ "extend",
+ "js-sys",
+ "tracing",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "dynatos-html-reactive-macros"
+version = "0.1.0"
+dependencies = [
+ "derive_utils",
+ "quote",
+ "syn",
+]
+
+[[package]]
 name = "dynatos-loadable"
 version = "0.1.0"
 dependencies = [
@@ -183,15 +192,6 @@ dependencies = [
  "extend",
  "tracing",
  "zutil-cloned",
-]
-
-[[package]]
-name = "dynatos-macros"
-version = "0.1.0"
-dependencies = [
- "derive_utils",
- "quote",
- "syn",
 ]
 
 [[package]]
