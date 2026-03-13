@@ -6,9 +6,9 @@
 // Imports
 use {
 	app_error::AppError,
-	dynatos_html::{EventTargetWithListener, JsResultContext, NodeWithChildren, NodeWithText, ev, html},
+	dynatos_html::{JsResultContext, NodeWithChildren, NodeWithText, html},
 	dynatos_html_reactive::NodeWithDynChild,
-	dynatos_reactive::{Signal, SignalBorrowMut, SignalGet, SignalSet, SignalUpdate},
+	dynatos_reactive::{Signal, SignalBorrowMut, SignalGet, SignalSet},
 	tracing_subscriber::prelude::*,
 	web_sys::HtmlElement,
 	zutil_cloned::cloned,
@@ -44,33 +44,25 @@ fn run() -> Result<(), AppError> {
 }
 
 fn parent() -> HtmlElement {
+	let base = Signal::new(0);
 	let num_children = Signal::new(2);
-	let bump = Signal::new(0);
-
-	#[cloned(bump)]
-	let bump_el = html::button()
-		.with_text("Bump")
-		.with_event_listener::<ev!(click)>(move |_| bump.update(|bump| *bump += 1));
 
 	html::div()
-		.with_child(self::counter(num_children.clone()))
-		.with_child(bump_el)
+		.with_child(self::counter("Number of children", num_children.clone()))
+		.with_child(self::counter("Base", base.clone()))
 		.with_child(html::hr())
-		.with_dyn_child(move || {
-			let _ = bump.get();
-			self::child(num_children.get())
-		})
+		.with_dyn_child(move || self::child(base.get(), num_children.get()))
 		.with_child(html::hr())
 		.with_child(html::p().with_text("Footer"))
 }
 
-fn child(num_children: usize) -> Vec<HtmlElement> {
+fn child(base: i32, num_children: i32) -> Vec<HtmlElement> {
 	(0..num_children)
-		.map(|idx| html::p().with_text(format!("{idx:?}")))
+		.map(|idx| html::p().with_text(format!("{}", base + idx)))
 		.collect()
 }
 
-fn counter(value: Signal<usize>) -> HtmlElement {
+fn counter(name: &str, value: Signal<i32>) -> HtmlElement {
 	#[cloned(value)]
 	let reset = move |_ev| value.set(0);
 	#[cloned(value)]
@@ -83,7 +75,7 @@ fn counter(value: Signal<usize>) -> HtmlElement {
 			<button @click="reset">Reset</button>
 			<button @click="add">+</button>
 			<button @click="sub">-</button>
-			<span>Number of children: %{value.get()}%.</span>
+			<span>%{static name}%: %{value.get()}%.</span>
 		</div>"#
 	)
 }
