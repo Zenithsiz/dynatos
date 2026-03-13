@@ -189,7 +189,7 @@ where
 	}
 }
 
-// TODO: Allow impl for `impl SignalWith<Value: ToDynNode>`
+// TODO: Allow impl for `impl SignalWith<Value: WithDynNodes>`
 #[duplicate::duplicate_item(
 	Generics Ty;
 	[T] [Signal<T> where T: WithDynNodes + 'static];

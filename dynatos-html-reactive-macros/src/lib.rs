@@ -3,13 +3,13 @@
 // Imports
 use {derive_utils::quick_derive, proc_macro::TokenStream};
 
-#[proc_macro_derive(ToDynNode)]
+#[proc_macro_derive(WithDynNodes)]
 pub fn derive_iterator(input: TokenStream) -> TokenStream {
 	quick_derive! {
 		input,
-		dynatos_html_reactive::ToDynNode,
-		trait ToDynNode {
-			fn to_node(&self) -> Option<web_sys::Node>;
+		dynatos_html_reactive::WithDynNodes,
+		trait WithDynNodes {
+			fn with_children(&self, mut f: impl FnMut(web_sys::Node));
 		}
 	}
 }
