@@ -1,9 +1,17 @@
 //! Dynatos framework
 
 // Features
-#![feature(unboxed_closures, unsize, never_type)]
+#![feature(
+	unboxed_closures,
+	unsize,
+	never_type,
+	proc_macro_hygiene,
+	stmt_expr_attributes,
+	oneshot_channel
+)]
 
 // Modules
+mod dyn_child;
 mod element_dyn_attr;
 mod html_element_dyn_css_prop;
 mod node_dyn_child;
@@ -19,6 +27,7 @@ mod with_dyn_text;
 // Exports
 pub use {
 	self::{
+		dyn_child::DynChild,
 		element_dyn_attr::{ElementDynAttr, ElementWithDynAttr},
 		html_element_dyn_css_prop::{HtmlElementDynCssProp, HtmlElementWithDynCssProp},
 		node_dyn_child::{NodeDynChildren, NodeWithDynChildren, WithDynNodes},
