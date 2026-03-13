@@ -7,13 +7,11 @@
 mod event_listener;
 pub mod html;
 pub mod parse;
-pub mod weak_ref;
 
 // Exports
 pub use self::{
 	event_listener::{ElementAddListener, EventListener, EventTargetAddListener, EventTargetWithListener, ev},
 	parse::{parse, parse_html_element},
-	weak_ref::WeakRef,
 };
 
 // Imports

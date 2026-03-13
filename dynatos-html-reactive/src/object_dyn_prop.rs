@@ -3,9 +3,10 @@
 // Imports
 use {
 	crate::{ObjectAttachEffect, ToDynProp},
-	dynatos_html::{ObjectRemoveProp, ObjectSetProp, WeakRef},
+	dynatos_html::{ObjectRemoveProp, ObjectSetProp},
 	dynatos_reactive::Effect,
 	dynatos_util::TryOrReturnExt,
+	js_sys::WeakRef,
 };
 
 /// Extension trait to add reactive prop to an object
@@ -27,7 +28,7 @@ pub impl js_sys::Object {
 		// Create the effect
 		let prop_effect = Effect::try_new(move || {
 			// Try to get the object
-			let object = object.get().or_return()?;
+			let object = object.deref().or_return()?;
 
 			// Then get the property
 			let key = key.as_ref();

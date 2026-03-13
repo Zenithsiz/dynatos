@@ -3,9 +3,9 @@
 // Imports
 use {
 	crate::{ObjectAttachEffect, WithDynPred, WithDynText},
-	dynatos_html::WeakRef,
 	dynatos_reactive::Effect,
 	dynatos_util::TryOrReturnExt,
+	js_sys::WeakRef,
 };
 
 /// Extension trait to add reactive css properties to an html element
@@ -25,7 +25,7 @@ pub impl web_sys::HtmlElement {
 		let element = WeakRef::new(self);
 		let prop_effect = Effect::try_new(move || {
 			// Try to get the element
-			let element = element.get().or_return()?;
+			let element = element.deref().or_return()?;
 
 			// And set the property
 			let key = key.as_ref();

@@ -7,9 +7,10 @@ use {
 		cell::{LazyCell, RefCell},
 		ops::Deref,
 	},
-	dynatos_html::{WeakRef, html},
+	dynatos_html::html,
 	dynatos_reactive::{Derived, Effect, Memo, Signal, SignalWith, WithDefault, derived::DerivedRun},
 	dynatos_util::TryOrReturnExt,
+	js_sys::WeakRef,
 	std::sync::LazyLock,
 	wasm_bindgen::JsCast,
 };
@@ -38,7 +39,7 @@ where
 		let empty_child = web_sys::Node::from(html::template());
 		let child_effect = Effect::try_new(move || {
 			// Try to get the node
-			let node = node.get().or_return()?;
+			let node = node.deref().or_return()?;
 
 			// Replaces a previous child with anew child at an index.
 			// If no previous child existed at this position, adds it.

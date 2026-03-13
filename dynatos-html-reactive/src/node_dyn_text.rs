@@ -3,9 +3,9 @@
 // Imports
 use {
 	crate::{ObjectAttachEffect, WithDynText},
-	dynatos_html::WeakRef,
 	dynatos_reactive::Effect,
 	dynatos_util::TryOrReturnExt,
+	js_sys::WeakRef,
 };
 
 /// Extension trait to add reactive text to a node
@@ -24,7 +24,7 @@ pub impl web_sys::Node {
 		let node = WeakRef::new(self);
 		let text_effect = Effect::try_new(move || {
 			// Try to get the node
-			let node = node.get().or_return()?;
+			let node = node.deref().or_return()?;
 
 			// And set the text content
 			text.with_text(|text| node.set_text_content(text));

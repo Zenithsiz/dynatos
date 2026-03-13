@@ -2,9 +2,9 @@
 
 // Imports
 use {
-	crate::WeakRef,
 	dynatos_util::TryOrReturnExt,
-	wasm_bindgen::{JsCast, closure::Closure, convert::FromWasmAbi},
+	js_sys::WeakRef,
+	wasm_bindgen::{ErasableGeneric, JsCast, JsValue, closure::Closure, convert::FromWasmAbi},
 	web_sys::js_sys,
 };
 
@@ -60,7 +60,7 @@ where
 #[extend::ext(name = ElementAddListener)]
 pub impl<ET> ET
 where
-	ET: AsRef<web_sys::EventTarget> + AsRef<js_sys::Object> + JsCast + 'static,
+	ET: ErasableGeneric<Repr = JsValue> + AsRef<web_sys::EventTarget> + 'static,
 {
 	/// Adds an event listener to this target
 	fn add_event_listener_el<E, F>(&self, f: F)
@@ -73,7 +73,7 @@ where
 		//       create a circular reference from node <-> event listener.
 		let el = WeakRef::new(self);
 		<ET as AsRef<web_sys::EventTarget>>::as_ref(self).add_event_listener::<E>(move |ev| {
-			let el = el.get().or_return()?;
+			let el = el.deref().or_return()?;
 			f(el, ev);
 		});
 	}
