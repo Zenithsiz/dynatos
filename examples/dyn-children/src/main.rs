@@ -7,7 +7,7 @@
 use {
 	app_error::AppError,
 	dynatos_html::{JsResultContext, NodeWithChildren, NodeWithText, html},
-	dynatos_html_reactive::NodeWithDynChild,
+	dynatos_html_reactive::NodeWithDynChildren,
 	dynatos_reactive::{Signal, SignalBorrowMut, SignalGet, SignalSet},
 	tracing_subscriber::prelude::*,
 	web_sys::HtmlElement,
@@ -51,7 +51,7 @@ fn parent() -> HtmlElement {
 		.with_child(self::counter("Number of children", num_children.clone()))
 		.with_child(self::counter("Base", base.clone()))
 		.with_child(html::hr())
-		.with_dyn_child(move || self::child(base.get(), num_children.get()))
+		.with_dyn_children(move || self::child(base.get(), num_children.get()))
 		.with_child(html::hr())
 		.with_child(html::p().with_text("Footer"))
 }

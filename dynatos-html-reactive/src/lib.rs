@@ -21,7 +21,7 @@ pub use {
 	self::{
 		element_dyn_attr::{ElementDynAttr, ElementWithDynAttr},
 		html_element_dyn_css_prop::{HtmlElementDynCssProp, HtmlElementWithDynCssProp},
-		node_dyn_child::{NodeDynChild, NodeWithDynChild, WithDynNodes},
+		node_dyn_child::{NodeDynChildren, NodeWithDynChildren, WithDynNodes},
 		node_dyn_text::{NodeDynText, NodeWithDynText},
 		object_attach_context::{ObjectAttachContext, ObjectWithContext},
 		object_attach_effect::{ObjectAttachEffect, ObjectWithEffect},

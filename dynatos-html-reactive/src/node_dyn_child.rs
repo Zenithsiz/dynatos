@@ -14,15 +14,15 @@ use {
 	wasm_bindgen::JsCast,
 };
 
-/// Extension trait to add a reactive child to an node
-#[extend::ext(name = NodeDynChild)]
+/// Extension trait to add reactive children to an node
+#[extend::ext(name = NodeDynChildren)]
 pub impl<N> N
 where
 	N: AsRef<web_sys::Node>,
 {
-	/// Adds a dynamic child to this node
+	/// Adds dynamic children to this node
 	#[track_caller]
-	fn add_dyn_child<C>(&self, child: C)
+	fn add_dyn_children<C>(&self, children: C)
 	where
 		C: WithDynNodes + 'static,
 	{
@@ -63,7 +63,7 @@ where
 			// Add/replace all new children
 			let mut idx = 0;
 			let mut prev_children = prev_children.borrow_mut();
-			child.with_children(|new_node| {
+			children.with_children(|new_node| {
 				replace_prev_child(&mut prev_children, idx, new_node);
 				idx += 1;
 			});
@@ -86,26 +86,26 @@ where
 	}
 }
 
-/// Extension trait to add a reactive child to an node
-#[extend::ext(name = NodeWithDynChild)]
+/// Extension trait to add reactive children to an node
+#[extend::ext(name = NodeWithDynChildren)]
 pub impl<N> N
 where
 	N: AsRef<web_sys::Node>,
 {
-	/// Adds a dynamic child to this node.
+	/// Adds dynamic children to this node.
 	///
 	/// Returns the node, for chaining
 	#[track_caller]
-	fn with_dyn_child<C>(self, child: C) -> Self
+	fn with_dyn_children<C>(self, children: C) -> Self
 	where
 		C: WithDynNodes + 'static,
 	{
-		self.add_dyn_child(child);
+		self.add_dyn_children(children);
 		self
 	}
 }
 
-/// Trait for values accepted by [`NodeDynChild`].
+/// Trait for values accepted by [`NodeDynChildren`].
 ///
 /// This allows it to work with the following types:
 /// - `impl Fn() -> N`
@@ -154,8 +154,8 @@ where
 	N: WithDynNodes,
 {
 	fn with_children(&self, f: impl FnMut(web_sys::Node)) {
-		if let Some(child) = self {
-			child.with_children(f);
+		if let Some(children) = self {
+			children.with_children(f);
 		}
 	}
 }
@@ -183,8 +183,8 @@ where
 	N: WithDynNodes,
 {
 	fn with_children(&self, mut f: impl FnMut(web_sys::Node)) {
-		for child in self {
-			child.with_children(&mut f);
+		for children in self {
+			children.with_children(&mut f);
 		}
 	}
 }

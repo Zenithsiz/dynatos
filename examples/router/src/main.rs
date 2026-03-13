@@ -8,7 +8,7 @@ use {
 	app_error::AppError,
 	core::cell::LazyCell,
 	dynatos_html::{NodeWithChildren, NodeWithText, html},
-	dynatos_html_reactive::{NodeWithDynChild, ObjectWithContext},
+	dynatos_html_reactive::{NodeWithDynChildren, ObjectWithContext},
 	dynatos_reactive::SignalGetCloned,
 	dynatos_router::Location,
 	tracing_subscriber::prelude::*,
@@ -43,7 +43,7 @@ fn run() -> Result<(), AppError> {
 	body.with_context(location).with_child(
 		html::div()
 			.with_children([html::p().with_text("Header"), html::hr()])
-			.with_dyn_child(self::render_route)
+			.with_dyn_children(self::render_route)
 			.with_children([
 				html::hr(),
 				dynatos_router::anchor("/test").with_text("Test"),
