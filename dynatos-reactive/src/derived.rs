@@ -33,7 +33,6 @@
 // Imports
 use {
 	crate::{
-		effect,
 		Effect,
 		EffectRun,
 		EffectRunCtx,
@@ -42,10 +41,13 @@ use {
 		SignalGetDefaultImpl,
 		SignalWithDefaultImpl,
 		Trigger,
+		effect,
 	},
 	core::{
 		cell::{self, RefCell},
+		cmp,
 		fmt,
+		hash::{self, Hash},
 		marker::{PhantomData, Unsize},
 		ops::{CoerceUnsized, Deref},
 	},
@@ -162,11 +164,35 @@ impl<T: 'static, F: ?Sized> SignalWithDefaultImpl for Derived<T, F> {}
 impl<T: 'static, F: ?Sized> SignalGetDefaultImpl for Derived<T, F> {}
 impl<T: 'static, F: ?Sized> SignalGetClonedDefaultImpl for Derived<T, F> {}
 
+impl<T: PartialEq + 'static, F: ?Sized + DerivedRun<T> + 'static> PartialEq for Derived<T, F> {
+	fn eq(&self, other: &Self) -> bool {
+		*self.borrow() == *other.borrow()
+	}
+}
+
+impl<T: Eq + 'static, F: ?Sized + DerivedRun<T> + 'static> Eq for Derived<T, F> {}
+impl<T: PartialOrd + 'static, F: ?Sized + DerivedRun<T> + 'static> PartialOrd for Derived<T, F> {
+	fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
+		self.borrow().partial_cmp(&other.borrow())
+	}
+}
+impl<T: Ord + 'static, F: ?Sized + DerivedRun<T> + 'static> Ord for Derived<T, F> {
+	fn cmp(&self, other: &Self) -> cmp::Ordering {
+		self.borrow().cmp(&other.borrow())
+	}
+}
+
 impl<T, F: ?Sized> Clone for Derived<T, F> {
 	fn clone(&self) -> Self {
 		Self {
 			effect: self.effect.clone(),
 		}
+	}
+}
+
+impl<T: Hash + 'static, F: ?Sized + DerivedRun<T> + 'static> Hash for Derived<T, F> {
+	fn hash<H: hash::Hasher>(&self, state: &mut H) {
+		self.borrow().hash(state);
 	}
 }
 
