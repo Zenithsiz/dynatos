@@ -134,11 +134,7 @@ pub fn get<T>() -> Option<T>
 where
 	T: Copy + 'static,
 {
-	#[expect(
-		clippy::redundant_closure_for_method_calls,
-		reason = "Can't use `Option::copied` due to inference issues"
-	)]
-	self::with::<T, _, _>(|value| value.copied())
+	self::with::<T, _, _>(|&value| value)
 }
 
 /// Expects a value of `T` on the current context.
@@ -148,7 +144,7 @@ pub fn expect<T>() -> T
 where
 	T: Copy + 'static,
 {
-	self::with::<T, _, _>(|value| *value.unwrap_or_else(self::on_missing_context::<T, _>))
+	self::get::<T>().unwrap_or_else(self::on_missing_context::<T, _>)
 }
 
 /// Gets a cloned value of `T` on the current context.
@@ -161,7 +157,7 @@ where
 		clippy::redundant_closure_for_method_calls,
 		reason = "Can't use `Option::cloned` due to inference issues"
 	)]
-	self::with::<T, _, _>(|value| value.cloned())
+	self::with::<T, _, _>(|value| value.clone())
 }
 
 /// Expects a cloned value of `T` on the current context.
@@ -171,14 +167,14 @@ pub fn expect_cloned<T>() -> T
 where
 	T: Clone + 'static,
 {
-	self::with::<T, _, _>(|value| value.unwrap_or_else(self::on_missing_context::<T, _>).clone())
+	self::get_cloned::<T>().unwrap_or_else(self::on_missing_context::<T, _>)
 }
 
 /// Uses a value of `T` on the current context.
-pub fn with<T, F, O>(f: F) -> O
+pub fn with<T, F, O>(f: F) -> Option<O>
 where
 	T: 'static,
-	F: FnOnce(Option<&T>) -> O,
+	F: FnOnce(&T) -> O,
 {
 	context_stack::with_top(f)
 }
@@ -190,7 +186,7 @@ where
 	T: 'static,
 	F: FnOnce(&T) -> O,
 {
-	self::with::<T, _, _>(|value| value.map(f)).unwrap_or_else(self::on_missing_context::<T, _>)
+	self::with::<T, _, _>(f).unwrap_or_else(self::on_missing_context::<T, _>)
 }
 
 /// Called when context for type `T` was missing.
@@ -331,7 +327,7 @@ mod tests {
 
 		bencher.iter(|| {
 			for _ in 0..test::black_box(REPEAT_COUNT) {
-				crate::with::<AccessTy, _, _>(|value| test::black_box(value.copied()));
+				crate::with::<AccessTy, _, _>(|&value| test::black_box(value));
 			}
 		});
 	}

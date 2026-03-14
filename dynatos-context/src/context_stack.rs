@@ -59,24 +59,23 @@ where
 }
 
 /// Uses the value in the top of the stack
-pub fn with_top<T, F, O>(f: F) -> O
+pub fn with_top<T, F, O>(f: F) -> Option<O>
 where
 	T: 'static,
-	F: FnOnce(Option<&T>) -> O,
+	F: FnOnce(&T) -> O,
 {
 	let type_id = TypeId::of::<T>();
 	let ctxs = CTXS_STACK
 		.try_borrow()
 		.expect("Cannot access context while modifying it");
-	let value = try {
-		let stack = ctxs.get(&type_id)?;
-		let value = stack.last()?.as_ref().expect("Value was already taken");
-		(&**value as &dyn Any)
-			.downcast_ref::<T>()
-			.expect("Value was the wrong type")
-	};
 
-	f(value)
+	let stack = ctxs.get(&type_id)?;
+	let value = stack.last()?.as_ref().expect("Value was already taken");
+	let value = (&**value as &dyn Any)
+		.downcast_ref::<T>()
+		.expect("Value was the wrong type");
+
+	Some(f(value))
 }
 
 /// Uses the value in handle `handle`.
