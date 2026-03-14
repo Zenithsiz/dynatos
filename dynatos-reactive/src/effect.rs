@@ -363,14 +363,14 @@ pub fn with_no_dep<F, O>(f: F) -> O
 where
 	F: FnOnce() -> O,
 {
-	let _guard = self::enter_no_dep();
+	let _guard = self::add_no_dep();
 	f()
 }
 
 /// Adds the "no-dep" tag with a guard
 ///
 /// See [`with_no_dep`] for details.
-pub fn enter_no_dep() -> WorldTagGuard {
+pub fn add_no_dep() -> WorldTagGuard {
 	WORLD.add_tag(WorldTag::NoDep)
 }
 
@@ -400,14 +400,14 @@ pub fn with_no_run<F, O>(f: F) -> O
 where
 	F: FnOnce() -> O,
 {
-	let _guard = self::enter_no_run();
+	let _guard = self::add_no_run();
 	f()
 }
 
 /// Adds the "no-run" tag with a guard
 ///
 /// See [`with_no_run`] for details.
-pub fn enter_no_run() -> WorldTagGuard {
+pub fn add_no_run() -> WorldTagGuard {
 	WORLD.add_tag(WorldTag::NoRun)
 }
 

@@ -496,7 +496,7 @@ where
 /// Adds the "unloaded" tag with a guard
 ///
 /// See [`with_unloaded`] for details.
-pub fn enter_unloaded() -> WorldTagGuard {
+pub fn add_unloaded() -> WorldTagGuard {
 	WORLD.add_tag(WorldTag::Unloaded)
 }
 
