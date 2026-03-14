@@ -120,7 +120,7 @@ where
 {
 	fn add_child<C>(&self, child: C)
 	where
-		C: AsRef<web_sys::Node>,
+		C: Child,
 	{
 		self.add_children([child]);
 	}
@@ -149,7 +149,7 @@ where
 {
 	fn with_child<C>(self, child: C) -> Self
 	where
-		C: AsRef<web_sys::Node>,
+		C: Child,
 	{
 		self.with_children([child])
 	}
@@ -170,7 +170,29 @@ where
 	}
 }
 
-/// Types that may be used for [`NodeWithChildren`]
+/// Types that may be used for [`NodeWithChildren`]'s single child methods
+pub trait Child {
+	/// Appends this child to `node`
+	fn append(&self, node: &web_sys::Node) -> Result<(), JsValue>;
+}
+
+impl<C: AsRef<web_sys::Node>> Child for C {
+	fn append(&self, node: &web_sys::Node) -> Result<(), JsValue> {
+		// If the node already contains us, warn and refuse to add it.
+		let child = self.as_ref();
+		if node.contains(Some(child)) {
+			tracing::warn!(?child, "Attempted to add a duplicate child");
+			return Ok(());
+		}
+
+		node.append_child(child)?;
+
+		Ok(())
+	}
+}
+
+
+/// Types that may be used for [`NodeWithChildren`]'s multiple children method
 pub trait Children {
 	/// Appends all children in this type
 	fn append_all(self, node: &web_sys::Node) -> Result<(), JsValue>;
@@ -184,17 +206,11 @@ impl Children for () {
 
 impl<C> Children for &'_ [C]
 where
-	C: AsRef<web_sys::Node>,
+	C: Child,
 {
 	fn append_all(self, node: &web_sys::Node) -> Result<(), JsValue> {
-		for child in self.iter().map(C::as_ref) {
-			// If the node already contains the child, warn and refuse to add it.
-			if node.contains(Some(child)) {
-				tracing::warn!(?child, "Attempted to add a duplicate child");
-				continue;
-			}
-
-			node.append_child(child.as_ref())?;
+		for child in self {
+			child.append(node)?;
 		}
 
 		Ok(())
@@ -203,7 +219,7 @@ where
 
 impl<C, const N: usize> Children for [C; N]
 where
-	C: AsRef<web_sys::Node>,
+	C: Child,
 {
 	fn append_all(self, node: &web_sys::Node) -> Result<(), JsValue> {
 		self.as_slice().append_all(node)
@@ -212,7 +228,7 @@ where
 
 impl<C> Children for Vec<C>
 where
-	C: AsRef<web_sys::Node>,
+	C: Child,
 {
 	fn append_all(self, node: &web_sys::Node) -> Result<(), JsValue> {
 		self.as_slice().append_all(node)
@@ -225,20 +241,13 @@ macro impl_children_tuple( $( $( $C:ident($idx:tt) ),*; )* ) {
 		impl<$( $C ),*> Children for ($( $C, )*)
 		where
 			$(
-				$C: AsRef<web_sys::Node>,
+				$C: Child,
 			)*
 		{
 			fn append_all(self, node: &web_sys::Node) -> Result<(), JsValue> {
-				$({
-					// If the node already contains the child, warn and refuse to add it.
-					let child = self.$idx.as_ref();
-					match node.contains(Some(child)) {
-						true => tracing::warn!(?child, "Attempted to add a duplicate child"),
-						false => {
-							node.append_child(child)?;
-						},
-					}
-				})*
+				$(
+					self.$idx.append(node)?;
+				)*
 
 				Ok(())
 			}
