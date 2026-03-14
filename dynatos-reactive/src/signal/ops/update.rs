@@ -22,11 +22,11 @@ pub trait SignalUpdate {
 
 	/// Updates the signal value without updating dependencies
 	#[track_caller]
-	fn update_raw<F, O>(&self, f: F) -> O
+	fn update_no_run<F, O>(&self, f: F) -> O
 	where
 		F: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
-		effect::with_raw(|| self.update(f))
+		effect::with_no_run(|| self.update(f))
 	}
 }
 

@@ -67,8 +67,8 @@ impl Trigger {
 	/// effects. Previous effects will only be removed when they are dropped.
 	#[track_caller]
 	pub fn gather_subs(&self) {
-		// If the world has the "raw" tag, don't gather anything
-		if WORLD.has_tag(WorldTag::Raw) {
+		// If the world has the "no-dep" tag, don't gather anything
+		if WORLD.has_tag(WorldTag::NoDep) {
 			return;
 		}
 
@@ -85,8 +85,8 @@ impl Trigger {
 				\nThis typically means that you're accessing reactive \
 				signals outside of an effect, which means the code won't \
 				be re-run when the signal changes. If this is intention, \
-				try to use one of the `_raw` methods that don't gather \
-				subscribers to make it intentional"
+				try to use one of the `*_no_dep` methods that don't \
+				gather subscribers to make it intentional"
 			),
 		}
 	}
@@ -120,10 +120,10 @@ impl Trigger {
 
 	/// Inner function for [`Self::exec`]
 	pub(crate) fn exec_inner(&self, caller_loc: Loc) -> Option<TriggerExec> {
-		// If the world has the "raw" tag, don't execute anything
+		// If the world has the "no-run" tag, don't execute anything
 		// TODO: Should we still return just a `TriggerExec`, but make
 		//       it not do anything on drop?
-		if WORLD.has_tag(WorldTag::Raw) {
+		if WORLD.has_tag(WorldTag::NoRun) {
 			return None;
 		}
 

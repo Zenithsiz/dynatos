@@ -266,8 +266,8 @@ impl<F: Loader> AsyncSignal<F> {
 	/// Borrows the value, without loading it or gathering subscribers
 	#[must_use]
 	#[track_caller]
-	pub fn borrow_unloaded_raw(&self) -> Option<BorrowRef<'_, F>> {
-		effect::with_raw(|| self.borrow_unloaded())
+	pub fn borrow_unloaded_no_dep(&self) -> Option<BorrowRef<'_, F>> {
+		effect::with_no_dep(|| self.borrow_unloaded())
 	}
 }
 

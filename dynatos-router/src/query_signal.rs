@@ -16,8 +16,6 @@ use {
 		ops::{Deref, DerefMut},
 	},
 	dynatos_reactive::{
-		effect,
-		signal,
 		Effect,
 		EffectRun,
 		Memo,
@@ -26,6 +24,8 @@ use {
 		SignalBorrowMut,
 		SignalReplace,
 		SignalSet,
+		effect,
+		signal,
 	},
 	std::rc::Rc,
 	zutil_cloned::cloned,
@@ -64,10 +64,10 @@ impl<T: QueryParse> QuerySignal<T> {
 	{
 		let query = Rc::new(query);
 
-		// Note: This access must be raw to ensure that the query signal itself doesn't
-		//       change whenever the location changes, and only it's value does.
+		// Note: This access must skip dependencies to ensure that the query signal itself
+		//       doesn't change whenever the location changes, and only it's value does.
 		let location = dynatos_context::expect_cloned::<Location>();
-		let location_path = Rc::<str>::from(location.borrow_raw().path());
+		let location_path = Rc::<str>::from(location.borrow_no_dep().path());
 
 		let inner = Signal::new(None);
 		#[cloned(query, location_path, inner)]
@@ -76,7 +76,7 @@ impl<T: QueryParse> QuerySignal<T> {
 			// Note: If this is the correct location, we don't want to add the location
 			//       as a dependency, because otherwise we'll be re-parsing all queries
 			//       each time the location changes and not just when `T::parse` changes.
-			if *location.borrow_raw().path() != *location_path {
+			if *location.borrow_no_dep().path() != *location_path {
 				_ = location.borrow();
 				return;
 			}
@@ -237,8 +237,6 @@ impl<T: QueryWriteValue> Drop for BorrowRefMut<'_, T> {
 
 			// Note: It's fine to do this while the value is still alive because
 			//       the run queue ensures we won't run any effects until we're dropped.
-			// TODO: If we're being borrowed raw, this might bypass the run queue, and end
-			//       up writing while our borrow still exists?
 			self.signal.query.write(&*self);
 		}
 	}
@@ -260,8 +258,8 @@ where
 			value,
 			signal: self,
 			// TODO: Should we actually use another flag for this instead of hijacking
-			//       the raw flag?
-			write_query_on_drop: !effect::is_raw(),
+			//       the "no-run" tag?
+			write_query_on_drop: !effect::is_no_run(),
 		}
 	}
 }

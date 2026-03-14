@@ -98,8 +98,8 @@ impl<T: FromStr<Err: StdError> + ToString> QueryWrite<Option<&'_ T>> for SingleQ
 		// Update our queries memo manually and prevent it from being added
 		let _suppress_queries = self.queries.suppress();
 		match &new_value {
-			Some(new_value) => self.queries.update_raw(vec![new_value.to_string()]),
-			None => self.queries.update_raw(vec![]),
+			Some(new_value) => self.queries.update_no_run(vec![new_value.to_string()]),
+			None => self.queries.update_no_run(vec![]),
 		}
 
 		let location = dynatos_context::expect_cloned::<Location>();

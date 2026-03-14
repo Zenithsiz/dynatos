@@ -15,10 +15,9 @@ pub trait SignalBorrow {
 	fn borrow(&self) -> Self::Ref<'_>;
 
 	/// Borrows the signal value without gathering dependencies
-	// TODO: Better name than `_raw`?
 	// TODO: Allow using a different reference than `Self::Ref`?
 	#[track_caller]
-	fn borrow_raw(&self) -> Self::Ref<'_> {
-		effect::with_raw(|| self.borrow())
+	fn borrow_no_dep(&self) -> Self::Ref<'_> {
+		effect::with_no_dep(|| self.borrow())
 	}
 }

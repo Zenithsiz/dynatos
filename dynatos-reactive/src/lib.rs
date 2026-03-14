@@ -1,8 +1,5 @@
 //! Reactivity for `dynatos`
 
-// TODO: Instead of providing the `_raw` methods, just add a top-level
-//       `fn without_reactivity(impl FnOnce() -> O) -> O`?
-
 // Features
 #![feature(
 	unsize,

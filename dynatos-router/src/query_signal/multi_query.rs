@@ -89,7 +89,7 @@ impl<T: FromStr<Err: StdError> + ToString> QueryWrite<&[T]> for MultiQuery<T> {
 	fn write(&self, new_value: &[T]) {
 		// Update our queries memo manually and prevent it from being added
 		let _suppress_queries = self.queries.suppress();
-		self.queries.update_raw(new_value.iter().map(T::to_string).collect());
+		self.queries.update_no_run(new_value.iter().map(T::to_string).collect());
 
 		dynatos_context::with_expect::<Location, _, _>(|location| {
 			let mut location = location.borrow_mut();

@@ -237,10 +237,10 @@ impl<F: ?Sized> Effect<F> {
 		// Clear the dependencies/subscribers before running
 		WORLD.dep_graph().clear_effect(self);
 
-		// Note: As per the documentation, we remove the raw tag when
+		// Note: As per the documentation, we remove the "no-dep" tag when
 		//       gathering dependencies inside of an effect, to ensure
 		//       the tag is only active during the current reactivity frame.
-		let _no_raw = WORLD.remove_tag(WorldTag::Raw);
+		let _remove_no_dep = WORLD.remove_tag(WorldTag::NoDep);
 
 		// Then run it
 		let ctx = EffectRunCtx::new();
@@ -350,35 +350,68 @@ pub fn running() -> Option<Effect> {
 	WORLD.effect_stack().top()
 }
 
-/// Adds the "raw" tag to the world within the supplied closure.
+/// Adds the "no-dep" tag to the world within the supplied closure.
 ///
-/// Whenever the "raw" tag is present, effects will not gather dependencies or subscribers,
-/// meaning that reads don't imply a dependency and writes don't imply an execution.
+/// Whenever this tag is present, effects will not gather dependencies,
+/// meaning that reads won't result in a dependency.
 ///
-/// # Implementations
-/// Signal implementations should not check for the "raw" tag in `Drop` impls, or anytime
-/// *after* the user calls a signal operation. This means that, for example, when mutably
-/// borrowing a signal, you should call `Trigger::exec` before returning and save the value
-/// in the returned reference. This ensures that `with_raw` only needs to encapsulate the
-/// parts of the code that directly call signal operations, instead of requiring it over
-/// a large portion of the code, where the user could unintentionally ignore some other signals.
+/// However, triggers are still triggered, meaning that
+/// writes still result in an execution. For preventing that,
+/// see [`with_no_run`]
 #[track_caller]
-pub fn with_raw<F, O>(f: F) -> O
+pub fn with_no_dep<F, O>(f: F) -> O
 where
 	F: FnOnce() -> O,
 {
-	let _guard = self::enter_raw();
+	let _guard = self::enter_no_dep();
 	f()
 }
 
-/// Adds the "raw" tag with a guard
+/// Adds the "no-dep" tag with a guard
 ///
-/// See [`with_raw`] for details.
-pub fn enter_raw() -> WorldTagGuard {
-	WORLD.add_tag(WorldTag::Raw)
+/// See [`with_no_dep`] for details.
+pub fn enter_no_dep() -> WorldTagGuard {
+	WORLD.add_tag(WorldTag::NoDep)
 }
 
-/// Returns if the "raw" tag is present
-pub fn is_raw() -> bool {
-	WORLD.has_tag(WorldTag::Raw)
+/// Returns if the "no-dep" tag is present
+pub fn is_no_dep() -> bool {
+	WORLD.has_tag(WorldTag::NoDep)
+}
+
+/// Adds the "no-run" tag to the world within the supplied closure.
+///
+/// Whenever this tag is present, triggers will not be triggered,
+/// meaning that writes won't result in a trigger.
+///
+/// However, dependencies are still gathered, meaning that
+/// reads still result in an dependency. For preventing that,
+/// see [`with_no_dep`]
+///
+/// # Implementations
+/// Signal implementations should not check for this tag in `Drop` impls, or anytime
+/// *after* the user calls a signal operation. This means that, for example, when mutably
+/// borrowing a signal, you should call `Trigger::exec` before returning and save the value
+/// in the returned reference. This ensures that `with_no_run` only needs to encapsulate the
+/// parts of the code that directly call signal operations, instead of requiring it over
+/// a large portion of the code, where the user could unintentionally ignore some other signals.
+#[track_caller]
+pub fn with_no_run<F, O>(f: F) -> O
+where
+	F: FnOnce() -> O,
+{
+	let _guard = self::enter_no_run();
+	f()
+}
+
+/// Adds the "no-run" tag with a guard
+///
+/// See [`with_no_run`] for details.
+pub fn enter_no_run() -> WorldTagGuard {
+	WORLD.add_tag(WorldTag::NoRun)
+}
+
+/// Returns if the "no-run" tag is present
+pub fn is_no_run() -> bool {
+	WORLD.has_tag(WorldTag::NoRun)
 }

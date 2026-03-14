@@ -22,11 +22,11 @@ pub trait SignalWith {
 
 	/// Uses the signal value without gathering dependencies
 	#[track_caller]
-	fn with_raw<F, O>(&self, f: F) -> O
+	fn with_no_dep<F, O>(&self, f: F) -> O
 	where
 		F: for<'a> FnOnce(Self::Value<'a>) -> O,
 	{
-		effect::with_raw(|| self.with(f))
+		effect::with_no_dep(|| self.with(f))
 	}
 }
 

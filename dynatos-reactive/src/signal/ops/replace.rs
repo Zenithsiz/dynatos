@@ -13,7 +13,7 @@ pub trait SignalReplace<T> {
 
 	/// Replaces the signal value, returning the previous value without updating dependencies.
 	#[track_caller]
-	fn replace_raw(&self, new_value: T) -> Self::Value {
-		effect::with_raw(|| self.replace(new_value))
+	fn replace_no_run(&self, new_value: T) -> Self::Value {
+		effect::with_no_run(|| self.replace(new_value))
 	}
 }

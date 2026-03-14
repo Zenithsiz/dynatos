@@ -1,7 +1,7 @@
 //! [`SignalSet`]
 
 // Imports
-use crate::{effect, SignalUpdate, Trigger};
+use crate::{SignalUpdate, Trigger, effect};
 
 /// Types which may be set by [`SignalSet`]
 pub trait SignalSetWith<T>: Sized {
@@ -33,8 +33,8 @@ pub trait SignalSet<Value> {
 
 	/// Sets the signal value without updating dependencies
 	#[track_caller]
-	fn set_raw(&self, new_value: Value) {
-		effect::with_raw(|| self.set(new_value));
+	fn set_no_run(&self, new_value: Value) {
+		effect::with_no_run(|| self.set(new_value));
 	}
 }
 

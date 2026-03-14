@@ -2,7 +2,7 @@
 
 // Imports
 use {
-	crate::{effect, SignalWith},
+	crate::{SignalWith, effect},
 	core::{any::TypeId, mem},
 };
 
@@ -44,8 +44,8 @@ pub trait SignalGet {
 
 	/// Gets the signal value, by copying it without gathering dependencies.
 	#[track_caller]
-	fn get_raw(&self) -> Self::Value {
-		effect::with_raw(|| self.get())
+	fn get_no_dep(&self) -> Self::Value {
+		effect::with_no_dep(|| self.get())
 	}
 }
 

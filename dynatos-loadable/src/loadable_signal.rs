@@ -8,7 +8,6 @@ use {
 		ops::{Deref, DerefMut},
 	},
 	dynatos_reactive::{
-		async_signal::{self, Loader},
 		AsyncSignal,
 		SignalBorrow,
 		SignalBorrowMut,
@@ -21,6 +20,7 @@ use {
 		SignalUpdateDefaultImpl,
 		SignalWith,
 		SignalWithDefaultImpl,
+		async_signal::{self, Loader},
 	},
 };
 
@@ -103,8 +103,8 @@ where
 	/// Borrows the value, without loading it or gathering subscribers
 	#[must_use]
 	#[track_caller]
-	pub fn borrow_unloaded_raw(&self) -> Loadable<BorrowRef<'_, F>, E> {
-		let res = self.inner.borrow_unloaded_raw();
+	pub fn borrow_unloaded_no_dep(&self) -> Loadable<BorrowRef<'_, F>, E> {
+		let res = self.inner.borrow_unloaded_no_dep();
 		match res {
 			Some(res) => match &*res {
 				Ok(_) => Loadable::Loaded(BorrowRef(res)),

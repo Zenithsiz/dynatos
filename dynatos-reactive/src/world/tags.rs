@@ -69,11 +69,24 @@ decl_tags! {
 	WorldTagsData { get_data };
 	WorldTag;
 
-	/// "raw" tag.
+	/// "no-dep" tag.
+	///
+	/// This tag ensures that no dependencies are gathered
+	/// in the current reactivity frame.
 	///
 	/// This tag is cleared when running effects, and so
 	/// only affects the current reactivity frame.
-	Raw(raw),
+	NoDep(no_dep),
+
+	/// "no-run" tag.
+	///
+	/// This tag ensures that no triggers are triggered until
+	/// it is removed.
+	///
+	/// This tag is never removed automatically, to ensure
+	/// that even if you run an effect manually and it writes
+	/// to anything, no triggers happen.
+	NoRun(no_run),
 
 	/// "unloaded" tag.
 	///

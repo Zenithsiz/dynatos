@@ -64,7 +64,7 @@ impl<T, F> Memo<T, F> {
 	/// Updates the existing value without updating dependencies
 	// TODO: Just implement `SignalBorrowMut` and friends?
 	#[track_caller]
-	pub fn update_raw(&self, value: T) {
+	pub fn update_no_run(&self, value: T) {
 		*self.effect.inner_fn().value.borrow_mut() = Some(value);
 	}
 }
