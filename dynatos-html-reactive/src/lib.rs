@@ -11,7 +11,7 @@
 )]
 
 // Modules
-mod dyn_child;
+mod dyn_element;
 mod element_dyn_attr;
 mod html_element_dyn_css_prop;
 mod node_dyn_child;
@@ -28,7 +28,7 @@ mod with_dyn_text;
 // Exports
 pub use {
 	self::{
-		dyn_child::DynChild,
+		dyn_element::DynElement,
 		element_dyn_attr::{ElementDynAttr, ElementWithDynAttr},
 		html_element_dyn_css_prop::{HtmlElementDynCssProp, HtmlElementWithDynCssProp},
 		node_dyn_child::{NodeDynChild, NodeWithDynChild, WithDynNode},

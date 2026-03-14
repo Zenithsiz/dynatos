@@ -7,7 +7,7 @@
 use {
 	app_error::AppError,
 	dynatos_html::{EventTargetWithListener, JsResultContext, NodeWithChildren, NodeWithText, ev, html},
-	dynatos_html_reactive::DynChild,
+	dynatos_html_reactive::DynElement,
 	dynatos_reactive::{Signal, SignalGet, SignalSet, SignalUpdate},
 	strum::VariantArray,
 	tracing_subscriber::prelude::*,
@@ -65,18 +65,18 @@ fn parent() -> HtmlElement {
 		.with_child(html::hr())
 }
 
-fn outer(cur_el: Signal<Element>) -> DynChild {
-	DynChild::new(move || match cur_el.get() {
+fn outer(cur_el: Signal<Element>) -> DynElement {
+	DynElement::new(move || match cur_el.get() {
 		Element::P => html::p().with_child(self::inner()),
 		Element::A => html::a().with_child(self::inner()),
 		Element::Pre => html::pre().with_child(self::inner()),
 	})
 }
 
-fn inner() -> DynChild {
+fn inner() -> DynElement {
 	let counter = Signal::new(0_usize);
 
-	DynChild::new(move || {
+	DynElement::new(move || {
 		let cur_counter = counter.get();
 		let el = match cur_counter.is_multiple_of(2) {
 			true => html::p(),

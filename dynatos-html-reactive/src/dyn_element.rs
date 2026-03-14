@@ -1,4 +1,4 @@
-//! Dynamic child
+//! Dynamic element
 
 use {
 	crate::ObjectAttachEffect,
@@ -12,11 +12,11 @@ use {
 	std::sync::{LazyLock, oneshot},
 };
 
-/// A dynamic child
-pub struct DynChild(web_sys::Element);
+/// A dynamic element
+pub struct DynElement(web_sys::Element);
 
-impl DynChild {
-	/// Creates a new dynamic child
+impl DynElement {
+	/// Creates a new dynamic element
 	pub fn new<T>(f: T) -> Self
 	where
 		T: ToDynElement + 'static,
@@ -75,19 +75,18 @@ impl DynChild {
 	[web_sys::Node];
 	[web_sys::Element];
 )]
-impl AsRef<Ty> for DynChild {
+impl AsRef<Ty> for DynElement {
 	fn as_ref(&self) -> &Ty {
 		&self.0
 	}
 }
 
-/// Trait for values accepted by [`ElementDynChildren`].
+/// Trait for values accepted by [`DynElement`].
 ///
 /// This allows it to work with the following types:
 /// - `impl Fn() -> N`
 /// - `web_sys::{Element, Element, HtmlElement}`
 /// - `Option<N>`
-/// - `Vec<N>`, `[N; _]`, `[N]`
 /// - [`Signal`], [`Derived`], [`Memo`], [`WithDefault`]
 /// - `LazyCell<N, impl Fn() -> N>`
 /// - `!`
