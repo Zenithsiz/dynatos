@@ -28,7 +28,8 @@
 	never_type,
 	unwrap_infallible,
 	arbitrary_self_types,
-	coverage_attribute
+	coverage_attribute,
+	macro_metavar_expr_concat
 )]
 
 // Modules

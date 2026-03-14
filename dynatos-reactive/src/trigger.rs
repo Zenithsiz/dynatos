@@ -5,7 +5,7 @@
 
 // Imports
 use {
-	crate::{effect, loc::Loc, WORLD},
+	crate::{WORLD, effect, loc::Loc, world::WorldMode},
 	core::{
 		cell::LazyCell,
 		fmt,
@@ -68,7 +68,7 @@ impl Trigger {
 	#[track_caller]
 	pub fn gather_subs(&self) {
 		// If the world is in "raw" mode, don't gather anything
-		if WORLD.is_raw() {
+		if WORLD.is_in_mode(WorldMode::Raw) {
 			return;
 		}
 
@@ -123,7 +123,7 @@ impl Trigger {
 		// If the world is in "raw" mode, don't execute anything
 		// TODO: Should we still return just a `TriggerExec`, but make
 		//       it not do anything on drop?
-		if WORLD.is_raw() {
+		if WORLD.is_in_mode(WorldMode::Raw) {
 			return None;
 		}
 

@@ -15,14 +15,18 @@ mod weak;
 // Exports
 pub use self::{
 	deps_gatherer::EffectDepsGatherer,
-	run::{effect_run_impl_inner, EffectRun, EffectRunCtx},
+	run::{EffectRun, EffectRunCtx, effect_run_impl_inner},
 	suppressed::EffectSuppressed,
 	weak::WeakEffect,
 };
 
 // Imports
 use {
-	crate::{loc::Loc, world::RawGuard, WORLD},
+	crate::{
+		WORLD,
+		loc::Loc,
+		world::{WorldMode, WorldModeGuard},
+	},
 	core::{
 		cell::Cell,
 		fmt,
@@ -358,18 +362,18 @@ pub fn with_raw<F, O>(f: F) -> O
 where
 	F: FnOnce() -> O,
 {
-	let _guard = WORLD.set_raw();
+	let _guard = self::enter_raw();
 	f()
 }
 
 /// Enters "raw" mode with a guard
 ///
 /// See [`with_raw`] for details.
-pub fn enter_raw() -> RawGuard {
-	WORLD.set_raw()
+pub fn enter_raw() -> WorldModeGuard {
+	WORLD.enter_mode(WorldMode::Raw)
 }
 
 /// Returns if "raw" mode is on
 pub fn is_raw() -> bool {
-	WORLD.is_raw()
+	WORLD.is_in_mode(WorldMode::Raw)
 }

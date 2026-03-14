@@ -3,10 +3,6 @@
 // Imports
 use {
 	crate::{
-		effect,
-		loc::Loc,
-		trigger::TriggerExec,
-		world::UnloadedGuard,
 		Effect,
 		EffectRun,
 		EffectRunCtx,
@@ -23,6 +19,10 @@ use {
 		SignalWithDefaultImpl,
 		Trigger,
 		WORLD,
+		effect,
+		loc::Loc,
+		trigger::TriggerExec,
+		world::{WorldMode, WorldModeGuard},
 	},
 	core::{
 		cell::{self, RefCell},
@@ -350,7 +350,7 @@ impl<F: Loader> SignalBorrow for AsyncSignal<F> {
 
 			// Otherwise, start loading if not in "unloaded" mode
 			None => {
-				if WORLD.is_unloaded() {
+				if WORLD.is_in_mode(WorldMode::Unloaded) {
 					return None;
 				}
 
@@ -489,20 +489,20 @@ pub fn with_unloaded<F, O>(f: F) -> O
 where
 	F: FnOnce() -> O,
 {
-	let _guard = WORLD.set_unloaded();
+	let _guard = WORLD.enter_mode(WorldMode::Unloaded);
 	f()
 }
 
 /// Enters "unloaded" mode with a guard
 ///
 /// See [`with_unloaded`] for details.
-pub fn enter_unloaded() -> UnloadedGuard {
-	WORLD.set_unloaded()
+pub fn enter_unloaded() -> WorldModeGuard {
+	WORLD.enter_mode(WorldMode::Unloaded)
 }
 
 /// Returns if "unloaded" mode is on
 pub fn is_unloaded() -> bool {
-	WORLD.is_unloaded()
+	WORLD.is_in_mode(WorldMode::Unloaded)
 }
 
 /// Effect function
