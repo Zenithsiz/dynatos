@@ -1,12 +1,16 @@
 //! World
 
+// Modules
+mod tags;
+
+// Exports
+pub use self::tags::{WorldTag, WorldTagGuard};
+
 // Imports
 use {
+	self::tags::WorldTagsData,
 	crate::{dep_graph::DepGraph, effect_stack::EffectStack, run_queue::RunQueue},
-	core::{
-		cell::{Cell, LazyCell},
-		ops::{Index, IndexMut},
-	},
+	core::cell::LazyCell,
 };
 
 /// Default world
@@ -60,15 +64,14 @@ impl World {
 	}
 
 	/// Returns if a tag is present
-	pub fn has_tag(&self, tag: WorldTag) -> bool {
-		self.tags[tag].ref_count.get() > 0
+	pub const fn has_tag(&self, tag: WorldTag) -> bool {
+		self.tags.has_tag(tag)
 	}
 
 	/// Adds a tag to the world until the guard is dropped.
 	// TODO: Specify what happens when recursive tags are added & dropped.
 	pub fn add_tag(&self, tag: WorldTag) -> WorldTagGuard {
-		self.tags[tag].ref_count.update(|count| count + 1);
-		WorldTagGuard(tag)
+		self.tags.add_tag(tag)
 	}
 }
 
@@ -77,78 +80,4 @@ impl Default for World {
 	fn default() -> Self {
 		Self::new()
 	}
-}
-
-/// Tag data
-#[derive(Clone, Default, Debug)]
-struct WorldTagData {
-	ref_count: Cell<usize>,
-}
-
-/// Guard type for entering and exiting a tag
-pub struct WorldTagGuard(WorldTag);
-
-impl Drop for WorldTagGuard {
-	fn drop(&mut self) {
-		WORLD.tags[self.0].ref_count.update(|count| count - 1);
-	}
-}
-
-macro decl_tags(
-	$WorldTagsData:ident;
-	$WorldTag:ident;
-
-	$(
-		$( #[$meta:meta] )*
-		$Name:ident($field:ident)
-	),* $(,)?
-) {
-	/// Tags
-	#[derive(PartialEq, Eq, Clone, Copy, Debug)]
-	pub enum $WorldTag {
-		$(
-			$Name,
-		)*
-	}
-
-	/// Tags data
-	#[derive(Clone, Default, Debug)]
-	struct $WorldTagsData {
-		$(
-			$field: WorldTagData,
-		)*
-	}
-
-	impl Index<$WorldTag> for $WorldTagsData {
-		type Output = WorldTagData;
-
-		fn index(&self, tag: $WorldTag) -> &Self::Output {
-			match tag {
-				$(
-					$WorldTag::$Name => &self.$field,
-				)*
-			}
-		}
-	}
-
-	impl IndexMut<$WorldTag> for $WorldTagsData {
-		fn index_mut(&mut self, tag: $WorldTag) -> &mut Self::Output {
-			match tag {
-				$(
-					$WorldTag::$Name => &mut self.$field,
-				)*
-			}
-		}
-	}
-}
-
-decl_tags! {
-	WorldTagsData;
-	WorldTag;
-
-	/// "raw" tag
-	Raw(raw),
-
-	/// "unloaded" tag
-	Unloaded(unloaded),
 }
