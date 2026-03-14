@@ -5,7 +5,7 @@
 
 // Imports
 use {
-	crate::{WORLD, effect, loc::Loc, world::WorldMode},
+	crate::{WORLD, effect, loc::Loc, world::WorldTag},
 	core::{
 		cell::LazyCell,
 		fmt,
@@ -67,8 +67,8 @@ impl Trigger {
 	/// effects. Previous effects will only be removed when they are dropped.
 	#[track_caller]
 	pub fn gather_subs(&self) {
-		// If the world is in "raw" mode, don't gather anything
-		if WORLD.is_in_mode(WorldMode::Raw) {
+		// If the world has the "raw" tag, don't gather anything
+		if WORLD.has_tag(WorldTag::Raw) {
 			return;
 		}
 
@@ -120,10 +120,10 @@ impl Trigger {
 
 	/// Inner function for [`Self::exec`]
 	pub(crate) fn exec_inner(&self, caller_loc: Loc) -> Option<TriggerExec> {
-		// If the world is in "raw" mode, don't execute anything
+		// If the world has the "raw" tag, don't execute anything
 		// TODO: Should we still return just a `TriggerExec`, but make
 		//       it not do anything on drop?
-		if WORLD.is_in_mode(WorldMode::Raw) {
+		if WORLD.has_tag(WorldTag::Raw) {
 			return None;
 		}
 

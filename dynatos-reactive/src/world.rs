@@ -16,8 +16,8 @@ pub static WORLD: LazyCell<World> = LazyCell::new(World::new);
 /// World
 #[derive(Debug)]
 pub struct World {
-	/// Modes
-	modes: WorldModesData,
+	/// Tags
+	tags: WorldTagsData,
 
 	/// Dependency graph
 	dep_graph: DepGraph,
@@ -34,7 +34,7 @@ impl World {
 	#[must_use]
 	pub fn new() -> Self {
 		Self {
-			modes:        WorldModesData::default(),
+			tags:         WorldTagsData::default(),
 			dep_graph:    DepGraph::new(),
 			effect_stack: EffectStack::new(),
 			run_queue:    RunQueue::new(),
@@ -59,15 +59,16 @@ impl World {
 		&self.run_queue
 	}
 
-	/// Returns if in a mode
-	pub fn is_in_mode(&self, mode: WorldMode) -> bool {
-		self.modes[mode].ref_count.get() > 0
+	/// Returns if a tag is present
+	pub fn has_tag(&self, tag: WorldTag) -> bool {
+		self.tags[tag].ref_count.get() > 0
 	}
 
-	/// Enters a mode
-	pub fn enter_mode(&self, mode: WorldMode) -> WorldModeGuard {
-		self.modes[mode].ref_count.update(|count| count + 1);
-		WorldModeGuard(mode)
+	/// Adds a tag to the world until the guard is dropped.
+	// TODO: Specify what happens when recursive tags are added & dropped.
+	pub fn add_tag(&self, tag: WorldTag) -> WorldTagGuard {
+		self.tags[tag].ref_count.update(|count| count + 1);
+		WorldTagGuard(tag)
 	}
 }
 
@@ -78,76 +79,76 @@ impl Default for World {
 	}
 }
 
-/// Mode data
+/// Tag data
 #[derive(Clone, Default, Debug)]
-struct WorldModeData {
+struct WorldTagData {
 	ref_count: Cell<usize>,
 }
 
-/// Guard type for entering and exiting a mode
-pub struct WorldModeGuard(WorldMode);
+/// Guard type for entering and exiting a tag
+pub struct WorldTagGuard(WorldTag);
 
-impl Drop for WorldModeGuard {
+impl Drop for WorldTagGuard {
 	fn drop(&mut self) {
-		WORLD.modes[self.0].ref_count.update(|count| count - 1);
+		WORLD.tags[self.0].ref_count.update(|count| count - 1);
 	}
 }
 
-macro decl_modes(
-	$WorldModesData:ident;
-	$WorldMode:ident;
+macro decl_tags(
+	$WorldTagsData:ident;
+	$WorldTag:ident;
 
 	$(
 		$( #[$meta:meta] )*
 		$Name:ident($field:ident)
 	),* $(,)?
 ) {
-	/// Modes
+	/// Tags
 	#[derive(PartialEq, Eq, Clone, Copy, Debug)]
-	pub enum $WorldMode {
+	pub enum $WorldTag {
 		$(
 			$Name,
 		)*
 	}
 
-	/// Modes data
+	/// Tags data
 	#[derive(Clone, Default, Debug)]
-	struct $WorldModesData {
+	struct $WorldTagsData {
 		$(
-			$field: WorldModeData,
+			$field: WorldTagData,
 		)*
 	}
 
-	impl Index<$WorldMode> for $WorldModesData {
-		type Output = WorldModeData;
+	impl Index<$WorldTag> for $WorldTagsData {
+		type Output = WorldTagData;
 
-		fn index(&self, mode: $WorldMode) -> &Self::Output {
-			match mode {
+		fn index(&self, tag: $WorldTag) -> &Self::Output {
+			match tag {
 				$(
-					$WorldMode::$Name => &self.$field,
+					$WorldTag::$Name => &self.$field,
 				)*
 			}
 		}
 	}
 
-	impl IndexMut<$WorldMode> for $WorldModesData {
-		fn index_mut(&mut self, mode: $WorldMode) -> &mut Self::Output {
-			match mode {
+	impl IndexMut<$WorldTag> for $WorldTagsData {
+		fn index_mut(&mut self, tag: $WorldTag) -> &mut Self::Output {
+			match tag {
 				$(
-					$WorldMode::$Name => &mut self.$field,
+					$WorldTag::$Name => &mut self.$field,
 				)*
 			}
 		}
 	}
 }
 
-decl_modes! {
-	WorldModesData;
-	WorldMode;
+decl_tags! {
+	WorldTagsData;
+	WorldTag;
 
-	/// "raw" mode
+	/// "raw" tag
 	Raw(raw),
 
-	/// "unloaded" mode
+	/// "unloaded" tag
 	Unloaded(unloaded),
 }

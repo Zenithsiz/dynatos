@@ -25,7 +25,7 @@ use {
 	crate::{
 		WORLD,
 		loc::Loc,
-		world::{WorldMode, WorldModeGuard},
+		world::{WorldTag, WorldTagGuard},
 	},
 	core::{
 		cell::Cell,
@@ -345,13 +345,13 @@ pub fn running() -> Option<Effect> {
 	WORLD.effect_stack().top()
 }
 
-/// Enters "raw" mode within the supplied closure.
+/// Adds the "raw" tag to the world within the supplied closure.
 ///
-/// Within "raw" mode, effects will not gather dependencies or subscribers,
+/// Whenever the "raw" tag is present, effects will not gather dependencies or subscribers,
 /// meaning that reads don't imply a dependency and writes don't imply an execution.
 ///
 /// # Implementations
-/// Signal implementations should not check for "raw" mode in `Drop` impls, or anytime
+/// Signal implementations should not check for the "raw" tag in `Drop` impls, or anytime
 /// *after* the user calls a signal operation. This means that, for example, when mutably
 /// borrowing a signal, you should call `Trigger::exec` before returning and save the value
 /// in the returned reference. This ensures that `with_raw` only needs to encapsulate the
@@ -366,14 +366,14 @@ where
 	f()
 }
 
-/// Enters "raw" mode with a guard
+/// Adds the "raw" tag with a guard
 ///
 /// See [`with_raw`] for details.
-pub fn enter_raw() -> WorldModeGuard {
-	WORLD.enter_mode(WorldMode::Raw)
+pub fn enter_raw() -> WorldTagGuard {
+	WORLD.add_tag(WorldTag::Raw)
 }
 
-/// Returns if "raw" mode is on
+/// Returns if the "raw" tag is present
 pub fn is_raw() -> bool {
-	WORLD.is_in_mode(WorldMode::Raw)
+	WORLD.has_tag(WorldTag::Raw)
 }

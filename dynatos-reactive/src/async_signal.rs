@@ -22,7 +22,7 @@ use {
 		effect,
 		loc::Loc,
 		trigger::TriggerExec,
-		world::{WorldMode, WorldModeGuard},
+		world::{WorldTag, WorldTagGuard},
 	},
 	core::{
 		cell::{self, RefCell},
@@ -348,9 +348,9 @@ impl<F: Loader> SignalBorrow for AsyncSignal<F> {
 			// If there's already a value, return it
 			Some(_) => Some(BorrowRef(inner)),
 
-			// Otherwise, start loading if not in "unloaded" mode
+			// Otherwise, start loading unless the "unloaded" tag is present
 			None => {
-				if WORLD.is_in_mode(WorldMode::Unloaded) {
+				if WORLD.has_tag(WorldTag::Unloaded) {
 					return None;
 				}
 
@@ -480,29 +480,29 @@ where
 	}
 }
 
-/// Enters "unloaded" mode within the supplied closure.
+/// Adds the "unloaded" tag to the world within the supplied closure.
 ///
-/// Within "unloaded" mode, async signals will not start loading
-/// their contents when accessed.
+/// Whenever the "unloaded" tag is present, async signals will not
+/// start loading their contents when accessed.
 #[track_caller]
 pub fn with_unloaded<F, O>(f: F) -> O
 where
 	F: FnOnce() -> O,
 {
-	let _guard = WORLD.enter_mode(WorldMode::Unloaded);
+	let _guard = WORLD.add_tag(WorldTag::Unloaded);
 	f()
 }
 
-/// Enters "unloaded" mode with a guard
+/// Adds the "unloaded" tag with a guard
 ///
 /// See [`with_unloaded`] for details.
-pub fn enter_unloaded() -> WorldModeGuard {
-	WORLD.enter_mode(WorldMode::Unloaded)
+pub fn enter_unloaded() -> WorldTagGuard {
+	WORLD.add_tag(WorldTag::Unloaded)
 }
 
-/// Returns if "unloaded" mode is on
+/// Returns the "unloaded" tag is present
 pub fn is_unloaded() -> bool {
-	WORLD.is_in_mode(WorldMode::Unloaded)
+	WORLD.has_tag(WorldTag::Unloaded)
 }
 
 /// Effect function
