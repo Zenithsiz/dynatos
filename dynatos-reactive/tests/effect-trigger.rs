@@ -9,7 +9,7 @@ use {
 		cell::{Cell, OnceCell},
 		mem,
 	},
-	dynatos_reactive::{effect, Effect, Trigger, WeakEffect, WeakTrigger},
+	dynatos_reactive::{Effect, Trigger, WeakEffect, WeakTrigger, effect},
 	zutil_cloned::cloned,
 };
 

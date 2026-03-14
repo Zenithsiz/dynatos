@@ -8,7 +8,7 @@ use {
 	convert_case::Casing,
 	proc_macro::TokenStream,
 	quote::quote,
-	syn::{punctuated::Punctuated, Token},
+	syn::{Token, punctuated::Punctuated},
 };
 
 #[proc_macro_attribute]

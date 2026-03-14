@@ -28,7 +28,7 @@ pub use ops::{
 
 // Imports
 use {
-	crate::{trigger::TriggerExec, Trigger},
+	crate::{Trigger, trigger::TriggerExec},
 	core::{
 		cell::{self, RefCell},
 		fmt,

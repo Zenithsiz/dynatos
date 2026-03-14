@@ -3,7 +3,7 @@
 // Imports
 use {
 	super::{EnumSplitValue, SignalStorage},
-	crate::{effect, Effect, Signal, SignalGetCloned, SignalSet, SignalWith},
+	crate::{Effect, Signal, SignalGetCloned, SignalSet, SignalWith, effect},
 	core::marker::PhantomData,
 	zutil_cloned::cloned,
 };

@@ -2,7 +2,7 @@
 
 // Imports
 use {
-	crate::{dep_graph::EffectDepInfo, WeakEffect},
+	crate::{WeakEffect, dep_graph::EffectDepInfo},
 	core::{
 		cell::RefCell,
 		cmp::Reverse,
