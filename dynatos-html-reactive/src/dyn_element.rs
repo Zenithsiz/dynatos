@@ -6,14 +6,15 @@ use {
 		cell::{LazyCell, RefCell},
 		ops::Deref,
 	},
+	dynatos_html::{Child, html},
 	dynatos_reactive::{Derived, Effect, Memo, Signal, SignalWith, WithDefault, derived::DerivedRun, effect},
 	dynatos_util::TryOrReturnExt,
 	js_sys::WeakRef,
-	std::sync::{LazyLock, oneshot},
+	std::{rc::Rc, sync::LazyLock},
 };
 
 /// A dynamic element
-pub struct DynElement(web_sys::Element);
+pub struct DynElement(Rc<RefCell<web_sys::Element>>);
 
 impl DynElement {
 	/// Creates a new dynamic element
@@ -21,63 +22,39 @@ impl DynElement {
 	where
 		T: ToDynElement + 'static,
 	{
-		struct State {
-			// TODO: Not need to send the element via a channel here.
-			send_el: Option<oneshot::Sender<web_sys::Element>>,
-			element: Option<WeakRef<web_sys::Element>>,
-		}
+		let default_element = web_sys::Element::from(html::template());
+		let element_weak_ref = RefCell::new(WeakRef::<web_sys::Element>::new(&default_element));
 
-		let (send_el, recv_el) = oneshot::channel();
-		let state = RefCell::new(State {
-			send_el: Some(send_el),
-			element: None,
-		});
+		let element = Rc::new(RefCell::new(default_element));
+		let element_weak_rc = Rc::downgrade(&element);
 
-		Effect::new(move || {
-			let cur_element = match &state.borrow().element {
-				// Note: If we already had an element, but it's been dropped, then
-				//       there's nothing to do, and we'll get garbage collected soon
-				Some(element) => Some(element.deref().or_return()?),
-				// This only happens on the first invocation.
-				None => None,
-			};
+		let _ = Effect::new(move || {
+			// If our element is gone, we can safely quit.
+			let cur_element = WeakRef::deref(&element_weak_ref.borrow()).or_return()?;
 
 			// When creating a new effect, always re-attach the effect to it.
 			let this_effect = effect::running().expect("Should have an effect running");
 			let new_element = f.to_element();
 			new_element.attach_effect(this_effect);
 
-			// Then if we had an existing element, replace it with the new one
-			if let Some(cur_element) = cur_element {
-				cur_element
-					.replace_with_with_node_1(&new_element)
-					.expect("Unable to replace element");
-			}
-
-			// And finally update the state.
-			let mut state = state.borrow_mut();
-			state.element = Some(WeakRef::new(&new_element));
-
-			// If this is the first invocation, send the element through
-			// the channel.
-			if let Some(send_el) = state.send_el.take() {
-				_ = send_el.send(new_element);
+			// Replace the element in both the dom, our weak ref to it, and
+			// the reference in the dyn element, if it's still alive.
+			cur_element
+				.replace_with_with_node_1(&new_element)
+				.expect("Unable to replace element");
+			*element_weak_ref.borrow_mut() = WeakRef::new(&new_element);
+			if let Some(element) = element_weak_rc.upgrade() {
+				*element.borrow_mut() = new_element;
 			}
 		});
-		let element = recv_el.recv().expect("Should have an element");
 
 		Self(element)
 	}
 }
 
-#[duplicate::duplicate_item(
-	Ty;
-	[web_sys::Node];
-	[web_sys::Element];
-)]
-impl AsRef<Ty> for DynElement {
-	fn as_ref(&self) -> &Ty {
-		&self.0
+impl Child for DynElement {
+	fn append(&self, node: &web_sys::Node) -> Result<(), wasm_bindgen::JsValue> {
+		self.0.borrow().append(node)
 	}
 }
 
