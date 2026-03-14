@@ -176,6 +176,15 @@ where
 	T: 'static,
 	F: FnOnce(&T) -> O,
 {
+	context_stack::with_top(|value| value.map(f))
+}
+
+/// Uses a value of `T` on the current context
+pub fn try_with<T, F, O>(f: F) -> O
+where
+	T: 'static,
+	F: FnOnce(Option<&T>) -> O,
+{
 	context_stack::with_top(f)
 }
 
