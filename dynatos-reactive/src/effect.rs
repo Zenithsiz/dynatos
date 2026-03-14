@@ -237,6 +237,11 @@ impl<F: ?Sized> Effect<F> {
 		// Clear the dependencies/subscribers before running
 		WORLD.dep_graph().clear_effect(self);
 
+		// Note: As per the documentation, we remove the raw tag when
+		//       gathering dependencies inside of an effect, to ensure
+		//       the tag is only active during the current reactivity frame.
+		let _no_raw = WORLD.remove_tag(WorldTag::Raw);
+
 		// Then run it
 		let ctx = EffectRunCtx::new();
 		let _gatherer = self.deps_gatherer();

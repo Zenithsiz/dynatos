@@ -8,7 +8,7 @@ pub use self::tags::{WorldTag, WorldTagGuard};
 
 // Imports
 use {
-	self::tags::WorldTagsData,
+	self::tags::{WorldTagState, WorldTagsData},
 	crate::{dep_graph::DepGraph, effect_stack::EffectStack, run_queue::RunQueue},
 	core::cell::LazyCell,
 };
@@ -63,15 +63,21 @@ impl World {
 		&self.run_queue
 	}
 
-	/// Returns if a tag is present
-	pub const fn has_tag(&self, tag: WorldTag) -> bool {
-		self.tags.has_tag(tag)
+	/// Returns if a tag is present and enabled
+	pub fn has_tag(&self, tag: WorldTag) -> bool {
+		self.tags.get(tag).is_some_and(|tag| tag == WorldTagState::Enabled)
 	}
 
 	/// Adds a tag to the world until the guard is dropped.
 	// TODO: Specify what happens when recursive tags are added & dropped.
 	pub fn add_tag(&self, tag: WorldTag) -> WorldTagGuard {
-		self.tags.add_tag(tag)
+		self.tags.push(tag, WorldTagState::Enabled)
+	}
+
+	/// Removes a tag from the world until the guard is dropped.
+	// TODO: Specify what happens when recursive tags are added & dropped.
+	pub fn remove_tag(&self, tag: WorldTag) -> WorldTagGuard {
+		self.tags.push(tag, WorldTagState::Disabled)
 	}
 }
 
