@@ -69,12 +69,14 @@ where
 				idx += 1;
 			});
 
-			// Then remove any leftovers (except for the very first node)
-			for prev_node in prev_children.drain(idx.max(1)..) {
-				node.remove_child(&prev_node).expect("Unable to remove reactive child");
+			// Then remove any leftovers (except for the very first node, if we're non-empty)
+			if !prev_children.is_empty() {
+				for prev_node in prev_children.drain(idx.max(1)..) {
+					node.remove_child(&prev_node).expect("Unable to remove reactive child");
+				}
 			}
 
-			// If we were going to end up empty, replace the first child
+			// If we were going to end up empty, replace/add the first child
 			// with an empty child to keep our position instead.
 			if idx == 0 {
 				replace_prev_child(&mut prev_children, 0, empty_child.clone());
