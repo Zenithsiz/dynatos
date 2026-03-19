@@ -1,5 +1,6 @@
 {
 	"cSpell.words": [
+		"asref",
 		"asyncness",
 		"Dynatos",
 		"eframe",
@@ -15,9 +16,6 @@
 		"unsize",
 		"zutil"
 	],
-	"rust-analyzer.linkedProjects": [
-		"Cargo.toml",
-		"examples/Cargo.toml"
-	],
+	"rust-analyzer.linkedProjects": ["Cargo.toml", "examples/Cargo.toml"],
 	"rust-analyzer.cargo.features": "all"
 }

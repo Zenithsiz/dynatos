@@ -176,7 +176,22 @@ pub trait Child {
 	fn append(&self, node: &web_sys::Node) -> Result<(), JsValue>;
 }
 
-impl<C: AsRef<web_sys::Node>> Child for C {
+// TODO: Impl for `impl AsRef<web_sys::Element>` if we can get rid of
+//       the conflict due to the blanket impl of `Children`
+#[allow(clippy::allow_attributes, reason = "This only applies in some branches")]
+#[allow(
+	clippy::use_self,
+	clippy::useless_asref,
+	reason = "We always want to use `web_sys::Element`, not `Ty`"
+)]
+#[duplicate::duplicate_item(
+	Ty;
+	[web_sys::Node];
+	[web_sys::Text];
+	[web_sys::Element];
+	[web_sys::HtmlElement];
+)]
+impl Child for Ty {
 	fn append(&self, node: &web_sys::Node) -> Result<(), JsValue> {
 		// If the node already contains us, warn and refuse to add it.
 		let child = self.as_ref();
@@ -196,6 +211,12 @@ impl<C: AsRef<web_sys::Node>> Child for C {
 pub trait Children {
 	/// Appends all children in this type
 	fn append_all(self, node: &web_sys::Node) -> Result<(), JsValue>;
+}
+
+impl<C: Child> Children for C {
+	fn append_all(self, node: &web_sys::Node) -> Result<(), JsValue> {
+		self.append(node)
+	}
 }
 
 impl Children for () {
