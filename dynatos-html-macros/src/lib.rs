@@ -200,10 +200,10 @@ impl Node {
 
 						let expr = match child.ty {
 							NodeTy::Element | NodeTy::Text | NodeTy::Comment => syn::parse_quote! {
-								dynatos_html::NodeAddChildren::add_child(&#el, #child);
+								dynatos_html::NodeAddChildren::add_children(&#el, #child);
 							},
 							NodeTy::Expr => syn::parse_quote! {
-								dynatos_html_reactive::NodeDynChild::add_dyn_child(&#el, #child);
+								dynatos_html_reactive::NodeDynChildren::add_dyn_children(&#el, #child);
 							},
 						};
 
