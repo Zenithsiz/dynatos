@@ -10,7 +10,6 @@ use {
 	dynatos_html_reactive::NodeWithDynChildren,
 	dynatos_reactive::{Signal, SignalBorrowMut, SignalGet, SignalSet},
 	tracing_subscriber::prelude::*,
-	web_sys::HtmlElement,
 	zutil_cloned::cloned,
 };
 
@@ -43,7 +42,7 @@ fn run() -> Result<(), AppError> {
 	Ok(())
 }
 
-fn parent() -> HtmlElement {
+fn parent() -> web_sys::HtmlElement {
 	let base = Signal::new(0);
 	let num_children = Signal::new(2);
 
@@ -56,13 +55,13 @@ fn parent() -> HtmlElement {
 		.with_child(html::p().with_text("Footer"))
 }
 
-fn child(base: i32, num_children: i32) -> Vec<HtmlElement> {
+fn child(base: i32, num_children: i32) -> Vec<web_sys::HtmlElement> {
 	(0..num_children)
 		.map(|idx| html::p().with_text(format!("{}", base + idx)))
 		.collect()
 }
 
-fn counter(name: &str, value: Signal<i32>) -> HtmlElement {
+fn counter(name: &str, value: Signal<i32>) -> web_sys::HtmlElement {
 	#[cloned(value)]
 	let reset = move |_ev| value.set(0);
 	#[cloned(value)]

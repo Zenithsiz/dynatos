@@ -4,7 +4,6 @@
 use {
 	crate::HTML_NAMESPACE,
 	wasm_bindgen::{JsCast, JsValue},
-	web_sys::{HtmlCanvasElement, HtmlElement, HtmlImageElement, HtmlInputElement, HtmlTextAreaElement},
 };
 
 /// Expands to `stringify!($el_name)`, if present, otherwise to `$fn_name`
@@ -23,7 +22,7 @@ macro el_ty {
 		$ElTy
 	},
 	() => {
-		HtmlElement
+		web_sys::HtmlElement
 	},
 }
 
@@ -70,7 +69,7 @@ decl_elements! {
 	body,
 	br,
 	button,
-	canvas: HtmlCanvasElement,
+	canvas: web_sys::HtmlCanvasElement,
 	caption,
 	center,
 	cite,
@@ -113,8 +112,8 @@ decl_elements! {
 	i,
 	iframe,
 	image,
-	img: HtmlImageElement,
-	input: HtmlInputElement,
+	img: web_sys::HtmlImageElement,
+	input: web_sys::HtmlInputElement,
 	ins,
 	kbd,
 	label,
@@ -173,7 +172,7 @@ decl_elements! {
 	tbody,
 	td,
 	template,
-	textarea: HtmlTextAreaElement,
+	textarea: web_sys::HtmlTextAreaElement,
 	tfoot,
 	th,
 	thead,

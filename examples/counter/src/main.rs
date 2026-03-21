@@ -9,7 +9,6 @@ use {
 	dynatos_html::{JsResultContext, html},
 	dynatos_reactive::{Signal, SignalBorrowMut, SignalGet, SignalSet},
 	tracing_subscriber::prelude::*,
-	web_sys::HtmlElement,
 	zutil_cloned::cloned,
 };
 
@@ -42,7 +41,7 @@ fn run() -> Result<(), AppError> {
 	Ok(())
 }
 
-fn counter() -> HtmlElement {
+fn counter() -> web_sys::HtmlElement {
 	let value = Signal::new(0);
 
 	#[cloned(value)]

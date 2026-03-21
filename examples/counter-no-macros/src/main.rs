@@ -7,7 +7,6 @@ use {
 	dynatos_html_reactive::NodeWithDynText,
 	dynatos_reactive::{Signal, SignalBorrowMut, SignalGet, SignalSet},
 	tracing_subscriber::prelude::*,
-	web_sys::HtmlElement,
 };
 
 fn main() {
@@ -39,7 +38,7 @@ fn run() -> Result<(), AppError> {
 	Ok(())
 }
 
-fn counter() -> HtmlElement {
+fn counter() -> web_sys::HtmlElement {
 	let value = Signal::new(0i32);
 	html::div().with_children([
 		{

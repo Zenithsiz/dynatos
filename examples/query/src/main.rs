@@ -12,7 +12,6 @@ use {
 	dynatos_reactive::{SignalBorrowMut, SignalGetCloned, SignalSet},
 	dynatos_router::{Location, QuerySignal, SingleQuery},
 	tracing_subscriber::prelude::*,
-	web_sys::HtmlElement,
 	zutil_cloned::cloned,
 };
 
@@ -46,7 +45,7 @@ fn run() -> Result<(), AppError> {
 	Ok(())
 }
 
-fn page() -> HtmlElement {
+fn page() -> web_sys::HtmlElement {
 	// TODO: If we add `.with_loadable_default()`, use it again in this example.
 	let query = QuerySignal::new(SingleQuery::<i32>::new("a"));
 

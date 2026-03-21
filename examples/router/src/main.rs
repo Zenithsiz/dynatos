@@ -12,7 +12,6 @@ use {
 	dynatos_reactive::SignalGetCloned,
 	dynatos_router::Location,
 	tracing_subscriber::prelude::*,
-	web_sys::HtmlElement,
 };
 
 fn main() {
@@ -58,10 +57,10 @@ fn run() -> Result<(), AppError> {
 }
 
 #[thread_local]
-static ROUTE_CACHED: LazyCell<HtmlElement> = LazyCell::new(|| self::page("Cached"));
+static ROUTE_CACHED: LazyCell<web_sys::HtmlElement> = LazyCell::new(|| self::page("Cached"));
 
 
-fn render_route() -> Option<HtmlElement> {
+fn render_route() -> Option<web_sys::HtmlElement> {
 	let location = dynatos_context::with_expect::<Location, _, _>(|location| location.get_cloned());
 
 	tracing::info!(%location, "Rendering route");
@@ -77,7 +76,7 @@ fn render_route() -> Option<HtmlElement> {
 	}
 }
 
-fn page(name: &str) -> HtmlElement {
+fn page(name: &str) -> web_sys::HtmlElement {
 	tracing::info!(%name, "Rendering page");
 	html::p().with_text(format!("Page {name}"))
 }

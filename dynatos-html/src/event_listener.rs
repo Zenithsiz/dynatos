@@ -5,7 +5,6 @@ use {
 	dynatos_util::TryOrReturnExt,
 	js_sys::WeakRef,
 	wasm_bindgen::{ErasableGeneric, JsCast, JsValue, closure::Closure, convert::FromWasmAbi},
-	web_sys::js_sys,
 };
 
 /// Extension trait to define an event listener on an event target with a closure
@@ -110,21 +109,7 @@ pub macro ev($Event:ident) {
 )]
 mod ev {
 	// Imports
-	use {
-		super::EventListener,
-		web_sys::{
-			ClipboardEvent,
-			DragEvent,
-			Event,
-			FocusEvent,
-			InputEvent,
-			MouseEvent,
-			PointerEvent,
-			PopStateEvent,
-			SubmitEvent,
-			WheelEvent,
-		},
-	};
+	use super::EventListener;
 
 	macro define_events(
 		$(
@@ -145,22 +130,22 @@ mod ev {
 	}
 
 	define_events! {
-		load: Event;
-		click: PointerEvent;
-		change: Event;
-		input: InputEvent;
-		submit: SubmitEvent;
-		blur: FocusEvent;
-		dblclick: MouseEvent;
-		wheel: WheelEvent;
-		paste: ClipboardEvent;
-		drop: DragEvent;
-		dragstart: DragEvent;
-		dragover: DragEvent;
-		popstate: PopStateEvent;
-		pointermove: PointerEvent;
-		pointerdown: PointerEvent;
-		pointerup: PointerEvent;
-		pointerout: PointerEvent;
+		load: web_sys::Event;
+		click: web_sys::PointerEvent;
+		change: web_sys::Event;
+		input: web_sys::InputEvent;
+		submit: web_sys::SubmitEvent;
+		blur: web_sys::FocusEvent;
+		dblclick: web_sys::MouseEvent;
+		wheel: web_sys::WheelEvent;
+		paste: web_sys::ClipboardEvent;
+		drop: web_sys::DragEvent;
+		dragstart: web_sys::DragEvent;
+		dragover: web_sys::DragEvent;
+		popstate: web_sys::PopStateEvent;
+		pointermove: web_sys::PointerEvent;
+		pointerdown: web_sys::PointerEvent;
+		pointerup: web_sys::PointerEvent;
+		pointerout: web_sys::PointerEvent;
 	}
 }

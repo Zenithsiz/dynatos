@@ -8,7 +8,6 @@ use {
 	app_error::AppError,
 	dynatos_html::{JsResultContext, NodeWithChildren, NodeWithText, html, html_file},
 	tracing_subscriber::prelude::*,
-	web_sys::HtmlElement,
 };
 
 fn main() {
@@ -40,7 +39,7 @@ fn run() -> Result<(), AppError> {
 	Ok(())
 }
 
-fn import_html() -> HtmlElement {
+fn import_html() -> web_sys::HtmlElement {
 	let static_literal = html!(r#"<div>Static from literal</div>"#);
 
 	let static_file = html_file!("import-html/src/pages/static.html");

@@ -5,13 +5,12 @@ use {
 	crate::Location,
 	dynatos_html::{ElementWithAttr, EventTargetWithListener, ev, html},
 	dynatos_reactive::{SignalBorrow, SignalSet},
-	web_sys::HtmlElement,
 };
 
 /// Creates a reactive anchor element.
 ///
 /// Expects a context of type [`Location`](crate::Location).
-pub fn anchor<U>(new_location: U) -> HtmlElement
+pub fn anchor<U>(new_location: U) -> web_sys::HtmlElement
 where
 	U: AsRef<str> + 'static,
 {

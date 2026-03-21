@@ -11,7 +11,6 @@ use {
 	dynatos_reactive::{Signal, SignalGet, SignalSet, SignalUpdate},
 	strum::VariantArray,
 	tracing_subscriber::prelude::*,
-	web_sys::HtmlElement,
 	zutil_cloned::cloned,
 };
 
@@ -44,7 +43,7 @@ fn run() -> Result<(), AppError> {
 	Ok(())
 }
 
-fn parent() -> HtmlElement {
+fn parent() -> web_sys::HtmlElement {
 	let outer_el = Signal::new(Element::P);
 	html::div()
 		.with_child(
