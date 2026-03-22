@@ -172,7 +172,10 @@ impl Node {
 									syn::parse_str::<syn::Expr>(value).expect("Unable to parse event listener value");
 
 								syn::parse_quote! {
-									dynatos_web::EventTargetAddListener::add_event_listener::<dynatos_web::ev!(#tag)>(&#el, #value);
+									dynatos_web::EventTargetAddListener::add_event_listener::<dynatos_web::ev!(#tag)>(
+										AsRef::<web_sys::EventTarget>::as_ref(&#el),
+										#value
+									);
 								}
 							},
 
@@ -200,7 +203,10 @@ impl Node {
 
 						let expr = match child.ty {
 							NodeTy::Element | NodeTy::Text | NodeTy::Comment => syn::parse_quote! {
-								dynatos_web::NodeAddChildren::add_children(&#el, #child);
+								dynatos_web::NodeAddChildren::add_children(
+									AsRef::<web_sys::Node>::as_ref(&#el),
+									#child
+								);
 							},
 							NodeTy::Expr => syn::parse_quote! {
 								dynatos_web_reactive::NodeDynChildren::add_dyn_children(&#el, #child);

@@ -114,10 +114,7 @@ impl AsTextContent for Ty {
 
 /// Extension trait to add children to an node
 #[extend::ext_sized(name = NodeAddChildren)]
-pub impl<T> T
-where
-	T: AsRef<web_sys::Node>,
-{
+pub impl web_sys::Node {
 	fn add_child<C>(&self, child: C)
 	where
 		C: Child,
@@ -373,10 +370,7 @@ where
 
 /// Extension trait to *append* a class
 #[extend::ext_sized(name = ElementAddClass)]
-pub impl<T> T
-where
-	T: AsRef<web_sys::Element>,
-{
+pub impl web_sys::Element {
 	fn add_class<C>(&self, class: C)
 	where
 		C: AsRef<str>,
@@ -393,13 +387,12 @@ where
 		// TODO: Not allocate the classes here.
 		let classes = classes.into_iter().collect::<Vec<_>>();
 		let class_name = self
-			.as_ref()
 			.class_name()
 			.split_whitespace()
 			.chain(classes.iter().map(C::as_ref))
 			.join(" ");
 
-		self.as_ref().set_class_name(&class_name);
+		self.set_class_name(&class_name);
 	}
 }
 

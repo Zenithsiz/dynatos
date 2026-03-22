@@ -17,10 +17,7 @@ use {
 
 /// Extension trait to add reactive children to an node
 #[extend::ext(name = NodeDynChildren)]
-pub impl<N> N
-where
-	N: AsRef<web_sys::Node>,
-{
+pub impl web_sys::Node {
 	/// Adds dynamic children to this node
 	#[track_caller]
 	fn add_dyn_children<C>(&self, children: C)
@@ -34,7 +31,7 @@ where
 		// Note: We have an empty `<template>` so that we can track the position
 		//       of the node, in case of `f` returning `None`.
 		// TODO: Find a better solution than using an empty `<template>` element?
-		let node = WeakRef::new(self.as_ref());
+		let node = WeakRef::new(self);
 		let prev_children = RefCell::new(vec![]);
 		let empty_child = web_sys::Node::from(html::template());
 		let child_effect = Effect::try_new(move || {
@@ -85,7 +82,7 @@ where
 		.or_return()?;
 
 		// Then set it
-		self.as_ref().attach_effect(child_effect);
+		self.attach_effect(child_effect);
 	}
 }
 
@@ -103,7 +100,7 @@ where
 	where
 		C: WithDynNodes + 'static,
 	{
-		self.add_dyn_children(children);
+		self.as_ref().add_dyn_children(children);
 		self
 	}
 }

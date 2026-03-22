@@ -11,10 +11,7 @@ use {
 
 /// Extension trait to add a reactive child to an node
 #[extend::ext(name = NodeDynChild)]
-pub impl<N> N
-where
-	N: AsRef<web_sys::Node>,
-{
+pub impl web_sys::Node {
 	/// Adds a dynamic child to this node
 	#[track_caller]
 	fn add_dyn_child<C>(&self, child: C)
@@ -47,7 +44,7 @@ where
 	where
 		C: WithDynNode + 'static,
 	{
-		self.add_dyn_child(child);
+		self.as_ref().add_dyn_child(child);
 		self
 	}
 }

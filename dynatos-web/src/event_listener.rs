@@ -9,10 +9,7 @@ use {
 
 /// Extension trait to define an event listener on an event target with a closure
 #[extend::ext(name = EventTargetAddListener)]
-pub impl<T> T
-where
-	T: AsRef<web_sys::EventTarget>,
-{
+pub impl web_sys::EventTarget {
 	/// Adds an event listener to this target
 	fn add_event_listener<E>(&self, f: impl Fn(E::Event) + 'static)
 	where
@@ -31,8 +28,7 @@ where
 
 		// Then add it
 		// TODO: Can this fail? On MDN, nothing seems to mention it can throw.
-		self.as_ref()
-			.add_event_listener_with_callback(event_type, &closure)
+		self.add_event_listener_with_callback(event_type, &closure)
 			.expect("Unable to add event listener");
 	}
 }
@@ -50,7 +46,7 @@ where
 	where
 		E: EventListener,
 	{
-		self.add_event_listener::<E>(f);
+		self.as_ref().add_event_listener::<E>(f);
 		self
 	}
 }
