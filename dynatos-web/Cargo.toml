@@ -1,0 +1,46 @@
+[package]
+name    = "dynatos-web"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+
+dynatos-util       = { workspace = true }
+dynatos-web-macros = { workspace = true }
+dynatos-web-parser = { workspace = true }
+
+app-error = { optional = true, workspace = true }
+duplicate = { workspace = true }
+extend = { workspace = true }
+itertools = { workspace = true }
+js-sys = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+wasm-bindgen = { workspace = true }
+web-sys = { features = [
+	"ClipboardEvent",
+	"Comment",
+	"CssStyleDeclaration",
+	"Document",
+	"DragEvent",
+	"Element",
+	"FocusEvent",
+	"HtmlCanvasElement",
+	"HtmlElement",
+	"HtmlImageElement",
+	"HtmlInputElement",
+	"HtmlTextAreaElement",
+	"InputEvent",
+	"PointerEvent",
+	"PopStateEvent",
+	"SubmitEvent",
+	"Text",
+	"WheelEvent",
+	"Window",
+], workspace = true }
+
+[features]
+app-error = ["dep:app-error"]
+
+[lints]
+workspace = true

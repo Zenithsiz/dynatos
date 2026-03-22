@@ -6,14 +6,14 @@ resolver = "2"
 [workspace.dependencies]
 
 # Parent workspace members
-dynatos-context       = { path = "../dynatos-context" }
-dynatos-html          = { path = "../dynatos-html" }
-dynatos-html-reactive = { path = "../dynatos-html-reactive" }
-dynatos-html-router   = { path = "../dynatos-html-router" }
-dynatos-html-title    = { path = "../dynatos-html-title" }
-dynatos-loadable      = { path = "../dynatos-loadable" }
-dynatos-reactive      = { path = "../dynatos-reactive" }
-dynatos-util          = { path = "../dynatos-util" }
+dynatos-context      = { path = "../dynatos-context" }
+dynatos-loadable     = { path = "../dynatos-loadable" }
+dynatos-reactive     = { path = "../dynatos-reactive" }
+dynatos-util         = { path = "../dynatos-util" }
+dynatos-web          = { path = "../dynatos-web" }
+dynatos-web-reactive = { path = "../dynatos-web-reactive" }
+dynatos-web-router   = { path = "../dynatos-web-router" }
+dynatos-web-title    = { path = "../dynatos-web-title" }
 
 app-error                = "0.1.0"
 console_error_panic_hook = "0.1.7"

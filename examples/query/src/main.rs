@@ -6,9 +6,9 @@
 // Imports
 use {
 	app_error::AppError,
-	dynatos_html::{EventTargetWithListener, NodeWithChildren, NodeWithText, ev, html},
-	dynatos_html_reactive::{NodeWithDynText, ObjectWithContext},
-	dynatos_html_router::{Location, QuerySignal, SingleQuery},
+	dynatos_web::{EventTargetWithListener, NodeWithChildren, NodeWithText, ev, html},
+	dynatos_web_reactive::{NodeWithDynText, ObjectWithContext},
+	dynatos_web_router::{Location, QuerySignal, SingleQuery},
 	dynatos_loadable::Loadable,
 	dynatos_reactive::{SignalBorrowMut, SignalGetCloned, SignalSet},
 	tracing_subscriber::prelude::*,
@@ -53,11 +53,11 @@ fn page() -> web_sys::HtmlElement {
 		#[cloned(query)]
 		html::p().with_dyn_text(move || format!("{:?}", query.get_cloned())),
 		html::hr(),
-		dynatos_html_router::anchor("/?a=5").with_text("5"),
+		dynatos_web_router::anchor("/?a=5").with_text("5"),
 		html::br(),
-		dynatos_html_router::anchor("/?a=7").with_text("7"),
+		dynatos_web_router::anchor("/?a=7").with_text("7"),
 		html::br(),
-		dynatos_html_router::anchor("/?a=abc").with_text("abc"),
+		dynatos_web_router::anchor("/?a=abc").with_text("abc"),
 		html::br(),
 		#[cloned(query)]
 		html::button()

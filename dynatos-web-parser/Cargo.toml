@@ -1,0 +1,12 @@
+[package]
+name    = "dynatos-web-parser"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+
+thiserror   = { workspace = true }
+unicode-xid = { workspace = true }
+
+[lints]
+workspace = true

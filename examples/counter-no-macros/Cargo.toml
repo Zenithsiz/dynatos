@@ -5,10 +5,10 @@ edition = "2024"
 
 [dependencies]
 
-dynatos-html          = { features = ["app-error"], workspace = true }
-dynatos-html-reactive = { workspace = true }
-dynatos-reactive      = { workspace = true }
-dynatos-util          = { workspace = true }
+dynatos-reactive     = { workspace = true }
+dynatos-util         = { workspace = true }
+dynatos-web          = { features = ["app-error"], workspace = true }
+dynatos-web-reactive = { workspace = true }
 
 app-error                = { workspace = true }
 console_error_panic_hook = { workspace = true }

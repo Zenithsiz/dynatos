@@ -6,7 +6,7 @@
 // Imports
 use {
 	app_error::AppError,
-	dynatos_html::{JsResultContext, NodeWithChildren, NodeWithText, html, html_file},
+	dynatos_web::{JsResultContext, NodeWithChildren, NodeWithText, html, html_file},
 	tracing_subscriber::prelude::*,
 };
 
@@ -64,7 +64,7 @@ fn import_html() -> web_sys::HtmlElement {
 	let text2_value = "my-text2";
 
 	let dynamic =
-		dynatos_html::parse_html_element(include_str!("pages/dynamic.html"), dynatos_html::parse::environment! {
+		dynatos_web::parse_html_element(include_str!("pages/dynamic.html"), dynatos_web::parse::environment! {
 			element {
 				element1,
 				element2: element2_value,

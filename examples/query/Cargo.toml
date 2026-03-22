@@ -5,13 +5,13 @@ edition = "2024"
 
 [dependencies]
 
-dynatos-context       = { workspace = true }
-dynatos-html          = { workspace = true }
-dynatos-html-reactive = { workspace = true }
-dynatos-html-router   = { workspace = true }
-dynatos-loadable      = { workspace = true }
-dynatos-reactive      = { workspace = true }
-dynatos-util          = { workspace = true }
+dynatos-context      = { workspace = true }
+dynatos-loadable     = { workspace = true }
+dynatos-reactive     = { workspace = true }
+dynatos-util         = { workspace = true }
+dynatos-web          = { workspace = true }
+dynatos-web-reactive = { workspace = true }
+dynatos-web-router   = { workspace = true }
 
 zutil-cloned = { workspace = true }
 

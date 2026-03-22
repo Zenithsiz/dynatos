@@ -4,35 +4,35 @@ members = [
 	"dynatos-builder",
 	"dynatos-builder-macros",
 	"dynatos-context",
-	"dynatos-html",
-	"dynatos-html-macros",
-	"dynatos-html-parser",
-	"dynatos-html-reactive",
-	"dynatos-html-reactive-macros",
-	"dynatos-html-router",
-	"dynatos-html-title",
 	"dynatos-loadable",
 	"dynatos-reactive",
 	"dynatos-util",
+	"dynatos-web",
+	"dynatos-web-macros",
+	"dynatos-web-parser",
+	"dynatos-web-reactive",
+	"dynatos-web-reactive-macros",
+	"dynatos-web-router",
+	"dynatos-web-title",
 ]
 resolver = "2"
 
 [workspace.dependencies]
 
 # Workspace members
-dynatos-builder              = { path = "dynatos-builder" }
-dynatos-builder-macros       = { path = "dynatos-builder-macros" }
-dynatos-context              = { path = "dynatos-context" }
-dynatos-html                 = { path = "dynatos-html" }
-dynatos-html-macros          = { path = "dynatos-html-macros" }
-dynatos-html-parser          = { path = "dynatos-html-parser" }
-dynatos-html-reactive        = { path = "dynatos-html-reactive" }
-dynatos-html-reactive-macros = { path = "dynatos-html-reactive-macros" }
-dynatos-html-router          = { path = "dynatos-html-router" }
-dynatos-html-title           = { path = "dynatos-html-title" }
-dynatos-loadable             = { path = "dynatos-loadable" }
-dynatos-reactive             = { path = "dynatos-reactive" }
-dynatos-util                 = { path = "dynatos-util" }
+dynatos-builder             = { path = "dynatos-builder" }
+dynatos-builder-macros      = { path = "dynatos-builder-macros" }
+dynatos-context             = { path = "dynatos-context" }
+dynatos-loadable            = { path = "dynatos-loadable" }
+dynatos-reactive            = { path = "dynatos-reactive" }
+dynatos-util                = { path = "dynatos-util" }
+dynatos-web                 = { path = "dynatos-web" }
+dynatos-web-macros          = { path = "dynatos-web-macros" }
+dynatos-web-parser          = { path = "dynatos-web-parser" }
+dynatos-web-reactive        = { path = "dynatos-web-reactive" }
+dynatos-web-reactive-macros = { path = "dynatos-web-reactive-macros" }
+dynatos-web-router          = { path = "dynatos-web-router" }
+dynatos-web-title           = { path = "dynatos-web-title" }
 
 anyhow               = "1.0.102"
 app-error            = "0.1.0"

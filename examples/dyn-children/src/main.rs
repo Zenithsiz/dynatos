@@ -6,8 +6,8 @@
 // Imports
 use {
 	app_error::AppError,
-	dynatos_html::{JsResultContext, NodeWithChildren, NodeWithText, html},
-	dynatos_html_reactive::NodeWithDynChildren,
+	dynatos_web::{JsResultContext, NodeWithChildren, NodeWithText, html},
+	dynatos_web_reactive::NodeWithDynChildren,
 	dynatos_reactive::{Signal, SignalBorrowMut, SignalGet, SignalSet},
 	tracing_subscriber::prelude::*,
 	zutil_cloned::cloned,

@@ -6,7 +6,7 @@
 // Imports
 use {
 	app_error::AppError,
-	dynatos_html::{JsResultContext, html},
+	dynatos_web::{JsResultContext, html},
 	dynatos_reactive::{Signal, SignalBorrowMut, SignalGet, SignalSet},
 	tracing_subscriber::prelude::*,
 	zutil_cloned::cloned,

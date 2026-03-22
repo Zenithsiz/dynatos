@@ -118,106 +118,6 @@ name = "dynatos-context"
 version = "0.1.0"
 
 [[package]]
-name = "dynatos-html"
-version = "0.1.0"
-dependencies = [
- "app-error",
- "duplicate",
- "dynatos-html-macros",
- "dynatos-html-parser",
- "dynatos-util",
- "extend",
- "itertools",
- "js-sys",
- "thiserror",
- "tracing",
- "wasm-bindgen",
- "web-sys",
-]
-
-[[package]]
-name = "dynatos-html-macros"
-version = "0.1.0"
-dependencies = [
- "dynatos-html-parser",
- "itertools",
- "proc-macro2",
- "quote",
- "strum",
- "syn",
-]
-
-[[package]]
-name = "dynatos-html-parser"
-version = "0.1.0"
-dependencies = [
- "thiserror",
- "unicode-xid",
-]
-
-[[package]]
-name = "dynatos-html-reactive"
-version = "0.1.0"
-dependencies = [
- "duplicate",
- "dynatos-context",
- "dynatos-html",
- "dynatos-html-reactive-macros",
- "dynatos-html-router",
- "dynatos-reactive",
- "dynatos-util",
- "extend",
- "js-sys",
- "tracing",
- "wasm-bindgen",
- "web-sys",
-]
-
-[[package]]
-name = "dynatos-html-reactive-macros"
-version = "0.1.0"
-dependencies = [
- "derive_utils",
- "quote",
- "syn",
-]
-
-[[package]]
-name = "dynatos-html-router"
-version = "0.1.0"
-dependencies = [
- "duplicate",
- "dynatos-context",
- "dynatos-html",
- "dynatos-loadable",
- "dynatos-reactive",
- "dynatos-util",
- "extend",
- "js-sys",
- "thiserror",
- "tracing",
- "url",
- "wasm-bindgen",
- "web-sys",
- "zutil-cloned",
-]
-
-[[package]]
-name = "dynatos-html-title"
-version = "0.1.0"
-dependencies = [
- "duplicate",
- "dynatos-html",
- "dynatos-reactive",
- "dynatos-util",
- "extend",
- "js-sys",
- "tracing",
- "wasm-bindgen",
- "web-sys",
-]
-
-[[package]]
 name = "dynatos-loadable"
 version = "0.1.0"
 dependencies = [
@@ -255,6 +155,106 @@ version = "0.1.0"
 dependencies = [
  "duplicate",
  "extend",
+]
+
+[[package]]
+name = "dynatos-web"
+version = "0.1.0"
+dependencies = [
+ "app-error",
+ "duplicate",
+ "dynatos-util",
+ "dynatos-web-macros",
+ "dynatos-web-parser",
+ "extend",
+ "itertools",
+ "js-sys",
+ "thiserror",
+ "tracing",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "dynatos-web-macros"
+version = "0.1.0"
+dependencies = [
+ "dynatos-web-parser",
+ "itertools",
+ "proc-macro2",
+ "quote",
+ "strum",
+ "syn",
+]
+
+[[package]]
+name = "dynatos-web-parser"
+version = "0.1.0"
+dependencies = [
+ "thiserror",
+ "unicode-xid",
+]
+
+[[package]]
+name = "dynatos-web-reactive"
+version = "0.1.0"
+dependencies = [
+ "duplicate",
+ "dynatos-context",
+ "dynatos-reactive",
+ "dynatos-util",
+ "dynatos-web",
+ "dynatos-web-reactive-macros",
+ "dynatos-web-router",
+ "extend",
+ "js-sys",
+ "tracing",
+ "wasm-bindgen",
+ "web-sys",
+]
+
+[[package]]
+name = "dynatos-web-reactive-macros"
+version = "0.1.0"
+dependencies = [
+ "derive_utils",
+ "quote",
+ "syn",
+]
+
+[[package]]
+name = "dynatos-web-router"
+version = "0.1.0"
+dependencies = [
+ "duplicate",
+ "dynatos-context",
+ "dynatos-loadable",
+ "dynatos-reactive",
+ "dynatos-util",
+ "dynatos-web",
+ "extend",
+ "js-sys",
+ "thiserror",
+ "tracing",
+ "url",
+ "wasm-bindgen",
+ "web-sys",
+ "zutil-cloned",
+]
+
+[[package]]
+name = "dynatos-web-title"
+version = "0.1.0"
+dependencies = [
+ "duplicate",
+ "dynatos-reactive",
+ "dynatos-util",
+ "dynatos-web",
+ "extend",
+ "js-sys",
+ "tracing",
+ "wasm-bindgen",
+ "web-sys",
 ]
 
 [[package]]

@@ -1,0 +1,20 @@
+[package]
+name    = "dynatos-web-macros"
+version = "0.1.0"
+edition = "2024"
+
+[lib]
+proc-macro = true
+
+[dependencies]
+
+dynatos-web-parser = { workspace = true }
+
+itertools   = { workspace = true }
+proc-macro2 = { workspace = true }
+quote       = { workspace = true }
+strum       = { features = ["derive"], workspace = true }
+syn         = { workspace = true }
+
+[lints]
+workspace = true
