@@ -8,7 +8,7 @@ use {
 	core::{
 		any::{Any, TypeId},
 		cell::RefCell,
-		hash::BuildHasher,
+		hash::BuildHasherDefault,
 		marker::PhantomData,
 	},
 	dynatos_util::HoleyStack,
@@ -18,7 +18,7 @@ use {
 /// Context stack
 // TODO: Use type with less indirections?
 #[thread_local]
-static CTXS_STACK: CtxsStackImpl<dyn Any> = RefCell::new(HashMap::with_hasher(RandomState));
+static CTXS_STACK: CtxsStackImpl<dyn Any> = RefCell::new(HashMap::with_hasher(BuildHasherDefault::new()));
 
 /// Handle
 #[derive(Debug)]
@@ -151,16 +151,5 @@ pub fn take_opaque(handle: OpaqueHandle) -> Box<dyn Any> {
 	stack.pop(handle.idx).expect("Value was already taken")
 }
 
-type CtxsStackImpl<A> = RefCell<HashMap<TypeId, CtxStackImpl<A>, RandomState>>;
+type CtxsStackImpl<A> = RefCell<HashMap<TypeId, CtxStackImpl<A>, BuildHasherDefault<DefaultHasher>>>;
 type CtxStackImpl<A> = HoleyStack<Box<A>>;
-
-/// Hash builder for the stacks
-struct RandomState;
-
-impl BuildHasher for RandomState {
-	type Hasher = DefaultHasher;
-
-	fn build_hasher(&self) -> Self::Hasher {
-		DefaultHasher::default()
-	}
-}
