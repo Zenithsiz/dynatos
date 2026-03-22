@@ -5,5 +5,7 @@ edition = "2024"
 
 [dependencies]
 
+dynatos-util = { workspace = true }
+
 [lints]
 workspace = true

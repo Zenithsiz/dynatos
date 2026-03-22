@@ -1,13 +1,17 @@
 //! Utilities for `dynatos`
 
 // Features
-#![feature(decl_macro, never_type, try_trait_v2)]
+#![feature(decl_macro, never_type, try_trait_v2, option_reference_flattening)]
 
 // Modules
+pub mod holey_stack;
 pub mod try_or_return;
 
 // Exports
-pub use self::try_or_return::{TryOrReturn, TryOrReturnExt};
+pub use self::{
+	holey_stack::HoleyStack,
+	try_or_return::{TryOrReturn, TryOrReturnExt},
+};
 
 // Imports
 use {

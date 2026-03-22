@@ -1,7 +1,7 @@
 //! World tags
 
 // Imports
-use {super::WORLD, core::cell::RefCell};
+use {super::WORLD, core::cell::RefCell, dynatos_util::HoleyStack};
 
 /// Tag state
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
@@ -13,7 +13,7 @@ pub enum WorldTagState {
 /// Tag data
 #[derive(Default, Debug)]
 struct WorldTagData {
-	stack: RefCell<Vec<Option<WorldTagState>>>,
+	stack: RefCell<HoleyStack<WorldTagState>>,
 }
 
 /// Guard type for entering and exiting a tag
@@ -98,11 +98,7 @@ decl_tags! {
 impl WorldTagsData {
 	/// Returns a tag's state, if any
 	pub fn get(&self, tag: WorldTag) -> Option<WorldTagState> {
-		self.get_data(tag)
-			.stack
-			.borrow()
-			.last()
-			.map(|enabled| enabled.expect("Last tag on the stack was dropped"))
+		self.get_data(tag).stack.borrow().top().copied()
 	}
 
 	/// Pushes a tag onto the stack
@@ -110,9 +106,7 @@ impl WorldTagsData {
 		let tag_data = self.get_data(tag);
 		let mut stack = tag_data.stack.borrow_mut();
 
-		let idx = stack.len();
-		stack.push(Some(state));
-
+		let idx = stack.push(state);
 		WorldTagGuard { tag, idx }
 	}
 
@@ -121,7 +115,6 @@ impl WorldTagsData {
 		let tag_data = self.get_data(tag);
 		let mut stack = tag_data.stack.borrow_mut();
 
-		stack[idx] = None;
-		while stack.pop_if(|tag| tag.is_none()).is_some() {}
+		stack.pop(idx);
 	}
 }

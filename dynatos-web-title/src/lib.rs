@@ -6,11 +6,11 @@
 #![feature(thread_local)]
 
 // Imports
-use {core::cell::RefCell, dynatos_web::ObjectSetProp, wasm_bindgen::prelude::wasm_bindgen};
+use {core::cell::RefCell, dynatos_util::HoleyStack, dynatos_web::ObjectSetProp, wasm_bindgen::prelude::wasm_bindgen};
 
 /// Title stack.
 #[thread_local]
-static TITLE_STACK: RefCell<Vec<Option<String>>> = RefCell::new(vec![]);
+static TITLE_STACK: RefCell<HoleyStack<String>> = RefCell::new(HoleyStack::new());
 
 /// Title.
 ///
@@ -32,13 +32,12 @@ impl Title {
 		// If no title exists, add the current one
 		let mut stack = TITLE_STACK.borrow_mut();
 		if stack.is_empty() {
-			stack.push(Some(self::cur_title()));
+			stack.push(self::cur_title());
 		}
 
 		// Then set the title and add ours to the stack
 		self::set_title(&title);
-		let title_idx = stack.len();
-		stack.push(Some(title));
+		let title_idx = stack.push(title);
 
 		Self { title_idx }
 	}
@@ -48,21 +47,10 @@ impl Drop for Title {
 	fn drop(&mut self) {
 		// Remove our title
 		let mut stack = TITLE_STACK.borrow_mut();
-		let _prev_title = stack
-			.get_mut(self.title_idx)
-			.and_then(Option::take)
-			.expect("Title was already taken");
+		let _prev_title = stack.pop(self.title_idx).expect("Title was already taken");
 
 		// Then find the next title to set back to.
-		let next_title = loop {
-			let last = stack.last().expect("Should contain at least 1 title");
-			match last {
-				Some(title) => break title,
-				None => {
-					stack.pop().expect("Just checked the value existed");
-				},
-			}
-		};
+		let next_title = stack.top().expect("Should contain at least 1 title");
 		self::set_title(next_title);
 	}
 }

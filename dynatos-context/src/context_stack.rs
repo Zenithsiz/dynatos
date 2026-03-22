@@ -11,6 +11,7 @@ use {
 		hash::BuildHasher,
 		marker::PhantomData,
 	},
+	dynatos_util::HoleyStack,
 	std::{collections::HashMap, hash::DefaultHasher},
 };
 
@@ -52,8 +53,7 @@ where
 		.try_borrow_mut()
 		.expect("Cannot modify context while accessing it");
 	let stack = ctxs.entry(TypeId::of::<T>()).or_default();
-	let idx = stack.len();
-	stack.push(Some(Box::new(value) as Box<dyn Any>));
+	let idx = stack.push(Box::new(value));
 
 	Handle(idx, PhantomData)
 }
@@ -71,7 +71,7 @@ where
 
 	let value = try {
 		let stack = ctxs.get(&type_id)?;
-		let value = stack.last()?.as_ref().expect("Value was already taken");
+		let value = stack.top()?;
 		(&**value as &dyn Any)
 			.downcast_ref::<T>()
 			.expect("Value was the wrong type")
@@ -137,11 +137,7 @@ where
 		.try_borrow()
 		.expect("Cannot access context while modifying it");
 	let stack = ctxs.get(&handle.type_id).expect("Context stack should exist");
-	let value = stack
-		.get(handle.idx)
-		.expect("Index was invalid")
-		.as_ref()
-		.expect("Value was already taken");
+	let value = stack.get(handle.idx).expect("Value was already taken");
 	f(&**value)
 }
 
@@ -151,21 +147,12 @@ pub fn take_opaque(handle: OpaqueHandle) -> Box<dyn Any> {
 		.try_borrow_mut()
 		.expect("Cannot modify context while accessing it");
 	let stack = ctxs.get_mut(&handle.type_id).expect("Context stack should exist");
-	let value = stack
-		.get_mut(handle.idx)
-		.and_then(Option::take)
-		.expect("Value was already taken");
 
-	// Then remove any empty entries from the end
-	while stack.last().is_some_and(Option::is_none) {
-		stack.pop().expect("Should have a value at the end");
-	}
-
-	value
+	stack.pop(handle.idx).expect("Value was already taken")
 }
 
 type CtxsStackImpl<A> = RefCell<HashMap<TypeId, CtxStackImpl<A>, RandomState>>;
-type CtxStackImpl<A> = Vec<Option<Box<A>>>;
+type CtxStackImpl<A> = HoleyStack<Box<A>>;
 
 /// Hash builder for the stacks
 struct RandomState;
