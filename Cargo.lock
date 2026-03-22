@@ -163,8 +163,8 @@ dependencies = [
  "dynatos-context",
  "dynatos-html",
  "dynatos-html-reactive-macros",
+ "dynatos-html-router",
  "dynatos-reactive",
- "dynatos-router",
  "dynatos-util",
  "extend",
  "js-sys",
@@ -180,6 +180,41 @@ dependencies = [
  "derive_utils",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "dynatos-html-router"
+version = "0.1.0"
+dependencies = [
+ "duplicate",
+ "dynatos-context",
+ "dynatos-html",
+ "dynatos-loadable",
+ "dynatos-reactive",
+ "dynatos-util",
+ "extend",
+ "js-sys",
+ "thiserror",
+ "tracing",
+ "url",
+ "wasm-bindgen",
+ "web-sys",
+ "zutil-cloned",
+]
+
+[[package]]
+name = "dynatos-html-title"
+version = "0.1.0"
+dependencies = [
+ "duplicate",
+ "dynatos-html",
+ "dynatos-reactive",
+ "dynatos-util",
+ "extend",
+ "js-sys",
+ "tracing",
+ "wasm-bindgen",
+ "web-sys",
 ]
 
 [[package]]
@@ -212,41 +247,6 @@ dependencies = [
  "tracing",
  "wasm-bindgen-futures",
  "zutil-cloned",
-]
-
-[[package]]
-name = "dynatos-router"
-version = "0.1.0"
-dependencies = [
- "duplicate",
- "dynatos-context",
- "dynatos-html",
- "dynatos-loadable",
- "dynatos-reactive",
- "dynatos-util",
- "extend",
- "js-sys",
- "thiserror",
- "tracing",
- "url",
- "wasm-bindgen",
- "web-sys",
- "zutil-cloned",
-]
-
-[[package]]
-name = "dynatos-title"
-version = "0.1.0"
-dependencies = [
- "duplicate",
- "dynatos-html",
- "dynatos-reactive",
- "dynatos-util",
- "extend",
- "js-sys",
- "tracing",
- "wasm-bindgen",
- "web-sys",
 ]
 
 [[package]]

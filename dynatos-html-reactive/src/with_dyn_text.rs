@@ -3,8 +3,8 @@
 // Imports
 use {
 	core::ops::Deref,
+	dynatos_html_router::{QuerySignal, query_signal::QueryParse},
 	dynatos_reactive::{Derived, Memo, Signal, SignalWith, WithDefault, derived::DerivedRun},
-	dynatos_router::{QuerySignal, query_signal::QueryParse},
 };
 
 /// Values that may be used as possible dynamic text.

@@ -8,9 +8,9 @@ edition = "2024"
 dynatos-context       = { workspace = true }
 dynatos-html          = { workspace = true }
 dynatos-html-reactive = { workspace = true }
+dynatos-html-router   = { workspace = true }
 dynatos-loadable      = { workspace = true }
 dynatos-reactive      = { workspace = true }
-dynatos-router        = { workspace = true }
 dynatos-util          = { workspace = true }
 
 zutil-cloned = { workspace = true }

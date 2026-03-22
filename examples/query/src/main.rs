@@ -8,9 +8,9 @@ use {
 	app_error::AppError,
 	dynatos_html::{EventTargetWithListener, NodeWithChildren, NodeWithText, ev, html},
 	dynatos_html_reactive::{NodeWithDynText, ObjectWithContext},
+	dynatos_html_router::{Location, QuerySignal, SingleQuery},
 	dynatos_loadable::Loadable,
 	dynatos_reactive::{SignalBorrowMut, SignalGetCloned, SignalSet},
-	dynatos_router::{Location, QuerySignal, SingleQuery},
 	tracing_subscriber::prelude::*,
 	zutil_cloned::cloned,
 };
@@ -53,11 +53,11 @@ fn page() -> web_sys::HtmlElement {
 		#[cloned(query)]
 		html::p().with_dyn_text(move || format!("{:?}", query.get_cloned())),
 		html::hr(),
-		dynatos_router::anchor("/?a=5").with_text("5"),
+		dynatos_html_router::anchor("/?a=5").with_text("5"),
 		html::br(),
-		dynatos_router::anchor("/?a=7").with_text("7"),
+		dynatos_html_router::anchor("/?a=7").with_text("7"),
 		html::br(),
-		dynatos_router::anchor("/?a=abc").with_text("abc"),
+		dynatos_html_router::anchor("/?a=abc").with_text("abc"),
 		html::br(),
 		#[cloned(query)]
 		html::button()
