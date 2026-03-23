@@ -3,9 +3,9 @@
 // Imports
 use {
 	app_error::AppError,
+	dynatos_reactive::{Signal, SignalBorrowMut, SignalGet, SignalSet},
 	dynatos_web::{EventTargetWithListener, JsResultContext, NodeWithChildren, NodeWithText, ev, html},
 	dynatos_web_reactive::NodeWithDynText,
-	dynatos_reactive::{Signal, SignalBorrowMut, SignalGet, SignalSet},
 	tracing_subscriber::prelude::*,
 };
 
@@ -39,7 +39,7 @@ fn run() -> Result<(), AppError> {
 }
 
 fn counter() -> web_sys::HtmlElement {
-	let value = Signal::new(0i32);
+	let value = Signal::new(0);
 	html::div().with_children([
 		{
 			let value = value.clone();

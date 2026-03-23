@@ -42,7 +42,7 @@ fn run() -> Result<(), AppError> {
 fn import_html() -> web_sys::HtmlElement {
 	let static_literal = html!(r#"<div>Static from literal</div>"#);
 
-	let static_file = html_file!("import-html/src/pages/static.html");
+	let static_file = html_file!("examples/import-html/src/pages/static.html");
 
 	let element1 = html::p;
 	let element2_value = html::p;

@@ -1,0 +1,4 @@
+absolute-paths-allowed-crates = [
+	# `tracing_subscriber::fmt` would be easily confused with `std::fmt`
+	"tracing_subscriber",
+]

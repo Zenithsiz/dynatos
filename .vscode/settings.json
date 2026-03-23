@@ -16,6 +16,5 @@
 		"unsize",
 		"zutil"
 	],
-	"rust-analyzer.linkedProjects": ["Cargo.toml", "examples/Cargo.toml"],
 	"rust-analyzer.cargo.features": "all"
 }
