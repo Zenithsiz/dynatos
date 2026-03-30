@@ -17,17 +17,15 @@ use {
 #[thread_local]
 pub static WORLD: LazyCell<World> = LazyCell::new(World::new);
 
+/// Default world stacks
+#[thread_local]
+pub static WORLD_STACKS: LazyCell<WorldStacks> = LazyCell::new(WorldStacks::new);
+
 /// World
 #[derive(Debug)]
 pub struct World {
-	/// Tags
-	tags: WorldTagsData,
-
 	/// Dependency graph
 	dep_graph: DepGraph,
-
-	/// Effect stack
-	effect_stack: EffectStack,
 
 	/// Run queue
 	run_queue: RunQueue,
@@ -38,10 +36,8 @@ impl World {
 	#[must_use]
 	pub fn new() -> Self {
 		Self {
-			tags:         WorldTagsData::default(),
-			dep_graph:    DepGraph::new(),
-			effect_stack: EffectStack::new(),
-			run_queue:    RunQueue::new(),
+			dep_graph: DepGraph::new(),
+			run_queue: RunQueue::new(),
 		}
 	}
 
@@ -51,16 +47,44 @@ impl World {
 		&self.dep_graph
 	}
 
-	/// Returns the effect stack
-	#[must_use]
-	pub const fn effect_stack(&self) -> &EffectStack {
-		&self.effect_stack
-	}
-
 	/// Returns the run queue
 	#[must_use]
 	pub const fn run_queue(&self) -> &RunQueue {
 		&self.run_queue
+	}
+}
+
+#[coverage(off)]
+impl Default for World {
+	fn default() -> Self {
+		Self::new()
+	}
+}
+
+/// World stacks
+#[derive(Debug)]
+pub struct WorldStacks {
+	/// Tags
+	tags: WorldTagsData,
+
+	/// Effect stack
+	effect_stack: EffectStack,
+}
+
+impl WorldStacks {
+	/// Creates a new world
+	#[must_use]
+	pub fn new() -> Self {
+		Self {
+			tags:         WorldTagsData::default(),
+			effect_stack: EffectStack::new(),
+		}
+	}
+
+	/// Returns the effect stack
+	#[must_use]
+	pub const fn effect_stack(&self) -> &EffectStack {
+		&self.effect_stack
 	}
 
 	/// Returns if a tag is present and enabled
@@ -82,7 +106,7 @@ impl World {
 }
 
 #[coverage(off)]
-impl Default for World {
+impl Default for WorldStacks {
 	fn default() -> Self {
 		Self::new()
 	}

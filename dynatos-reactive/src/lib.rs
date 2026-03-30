@@ -74,5 +74,5 @@ pub use self::{
 	},
 	trigger::{Trigger, WeakTrigger},
 	with_default::{SignalWithDefault, WithDefault},
-	world::{WORLD, World},
+	world::{WORLD, WORLD_STACKS, World},
 };

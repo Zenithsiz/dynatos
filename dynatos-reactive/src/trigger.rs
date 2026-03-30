@@ -5,7 +5,7 @@
 
 // Imports
 use {
-	crate::{WORLD, effect, loc::Loc, world::WorldTag},
+	crate::{WORLD, WORLD_STACKS, effect, loc::Loc, world::WorldTag},
 	core::{
 		cell::LazyCell,
 		fmt,
@@ -68,7 +68,7 @@ impl Trigger {
 	#[track_caller]
 	pub fn gather_subs(&self) {
 		// If the world has the "no-dep" tag, don't gather anything
-		if WORLD.has_tag(WorldTag::NoDep) {
+		if WORLD_STACKS.has_tag(WorldTag::NoDep) {
 			return;
 		}
 
@@ -123,7 +123,7 @@ impl Trigger {
 		// If the world has the "no-run" tag, don't execute anything
 		// TODO: Should we still return just a `TriggerExec`, but make
 		//       it not do anything on drop?
-		if WORLD.has_tag(WorldTag::NoRun) {
+		if WORLD_STACKS.has_tag(WorldTag::NoRun) {
 			return None;
 		}
 

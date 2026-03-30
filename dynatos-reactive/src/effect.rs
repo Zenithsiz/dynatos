@@ -25,7 +25,7 @@ use {
 	crate::{
 		WORLD,
 		loc::Loc,
-		world::{WorldTag, WorldTagGuard},
+		world::{WORLD_STACKS, WorldTag, WorldTagGuard},
 	},
 	core::{
 		cell::Cell,
@@ -240,7 +240,7 @@ impl<F: ?Sized> Effect<F> {
 		// Note: As per the documentation, we remove the "no-dep" tag when
 		//       gathering dependencies inside of an effect, to ensure
 		//       the tag is only active during the current reactivity frame.
-		let _remove_no_dep = WORLD.remove_tag(WorldTag::NoDep);
+		let _remove_no_dep = WORLD_STACKS.remove_tag(WorldTag::NoDep);
 
 		// Then run it
 		let ctx = EffectRunCtx::new();
@@ -347,7 +347,7 @@ where
 /// Returns the current running effect
 #[must_use]
 pub fn running() -> Option<Effect> {
-	WORLD.effect_stack().top()
+	WORLD_STACKS.effect_stack().top()
 }
 
 /// Adds the "no-dep" tag to the world within the supplied closure.
@@ -371,12 +371,12 @@ where
 ///
 /// See [`with_no_dep`] for details.
 pub fn add_no_dep() -> WorldTagGuard {
-	WORLD.add_tag(WorldTag::NoDep)
+	WORLD_STACKS.add_tag(WorldTag::NoDep)
 }
 
 /// Returns if the "no-dep" tag is present
 pub fn is_no_dep() -> bool {
-	WORLD.has_tag(WorldTag::NoDep)
+	WORLD_STACKS.has_tag(WorldTag::NoDep)
 }
 
 /// Adds the "no-run" tag to the world within the supplied closure.
@@ -408,10 +408,10 @@ where
 ///
 /// See [`with_no_run`] for details.
 pub fn add_no_run() -> WorldTagGuard {
-	WORLD.add_tag(WorldTag::NoRun)
+	WORLD_STACKS.add_tag(WorldTag::NoRun)
 }
 
 /// Returns if the "no-run" tag is present
 pub fn is_no_run() -> bool {
-	WORLD.has_tag(WorldTag::NoRun)
+	WORLD_STACKS.has_tag(WorldTag::NoRun)
 }
