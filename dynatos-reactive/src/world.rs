@@ -19,7 +19,7 @@ pub static WORLD: LazyCell<World> = LazyCell::new(World::new);
 
 /// Default world stacks
 #[thread_local]
-pub static WORLD_STACKS: LazyCell<WorldStacks> = LazyCell::new(WorldStacks::new);
+pub static WORLD_STACKS: WorldStacks = WorldStacks::new();
 
 /// World
 #[derive(Debug)]
@@ -74,9 +74,9 @@ pub struct WorldStacks {
 impl WorldStacks {
 	/// Creates a new world
 	#[must_use]
-	pub fn new() -> Self {
+	pub const fn new() -> Self {
 		Self {
-			tags:         WorldTagsData::default(),
+			tags:         WorldTagsData::new(),
 			effect_stack: EffectStack::new(),
 		}
 	}

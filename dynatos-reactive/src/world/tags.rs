@@ -16,6 +16,14 @@ struct WorldTagData {
 	stack: RefCell<HoleyStack<WorldTagState>>,
 }
 
+impl WorldTagData {
+	const fn new() -> Self {
+		Self {
+			stack: RefCell::new(HoleyStack::new()),
+		}
+	}
+}
+
 /// Guard type for entering and exiting a tag
 pub struct WorldTagGuard {
 	tag: WorldTag,
@@ -29,7 +37,7 @@ impl Drop for WorldTagGuard {
 }
 
 macro decl_tags(
-	$WorldTagsData:ident { $get_data:ident };
+	$WorldTagsData:ident { $new:ident, $get_data:ident };
 	$WorldTag:ident;
 
 	$(
@@ -55,6 +63,14 @@ macro decl_tags(
 	}
 
 	impl $WorldTagsData {
+		pub const fn $new() -> Self {
+			Self {
+				$(
+					$field: WorldTagData::new(),
+				)*
+			}
+		}
+
 		const fn $get_data(&self, tag: $WorldTag) -> &WorldTagData {
 			match tag {
 				$(
@@ -66,7 +82,7 @@ macro decl_tags(
 }
 
 decl_tags! {
-	WorldTagsData { get_data };
+	WorldTagsData { new, get_data };
 	WorldTag;
 
 	/// "no-dep" tag.
