@@ -1,15 +1,20 @@
 //! Run queue tests
 
 // Features
-#![feature(thread_local, proc_macro_hygiene, stmt_expr_attributes)]
+#![feature(
+	thread_local,
+	proc_macro_hygiene,
+	stmt_expr_attributes,
+	nonpoison_mutex,
+	sync_nonpoison
+)]
 
 // Imports
 use {
-	core::{
-		cell::{Cell, RefCell},
-		iter,
-	},
+	core::iter,
 	dynatos_reactive::{Derived, Effect, Signal, SignalBorrowMut, SignalGet, Trigger},
+	dynatos_util::Counter,
+	std::sync::nonpoison::Mutex,
 	zutil_cloned::cloned,
 };
 
@@ -19,44 +24,42 @@ fn breadth_first() {
 	let a = Signal::new(5_usize);
 	let b = Signal::new(6_usize);
 
-	#[thread_local]
-	static ORDER: RefCell<Vec<&'static str>> = RefCell::new(vec![]);
+	static ORDER: Mutex<Vec<&'static str>> = Mutex::new(vec![]);
 
 	#[cloned(a)]
 	let a2 = Derived::new(move || {
-		ORDER.borrow_mut().push("a2");
+		ORDER.lock().push("a2");
 		a.get() + 1
 	});
 	#[cloned(b)]
 	let b2 = Derived::new(move || {
-		ORDER.borrow_mut().push("b2");
+		ORDER.lock().push("b2");
 		b.get() + 1
 	});
 
 	let _c = Effect::new(move || {
-		ORDER.borrow_mut().push("c");
+		ORDER.lock().push("c");
 		_ = (a2.get(), b2.get());
 	});
 
 	let a = a.borrow_mut();
 	let b = b.borrow_mut();
 
-	ORDER.borrow_mut().clear();
+	ORDER.lock().clear();
 	drop((a, b));
-	assert_eq!(*ORDER.borrow(), ["a2", "b2", "c"], "Effect was run with wrong order");
+	assert_eq!(*ORDER.lock(), ["a2", "b2", "c"], "Effect was run with wrong order");
 }
 
 #[test]
 fn multiple() {
 	let a = Trigger::new();
 
-	#[thread_local]
-	static COUNT: Cell<usize> = Cell::new(0);
+	static COUNT: Counter = Counter::new();
 	#[cloned(a)]
 	let _effect = Effect::new(move || {
 		a.gather_subs();
 		a.gather_subs();
-		COUNT.set(COUNT.get() + 1);
+		COUNT.bump();
 	});
 
 	assert_eq!(COUNT.get(), 1);
@@ -87,14 +90,13 @@ fn order() {
 		})
 		.collect::<Vec<_>>();
 
-	#[thread_local]
-	static COUNT: Cell<usize> = Cell::new(0);
+	static COUNT: Counter = Counter::new();
 
 	#[cloned(b)]
 	let _c = Effect::new(move || {
 		a_last.gather_subs();
 		b.gather_subs();
-		COUNT.set(COUNT.get() + 1);
+		COUNT.bump();
 	});
 
 	assert_eq!(COUNT.get(), 1);

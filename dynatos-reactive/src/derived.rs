@@ -307,7 +307,7 @@ where
 
 #[cfg(test)]
 mod tests {
-	use {super::*, core::cell::Cell};
+	use {super::*, dynatos_util::Counter};
 
 	#[test]
 	fn unsize() {
@@ -320,10 +320,9 @@ mod tests {
 
 	#[test]
 	fn lazy() {
-		#[thread_local]
-		static COUNT: Cell<usize> = Cell::new(0);
+		static COUNT: Counter = Counter::new();
 
-		let f = Derived::new_lazy(|| COUNT.set(COUNT.get() + 1));
+		let f = Derived::new_lazy(|| COUNT.bump());
 		assert_eq!(COUNT.get(), 0, "Lazy effect was run before access");
 		_ = f.borrow();
 		assert_eq!(COUNT.get(), 1, "Lazy effect was not run after access");

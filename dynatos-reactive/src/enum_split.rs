@@ -251,7 +251,8 @@ mod tests {
 	use {
 		super::*,
 		crate::{Effect, Signal, SignalGet},
-		core::cell::{Cell, OnceCell},
+		core::cell::OnceCell,
+		dynatos_util::Counter,
 		zutil_cloned::cloned,
 	};
 
@@ -268,35 +269,28 @@ mod tests {
 		#[thread_local]
 		static EFFECT_NONE: OnceCell<Effect> = OnceCell::new();
 
-		#[thread_local]
-		static TIMES_CHANGED_SOME: Cell<usize> = Cell::new(0);
-
-		#[thread_local]
-		static TIMES_CHANGED_NONE: Cell<usize> = Cell::new(0);
-
-		#[thread_local]
-		static TIMES_RUN_SOME: Cell<usize> = Cell::new(0);
-
-		#[thread_local]
-		static TIMES_RUN_NONE: Cell<usize> = Cell::new(0);
+		static TIMES_CHANGED_SOME: Counter = Counter::new();
+		static TIMES_CHANGED_NONE: Counter = Counter::new();
+		static TIMES_RUN_SOME: Counter = Counter::new();
+		static TIMES_RUN_NONE: Counter = Counter::new();
 
 		#[cloned(signal)]
 		let _effect = Effect::new(move || match signal.borrow() {
 			Either2::T1(signal) => {
-				TIMES_CHANGED_SOME.set(TIMES_CHANGED_SOME.get() + 1);
+				TIMES_CHANGED_SOME.bump();
 				EFFECT_SOME.get_or_init(|| {
 					Effect::new(move || {
 						_ = signal.get();
-						TIMES_RUN_SOME.set(TIMES_RUN_SOME.get() + 1);
+						TIMES_RUN_SOME.bump();
 					})
 				});
 			},
 			Either2::T2(signal) => {
-				TIMES_CHANGED_NONE.set(TIMES_CHANGED_NONE.get() + 1);
+				TIMES_CHANGED_NONE.bump();
 				EFFECT_NONE.get_or_init(|| {
 					Effect::new(move || {
 						() = signal.get();
-						TIMES_RUN_NONE.set(TIMES_RUN_NONE.get() + 1);
+						TIMES_RUN_NONE.bump();
 					})
 				});
 			},
@@ -333,12 +327,12 @@ mod tests {
 	fn write_back() {
 		// Start with `T1`
 		let outer = Signal::new(Either2::<usize, &'static str>::T1(5));
-		#[thread_local]
-		static TIMES_RUN_OUTER: Cell<usize> = Cell::new(0);
+
+		static TIMES_RUN_OUTER: Counter = Counter::new();
 		#[cloned(outer)]
 		let _effect_outer = Effect::new(move || {
 			_ = outer.get();
-			TIMES_RUN_OUTER.set(TIMES_RUN_OUTER.get() + 1);
+			TIMES_RUN_OUTER.bump();
 		});
 
 		// Get the `T1` signal
@@ -347,12 +341,12 @@ mod tests {
 			unreachable!("Signal was the wrong type at the beginning")
 		};
 		assert_eq!(TIMES_RUN_OUTER.get(), 1);
-		#[thread_local]
-		static TIMES_RUN_INNER1: Cell<usize> = Cell::new(0);
+
+		static TIMES_RUN_INNER1: Counter = Counter::new();
 		#[cloned(inner1)]
 		let _effect_inner1 = Effect::new(move || {
 			_ = inner1.get();
-			TIMES_RUN_INNER1.set(TIMES_RUN_INNER1.get() + 1);
+			TIMES_RUN_INNER1.bump();
 		});
 
 		// Then set it and ensure that `outer` was changed
@@ -368,12 +362,12 @@ mod tests {
 		};
 		assert_eq!(TIMES_RUN_OUTER.get(), 3);
 		assert_eq!(TIMES_RUN_INNER1.get(), 2);
-		#[thread_local]
-		static TIMES_RUN_INNER2: Cell<usize> = Cell::new(0);
+
+		static TIMES_RUN_INNER2: Counter = Counter::new();
 		#[cloned(inner2)]
 		let _effect_inner2 = Effect::new(move || {
 			_ = inner2.get();
-			TIMES_RUN_INNER2.set(TIMES_RUN_INNER2.get() + 1);
+			TIMES_RUN_INNER2.bump();
 		});
 
 		// Set `T2` to ensure changes are propagated

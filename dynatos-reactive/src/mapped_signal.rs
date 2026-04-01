@@ -290,23 +290,18 @@ where
 
 #[cfg(test)]
 mod tests {
-	use {
-		super::*,
-		crate::SignalGet,
-		core::{assert_matches, cell::Cell},
-	};
+	use {super::*, crate::SignalGet, core::assert_matches, dynatos_util::Counter};
 
 	#[test]
 	fn basic() {
 		let outer = Signal::new(Ok::<usize, ()>(5));
 
 		// Counts the number of times that `outer` was written to
-		#[thread_local]
-		static TIMES_OUTER_CHANGED: Cell<usize> = Cell::new(0);
+		static TIMES_OUTER_CHANGED: Counter = Counter::new();
 		#[cloned(outer)]
 		let _effect = Effect::new(move || {
 			_ = outer.get();
-			TIMES_OUTER_CHANGED.set(TIMES_OUTER_CHANGED.get() + 1);
+			TIMES_OUTER_CHANGED.bump();
 		});
 		assert_eq!(TIMES_OUTER_CHANGED.get(), 1);
 
@@ -345,11 +340,10 @@ mod tests {
 		let mapped = TryMappedSignal::new(outer.clone(), |opt| *opt, |opt, &value| *opt = Ok(value));
 
 		// Counts the times that the mapped signal was run
-		#[thread_local]
-		static TIMES_RUN: Cell<usize> = Cell::new(0);
+		static TIMES_RUN: Counter = Counter::new();
 		let _effect = Effect::new(move || {
 			_ = mapped.get_cloned();
-			TIMES_RUN.set(TIMES_RUN.get() + 1);
+			TIMES_RUN.bump();
 		});
 
 		assert_eq!(TIMES_RUN.get(), 1);

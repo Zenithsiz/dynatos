@@ -5,25 +5,22 @@
 
 // Imports
 use {
-	core::{
-		cell::{Cell, OnceCell},
-		mem,
-	},
+	core::{cell::OnceCell, mem},
 	dynatos_reactive::{Effect, Trigger, WeakEffect, WeakTrigger, effect},
+	dynatos_util::Counter,
 	zutil_cloned::cloned,
 };
 
 #[test]
 fn basic() {
 	/// Counts the number of times the effect was run
-	#[thread_local]
-	static TRIGGERS: Cell<usize> = Cell::new(0);
+	static TRIGGERS: Counter = Counter::new();
 
 	let trigger = Trigger::new();
 	#[cloned(trigger)]
 	let effect = Effect::new(move || {
 		trigger.gather_subs();
-		TRIGGERS.set(TRIGGERS.get() + 1);
+		TRIGGERS.bump();
 	});
 
 	assert_eq!(TRIGGERS.get(), 1, "Trigger was triggered early");
@@ -41,14 +38,13 @@ fn basic() {
 #[test]
 fn trigger_exec_multiple() {
 	/// Counts the number of times the effect was run
-	#[thread_local]
-	static TRIGGERS: Cell<usize> = Cell::new(0);
+	static TRIGGERS: Counter = Counter::new();
 
 	let trigger = Trigger::new();
 	#[cloned(trigger)]
 	let _effect = Effect::new(move || {
 		trigger.gather_subs();
-		TRIGGERS.set(TRIGGERS.get() + 1);
+		TRIGGERS.bump();
 	});
 
 	let exec0 = trigger.exec();
@@ -73,8 +69,7 @@ fn trigger_exec_multiple() {
 #[test]
 fn exec_multiple_same_effect() {
 	/// Counts the number of times the effect was run
-	#[thread_local]
-	static TRIGGERS: Cell<usize> = Cell::new(0);
+	static TRIGGERS: Counter = Counter::new();
 
 	let trigger0 = Trigger::new();
 	let trigger1 = Trigger::new();
@@ -82,7 +77,7 @@ fn exec_multiple_same_effect() {
 	let _effect = Effect::new(move || {
 		trigger0.gather_subs();
 		trigger1.gather_subs();
-		TRIGGERS.set(TRIGGERS.get() + 1);
+		TRIGGERS.bump();
 	});
 
 	let exec0 = trigger0.exec();
@@ -104,11 +99,10 @@ fn exec_multiple_same_effect() {
 /// Ensures effects are executed only when stale
 #[test]
 fn fresh_stale() {
-	#[thread_local]
-	static COUNT: Cell<usize> = Cell::new(0);
+	static COUNT: Counter = Counter::new();
 
 	assert_eq!(COUNT.get(), 0);
-	let effect = Effect::new(|| COUNT.update(|x| x + 1));
+	let effect = Effect::new(|| COUNT.bump());
 	assert_eq!(COUNT.get(), 1, "Effect wasn't run on creation");
 	effect.run();
 	assert_eq!(COUNT.get(), 1, "Effect was ran despite being fresh");
@@ -212,10 +206,9 @@ fn weak_trigger_dropped() {
 
 #[test]
 fn effect_upgrade() {
-	#[thread_local]
-	static COUNT: Cell<usize> = Cell::new(0);
+	static COUNT: Counter = Counter::new();
 
-	let effect = Effect::new(move || COUNT.set(COUNT.get() + 1));
+	let effect = Effect::new(move || COUNT.bump());
 	let weak = effect.downgrade();
 
 	assert_eq!(Some(&effect), weak.upgrade().as_ref());
