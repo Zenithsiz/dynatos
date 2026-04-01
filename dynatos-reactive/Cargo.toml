@@ -15,7 +15,6 @@ futures              = { workspace = true }
 itertools            = { workspace = true }
 petgraph             = { workspace = true }
 pin-project          = { workspace = true }
-priority-queue       = { workspace = true }
 scopeguard           = { workspace = true }
 tracing              = { workspace = true }
 wasm-bindgen-futures = { workspace = true }

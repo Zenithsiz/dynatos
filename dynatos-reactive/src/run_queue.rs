@@ -5,10 +5,9 @@ use {
 	crate::{WeakEffect, dep_graph::EffectDepInfo},
 	core::{
 		cell::RefCell,
-		cmp::Reverse,
 		hash::{Hash, Hasher},
 	},
-	priority_queue::PriorityQueue,
+	std::collections::VecDeque,
 };
 
 /// Inner item for the priority queue
@@ -39,12 +38,7 @@ impl Hash for Item {
 #[derive(Debug)]
 struct Inner {
 	/// Queue
-	// TODO: We don't need the priority, so just use some kind of
-	//       `HashQueue`.
-	queue: PriorityQueue<Item, Reverse<usize>>,
-
-	/// Next index
-	next: usize,
+	queue: VecDeque<Item>,
 
 	/// Reference count
 	ref_count: usize,
@@ -62,11 +56,10 @@ pub struct RunQueue {
 
 impl RunQueue {
 	#[must_use]
-	pub fn new() -> Self {
+	pub const fn new() -> Self {
 		Self {
 			inner: RefCell::new(Inner {
-				queue:     PriorityQueue::new(),
-				next:      0,
+				queue:     VecDeque::new(),
 				ref_count: 0,
 				is_exec:   false,
 			}),
@@ -104,14 +97,12 @@ impl RunQueue {
 	pub fn push(&self, sub: WeakEffect, info: Vec<EffectDepInfo>) {
 		let mut inner = self.inner.borrow_mut();
 
-		let next = Reverse(inner.next);
-		inner.queue.push_decrease(Item { sub, info }, next);
-		inner.next += 1;
+		inner.queue.push_back(Item { sub, info });
 	}
 
 	/// Pops a subscriber from the front of the queue
 	pub fn pop(&self) -> Option<(WeakEffect, Vec<EffectDepInfo>)> {
-		let (item, _) = self.inner.borrow_mut().queue.pop()?;
+		let item = self.inner.borrow_mut().queue.pop_front()?;
 		Some((item.sub, item.info))
 	}
 }
