@@ -133,7 +133,7 @@ impl Trigger {
 		}
 
 		// Increase the ref count
-		GLOBAL_WORLD.run_queue().inc_ref();
+		THREAD_WORLD.run_queue().inc_ref();
 
 		// Then add all subscribers to the run queue
 		GLOBAL_WORLD
@@ -151,7 +151,7 @@ impl Trigger {
 
 				// Then set the effect as stale and add it to the run queue
 				effect.set_stale();
-				GLOBAL_WORLD.run_queue().push(effect.downgrade(), sub_info);
+				THREAD_WORLD.run_queue().push(effect.downgrade(), sub_info);
 			});
 
 		Some(TriggerExec {
@@ -297,13 +297,13 @@ pub struct TriggerExec {
 impl Drop for TriggerExec {
 	fn drop(&mut self) {
 		// Decrease the reference count, and if we weren't the last, quit
-		let Some(_exec_guard) = GLOBAL_WORLD.run_queue().dec_ref() else {
+		let Some(_exec_guard) = THREAD_WORLD.run_queue().dec_ref() else {
 			return;
 		};
 
 		// If we were the last, keep popping effects and running them until
 		// the run queue is empty
-		while let Some((sub, sub_info)) = GLOBAL_WORLD.run_queue().pop() {
+		while let Some((sub, sub_info)) = THREAD_WORLD.run_queue().pop() {
 			let Some(effect) = sub.upgrade() else {
 				continue;
 			};

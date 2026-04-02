@@ -26,9 +26,6 @@ pub static THREAD_WORLD: ThreadWorld = ThreadWorld::new();
 pub struct GlobalWorld {
 	/// Dependency graph
 	dep_graph: DepGraph,
-
-	/// Run queue
-	run_queue: RunQueue,
 }
 
 impl GlobalWorld {
@@ -37,7 +34,6 @@ impl GlobalWorld {
 	pub fn new() -> Self {
 		Self {
 			dep_graph: DepGraph::new(),
-			run_queue: RunQueue::new(),
 		}
 	}
 
@@ -45,12 +41,6 @@ impl GlobalWorld {
 	#[must_use]
 	pub const fn dep_graph(&self) -> &DepGraph {
 		&self.dep_graph
-	}
-
-	/// Returns the run queue
-	#[must_use]
-	pub const fn run_queue(&self) -> &RunQueue {
-		&self.run_queue
 	}
 }
 
@@ -69,6 +59,9 @@ pub struct ThreadWorld {
 
 	/// Effect stack
 	effect_stack: EffectStack,
+
+	/// Run queue
+	run_queue: RunQueue,
 }
 
 impl ThreadWorld {
@@ -78,6 +71,7 @@ impl ThreadWorld {
 		Self {
 			tags:         WorldTagsData::new(),
 			effect_stack: EffectStack::new(),
+			run_queue:    RunQueue::new(),
 		}
 	}
 
@@ -85,6 +79,12 @@ impl ThreadWorld {
 	#[must_use]
 	pub const fn effect_stack(&self) -> &EffectStack {
 		&self.effect_stack
+	}
+
+	/// Returns the run queue
+	#[must_use]
+	pub const fn run_queue(&self) -> &RunQueue {
+		&self.run_queue
 	}
 
 	/// Returns if a tag is present and enabled
