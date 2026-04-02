@@ -203,6 +203,7 @@ dependencies = [
 name = "dynatos-context"
 version = "0.1.0"
 dependencies = [
+ "dynatos-sync-types",
  "dynatos-util",
 ]
 
@@ -212,6 +213,7 @@ version = "0.1.0"
 dependencies = [
  "duplicate",
  "dynatos-reactive",
+ "dynatos-sync-types",
  "dynatos-util",
  "extend",
  "tracing",
@@ -224,7 +226,7 @@ version = "0.1.0"
 dependencies = [
  "derive_more",
  "duplicate",
- "dynatos-context",
+ "dynatos-sync-types",
  "dynatos-util",
  "extend",
  "futures",
@@ -235,6 +237,15 @@ dependencies = [
  "tracing",
  "wasm-bindgen-futures",
  "zutil-cloned",
+]
+
+[[package]]
+name = "dynatos-sync-types"
+version = "0.1.0"
+dependencies = [
+ "derive_more",
+ "duplicate",
+ "dynatos-util",
 ]
 
 [[package]]
@@ -290,6 +301,7 @@ dependencies = [
  "duplicate",
  "dynatos-context",
  "dynatos-reactive",
+ "dynatos-sync-types",
  "dynatos-util",
  "dynatos-web",
  "dynatos-web-reactive-macros",
@@ -318,6 +330,7 @@ dependencies = [
  "dynatos-context",
  "dynatos-loadable",
  "dynatos-reactive",
+ "dynatos-sync-types",
  "dynatos-util",
  "dynatos-web",
  "extend",
@@ -336,6 +349,7 @@ version = "0.1.0"
 dependencies = [
  "duplicate",
  "dynatos-reactive",
+ "dynatos-sync-types",
  "dynatos-util",
  "dynatos-web",
  "extend",
@@ -938,6 +952,17 @@ dependencies = [
  "proc-macro2",
  "quote",
  "syn",
+]
+
+[[package]]
+name = "tests-dynatos-reactive-sync"
+version = "0.1.0"
+dependencies = [
+ "app-error",
+ "dynatos-reactive",
+ "dynatos-sync-types",
+ "dynatos-util",
+ "zutil-cloned",
 ]
 
 [[package]]

@@ -1,5 +1,7 @@
 //! Context stack
 
+// TODO: We should have deadlock detection with the `sync` feature.
+
 // Lints
 #![expect(clippy::as_conversions, reason = "We need to unsize items and there's no other way")]
 
@@ -7,18 +9,18 @@
 use {
 	core::{
 		any::{Any, TypeId},
-		cell::RefCell,
 		hash::BuildHasherDefault,
 		marker::PhantomData,
 	},
+	dynatos_sync_types::{IMutRw, SyncBounds, thread_local_or_global},
 	dynatos_util::HoleyStack,
 	std::{collections::HashMap, hash::DefaultHasher},
 };
 
 /// Context stack
 // TODO: Use type with less indirections?
-#[thread_local]
-static CTXS_STACK: CtxsStackImpl<dyn Any> = RefCell::new(HashMap::with_hasher(BuildHasherDefault::new()));
+#[thread_local_or_global]
+static CTXS_STACK: CtxsStackImpl<dyn Any + SyncBounds> = IMutRw::new(HashMap::with_hasher(BuildHasherDefault::new()));
 
 /// Handle
 #[derive(Debug)]
@@ -47,11 +49,9 @@ impl !Sync for OpaqueHandle {}
 /// Pushes a value onto the stack and returns a handle to it
 pub fn push<T>(value: T) -> Handle<T>
 where
-	T: Any + 'static,
+	T: Any + SyncBounds + 'static,
 {
-	let mut ctxs = CTXS_STACK
-		.try_borrow_mut()
-		.expect("Cannot modify context while accessing it");
+	let mut ctxs = CTXS_STACK.write();
 	let stack = ctxs.entry(TypeId::of::<T>()).or_default();
 	let idx = stack.push(Box::new(value));
 
@@ -65,9 +65,7 @@ where
 	F: FnOnce(Option<&T>) -> O,
 {
 	let type_id = TypeId::of::<T>();
-	let ctxs = CTXS_STACK
-		.try_borrow()
-		.expect("Cannot access context while modifying it");
+	let ctxs = CTXS_STACK.read();
 
 	let value = try {
 		let stack = ctxs.get(&type_id)?;
@@ -133,23 +131,19 @@ pub fn with_opaque<F, O>(handle: OpaqueHandle, f: F) -> O
 where
 	F: FnOnce(&dyn Any) -> O,
 {
-	let ctxs = CTXS_STACK
-		.try_borrow()
-		.expect("Cannot access context while modifying it");
+	let ctxs = CTXS_STACK.read();
 	let stack = ctxs.get(&handle.type_id).expect("Context stack should exist");
 	let value = stack.get(handle.idx).expect("Value was already taken");
 	f(&**value)
 }
 
 /// Takes the value in handle `handle` opaquely
-pub fn take_opaque(handle: OpaqueHandle) -> Box<dyn Any> {
-	let mut ctxs = CTXS_STACK
-		.try_borrow_mut()
-		.expect("Cannot modify context while accessing it");
+pub fn take_opaque(handle: OpaqueHandle) -> Box<dyn Any + SyncBounds> {
+	let mut ctxs = CTXS_STACK.write();
 	let stack = ctxs.get_mut(&handle.type_id).expect("Context stack should exist");
 
 	stack.pop(handle.idx).expect("Value was already taken")
 }
 
-type CtxsStackImpl<A> = RefCell<HashMap<TypeId, CtxStackImpl<A>, BuildHasherDefault<DefaultHasher>>>;
+type CtxsStackImpl<A> = IMutRw<HashMap<TypeId, CtxStackImpl<A>, BuildHasherDefault<DefaultHasher>>>;
 type CtxStackImpl<A> = HoleyStack<Box<A>>;

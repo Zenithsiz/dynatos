@@ -26,7 +26,11 @@
 	unwrap_infallible,
 	arbitrary_self_types,
 	coverage_attribute,
-	macro_metavar_expr_concat
+	macro_metavar_expr_concat,
+	cfg_select,
+	nonpoison_rwlock,
+	sync_nonpoison,
+	macro_attr
 )]
 
 // Modules
@@ -74,5 +78,5 @@ pub use self::{
 	},
 	trigger::{Trigger, WeakTrigger},
 	with_default::{SignalWithDefault, WithDefault},
-	world::{GLOBAL_WORLD, THREAD_WORLD, GlobalWorld},
+	world::{GLOBAL_WORLD, GlobalWorld, THREAD_WORLD},
 };

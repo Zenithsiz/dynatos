@@ -1,15 +1,28 @@
 //! Context passing for `dynatos`
 
 // Features
-#![feature(try_blocks, thread_local, test, negative_impls, decl_macro, unsize)]
+#![feature(
+	try_blocks,
+	thread_local,
+	test,
+	negative_impls,
+	decl_macro,
+	unsize,
+	macro_attr,
+	nonpoison_mutex,
+	sync_nonpoison
+)]
 
 // Modules
 pub mod context_stack;
 
 // Imports
-use core::{
-	any::{self, Any},
-	mem,
+use {
+	core::{
+		any::{self, Any},
+		mem,
+	},
+	dynatos_sync_types::SyncBounds,
 };
 
 /// A handle to a context value.
@@ -120,7 +133,7 @@ impl Drop for OpaqueHandle {
 /// Provides a value of `T` to the current context.
 pub fn provide<T>(value: T) -> Handle<T>
 where
-	T: Any,
+	T: Any + SyncBounds,
 {
 	// Push the value onto the stack
 	let handle = context_stack::push(value);
@@ -210,10 +223,14 @@ fn on_missing_context<T, O>() -> O {
 mod tests {
 	// Imports
 	extern crate test;
-	use test::Bencher;
+	use {std::sync::nonpoison::Mutex, test::Bencher};
+
+	static MUTEX: Mutex<()> = Mutex::new(());
 
 	#[test]
 	fn simple() {
+		let _guard = MUTEX.lock();
+
 		let handle = crate::provide::<usize>(5);
 
 		assert_eq!(crate::get::<usize>(), Some(5));
@@ -223,6 +240,8 @@ mod tests {
 
 	#[test]
 	fn stacked() {
+		let _guard = MUTEX.lock();
+
 		let handle1 = crate::provide::<usize>(5);
 		let handle2 = crate::provide::<usize>(4);
 
@@ -235,6 +254,8 @@ mod tests {
 
 	#[test]
 	fn stacked_swapped() {
+		let _guard = MUTEX.lock();
+
 		let handle1 = crate::provide::<usize>(5);
 		let handle2 = crate::provide::<usize>(4);
 
@@ -247,6 +268,8 @@ mod tests {
 
 	#[test]
 	fn stacked_triple() {
+		let _guard = MUTEX.lock();
+
 		let handle1 = crate::provide::<usize>(5);
 		let handle2 = crate::provide::<usize>(4);
 		let handle3 = crate::provide::<usize>(3);
@@ -261,6 +284,8 @@ mod tests {
 
 	#[test]
 	fn opaque() {
+		let _guard = MUTEX.lock();
+
 		let handle1 = crate::provide::<usize>(5).into_opaque();
 		let handle2 = crate::provide::<usize>(4).into_opaque();
 
@@ -273,6 +298,8 @@ mod tests {
 
 	#[test]
 	fn stress() {
+		let _guard = MUTEX.lock();
+
 		let handles_len = 100;
 		let mut handles = (0..handles_len).map(crate::provide::<usize>).collect::<Vec<_>>();
 
@@ -308,6 +335,8 @@ mod tests {
 
 	#[bench]
 	fn access(bencher: &mut Bencher) {
+		let _guard = MUTEX.lock();
+
 		let _handle = crate::provide::<AccessTy>(ACCESS_TY_DEFAULT);
 
 		bencher.iter(|| {
@@ -320,6 +349,8 @@ mod tests {
 
 	#[bench]
 	fn access_expect(bencher: &mut Bencher) {
+		let _guard = MUTEX.lock();
+
 		let _handle = crate::provide::<AccessTy>(ACCESS_TY_DEFAULT);
 
 		bencher.iter(|| {
@@ -332,6 +363,8 @@ mod tests {
 
 	#[bench]
 	fn access_with(bencher: &mut Bencher) {
+		let _guard = MUTEX.lock();
+
 		let _handle = crate::provide::<AccessTy>(ACCESS_TY_DEFAULT);
 
 		bencher.iter(|| {
@@ -343,6 +376,8 @@ mod tests {
 
 	#[bench]
 	fn access_with_expect(bencher: &mut Bencher) {
+		let _guard = MUTEX.lock();
+
 		let _handle = crate::provide::<AccessTy>(ACCESS_TY_DEFAULT);
 
 		bencher.iter(|| {
@@ -355,6 +390,8 @@ mod tests {
 	/// Creates several types and attempts to access them all.
 	#[bench]
 	fn access_many_types(bencher: &mut Bencher) {
+		let _guard = MUTEX.lock();
+
 		macro decl_provide_ty($($T:ident),* $(,)?) {
 			$(
 				#[derive(Clone, Copy)]

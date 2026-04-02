@@ -25,18 +25,17 @@ use {
 		world::{WorldTag, WorldTagGuard},
 	},
 	core::{
-		cell::{self, RefCell},
 		fmt,
 		future::Future,
 		ops::{Deref, DerefMut},
 	},
+	dynatos_sync_types::{IMutRw, IMutRwRef, IMutRwRefMut, RcPtr, SyncBounds},
 	futures::{future, stream::AbortHandle},
-	std::rc::Rc,
 	zutil_cloned::cloned,
 };
 
 /// Inner
-// TODO: Make `value` and `handle` `Rc<RefCell<...>>`s?
+// TODO: Make `value` and `handle` `Rc<IMut<...>>`s?
 struct Inner<F: Loader> {
 	/// Value
 	value: Option<F::Output>,
@@ -109,12 +108,12 @@ impl<F: Loader> Inner<F> {
 			// Load the value
 			// Note: If we get aborted, just remove the handle
 			let Ok(value) = fut.await else {
-				inner.borrow_mut().handle = None;
+				inner.write().handle = None;
 				return;
 			};
 
 			// Then write it and remove the handle
-			let mut inner = inner.borrow_mut();
+			let mut inner = inner.write();
 			inner.value = Some(value);
 			inner.handle = None;
 			drop(inner);
@@ -180,7 +179,7 @@ impl<F: Loader> AsyncSignal<F> {
 	pub fn new(loader: F) -> Self {
 		Self {
 			load: Effect::new_raw(EffectFn {
-				inner:   Rc::new(RefCell::new(Inner {
+				inner:   RcPtr::new(IMutRw::new(Inner {
 					value: None,
 					loader,
 					handle: None,
@@ -198,7 +197,7 @@ impl<F: Loader> AsyncSignal<F> {
 		reason = "The user may not care whether the future existed"
 	)]
 	pub fn stop_loading(&self) -> bool {
-		self.load.inner_fn().inner.borrow_mut().stop_loading()
+		self.load.inner_fn().inner.write().stop_loading()
 	}
 
 	/// Starts a new loading future.
@@ -221,7 +220,7 @@ impl<F: Loader> AsyncSignal<F> {
 		self.load
 			.inner_fn()
 			.inner
-			.borrow_mut()
+			.write()
 			.start_loading(InnerParentRef::Signal(self))
 	}
 
@@ -246,14 +245,14 @@ impl<F: Loader> AsyncSignal<F> {
 		self.load
 			.inner_fn()
 			.inner
-			.borrow_mut()
+			.write()
 			.restart_loading(InnerParentRef::Signal(self))
 	}
 
 	/// Returns if there exists a loading future.
 	#[must_use]
 	pub fn is_loading(&self) -> bool {
-		self.load.inner_fn().inner.borrow().is_loading()
+		self.load.inner_fn().inner.read().is_loading()
 	}
 
 	/// Borrows the value, without loading it
@@ -286,7 +285,7 @@ where
 {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		let effect_fn = self.load.inner_fn();
-		let inner = effect_fn.inner.borrow();
+		let inner = effect_fn.inner.read();
 		f.debug_struct("AsyncSignal")
 			.field("value", &inner.value)
 			.field("handle", &inner.handle)
@@ -297,7 +296,7 @@ where
 }
 
 /// Reference type for [`SignalBorrow`] impl
-pub struct BorrowRef<'a, F: Loader>(cell::Ref<'a, Inner<F>>);
+pub struct BorrowRef<'a, F: Loader>(IMutRwRef<'a, Inner<F>>);
 
 #[coverage(off)]
 impl<F: Loader> fmt::Debug for BorrowRef<'_, F>
@@ -343,7 +342,7 @@ impl<F: Loader> SignalBorrow for AsyncSignal<F> {
 		let effect_fn = self.load.inner_fn();
 		effect_fn.trigger.gather_subs();
 
-		let inner = effect_fn.inner.borrow();
+		let inner = effect_fn.inner.read();
 		match &inner.value {
 			// If there's already a value, return it
 			Some(_) => Some(BorrowRef(inner)),
@@ -355,7 +354,7 @@ impl<F: Loader> SignalBorrow for AsyncSignal<F> {
 				}
 
 				drop(inner);
-				effect_fn.inner.borrow_mut().start_loading(InnerParentRef::Signal(self));
+				effect_fn.inner.write().start_loading(InnerParentRef::Signal(self));
 				None
 			},
 		}
@@ -380,7 +379,7 @@ where
 /// Reference type for [`SignalBorrowMut`] impl
 pub struct BorrowRefMut<'a, F: Loader> {
 	/// Value
-	value: cell::RefMut<'a, Inner<F>>,
+	value: IMutRwRefMut<'a, Inner<F>>,
 
 	/// Trigger on drop
 	// Note: Must be dropped *after* `value`.
@@ -422,7 +421,7 @@ impl<F: Loader> SignalBorrowMut for AsyncSignal<F> {
 		//       not what the user wants
 		// TODO: Should we even stop loading if the value was set in the meantime?
 		let effect_fn = self.load.inner_fn();
-		let inner = effect_fn.inner.borrow_mut();
+		let inner = effect_fn.inner.write();
 
 		// Then get the value
 		match inner.value.is_some() {
@@ -460,17 +459,18 @@ impl<F: Loader> !SignalWithDefaultImpl for AsyncSignal<F> {}
 impl<F: Loader> !SignalUpdateDefaultImpl for AsyncSignal<F> {}
 
 /// Loader
-pub trait Loader: 'static {
+pub trait Loader: SyncBounds + 'static {
 	type Fut: Future<Output = Self::Output> + 'static;
-	type Output;
+	type Output: SyncBounds;
 
 	fn load(&mut self) -> Self::Fut;
 }
 
 impl<F> Loader for F
 where
-	F: FnMut<()> + 'static,
+	F: SyncBounds + FnMut<()> + 'static,
 	F::Output: Future + 'static,
+	<F::Output as Future>::Output: SyncBounds,
 {
 	type Fut = F::Output;
 	type Output = <F::Output as Future>::Output;
@@ -508,7 +508,7 @@ pub fn is_unloaded() -> bool {
 /// Effect function
 struct EffectFn<F: Loader> {
 	/// Inner
-	inner: Rc<RefCell<Inner<F>>>,
+	inner: RcPtr<IMutRw<Inner<F>>>,
 
 	/// Trigger
 	trigger: Trigger,
@@ -518,6 +518,6 @@ impl<F: Loader> EffectRun for EffectFn<F> {
 	effect::effect_run_impl_inner! {}
 
 	fn run(&self, _ctx: EffectRunCtx<'_>) {
-		self.inner.borrow_mut().restart_loading(InnerParentRef::EffectFn(self));
+		self.inner.write().restart_loading(InnerParentRef::EffectFn(self));
 	}
 }

@@ -3,6 +3,7 @@
 // Imports
 use {
 	dynatos_context::OpaqueHandle,
+	dynatos_sync_types::SyncBounds,
 	dynatos_web::{ObjectGet, ObjectSetProp},
 	wasm_bindgen::prelude::wasm_bindgen,
 };
@@ -12,7 +13,7 @@ use {
 #[extend::ext(name = ObjectAttachContext)]
 pub impl js_sys::Object {
 	/// Provides and attaches a context to this object
-	fn attach_context<T: 'static>(&self, value: T) {
+	fn attach_context<T: SyncBounds + 'static>(&self, value: T) {
 		// Get the context handles array, or create it, if it doesn't exist
 		// TODO: Use an static anonymous symbol?
 		let prop_name = "__dynatos_ctx_handles";
@@ -41,7 +42,7 @@ where
 	O: AsRef<js_sys::Object>,
 {
 	/// Provides and attaches a context to this object
-	fn with_context<T: 'static>(self, value: T) -> Self {
+	fn with_context<T: SyncBounds + 'static>(self, value: T) -> Self {
 		self.as_ref().attach_context(value);
 		self
 	}

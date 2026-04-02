@@ -6,13 +6,13 @@ use {
 	crate::Location,
 	core::{error::Error as StdError, fmt, marker::PhantomData, str::FromStr},
 	dynatos_reactive::{Memo, SignalBorrow, SignalBorrowMut},
-	std::rc::Rc,
+	dynatos_sync_types::{SyncBounds, RcPtr},
 };
 
 /// Parses multiple values from the query
 pub struct MultiQuery<T> {
 	/// The key to this query
-	key: Rc<str>,
+	key: RcPtr<str>,
 
 	/// Queries with our key
 	queries: Memo<Vec<String>, QueriesFn>,
@@ -23,10 +23,10 @@ pub struct MultiQuery<T> {
 
 impl<T> MultiQuery<T> {
 	/// Creates a new query
-	pub fn new(key: impl Into<Rc<str>>) -> Self {
+	pub fn new(key: impl Into<RcPtr<str>>) -> Self {
 		let key = key.into();
 		Self {
-			key:      Rc::clone(&key),
+			key:      RcPtr::clone(&key),
 			queries:  super::queries_memo(key),
 			_phantom: PhantomData,
 		}
@@ -42,14 +42,18 @@ impl<T> MultiQuery<T> {
 impl<T> Clone for MultiQuery<T> {
 	fn clone(&self) -> Self {
 		Self {
-			key: Rc::clone(&self.key),
+			key: RcPtr::clone(&self.key),
 			queries: self.queries.clone(),
 			..*self
 		}
 	}
 }
 
-impl<T: FromStr> QueryParse for MultiQuery<T> {
+impl<T> QueryParse for MultiQuery<T>
+where
+	T: SyncBounds + FromStr,
+	T::Err: SyncBounds,
+{
 	type Value = Result<Vec<T>, QueryParseError<T>>;
 
 	fn parse(&self) -> Self::Value {
@@ -69,7 +73,11 @@ impl<T: FromStr> QueryParse for MultiQuery<T> {
 	}
 }
 
-impl<T: FromStr> QueryIntoValue<Vec<T>> for MultiQuery<T> {
+impl<T> QueryIntoValue<Vec<T>> for MultiQuery<T>
+where
+	T: SyncBounds + FromStr,
+	T::Err: SyncBounds,
+{
 	fn into_query_value(value: Vec<T>) -> Self::Value {
 		Ok(value)
 	}

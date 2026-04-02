@@ -7,13 +7,13 @@ use {
 	core::{error::Error as StdError, marker::PhantomData, str::FromStr},
 	dynatos_loadable::Loadable,
 	dynatos_reactive::{Memo, SignalBorrow, SignalBorrowMut},
-	std::rc::Rc,
+	dynatos_sync_types::{SyncBounds, RcPtr},
 };
 
 /// Parses a singular value from the query
 pub struct SingleQuery<T> {
 	/// The key to this query
-	key: Rc<str>,
+	key: RcPtr<str>,
 
 	/// Queries with our key
 	queries: Memo<Vec<String>, QueriesFn>,
@@ -24,10 +24,10 @@ pub struct SingleQuery<T> {
 
 impl<T> SingleQuery<T> {
 	/// Creates a new query
-	pub fn new(key: impl Into<Rc<str>>) -> Self {
+	pub fn new(key: impl Into<RcPtr<str>>) -> Self {
 		let key = key.into();
 		Self {
-			key:      Rc::clone(&key),
+			key:      RcPtr::clone(&key),
 			queries:  super::queries_memo(key),
 			_phantom: PhantomData,
 		}
@@ -43,14 +43,18 @@ impl<T> SingleQuery<T> {
 impl<T> Clone for SingleQuery<T> {
 	fn clone(&self) -> Self {
 		Self {
-			key: Rc::clone(&self.key),
+			key: RcPtr::clone(&self.key),
 			queries: self.queries.clone(),
 			..*self
 		}
 	}
 }
 
-impl<T: FromStr> QueryParse for SingleQuery<T> {
+impl<T> QueryParse for SingleQuery<T>
+where
+	T: SyncBounds + FromStr,
+	T::Err: SyncBounds,
+{
 	type Value = Loadable<T, T::Err>;
 
 	fn parse(&self) -> Self::Value {
@@ -68,13 +72,21 @@ impl<T: FromStr> QueryParse for SingleQuery<T> {
 	}
 }
 
-impl<T: FromStr> QueryIntoValue<T> for SingleQuery<T> {
+impl<T> QueryIntoValue<T> for SingleQuery<T>
+where
+	T: SyncBounds + FromStr,
+	T::Err: SyncBounds,
+{
 	fn into_query_value(value: T) -> Self::Value {
 		Loadable::Loaded(value)
 	}
 }
 
-impl<T: FromStr> QueryIntoValue<Result<T, T::Err>> for SingleQuery<T> {
+impl<T> QueryIntoValue<Result<T, T::Err>> for SingleQuery<T>
+where
+	T: SyncBounds + FromStr,
+	T::Err: SyncBounds,
+{
 	fn into_query_value(value: Result<T, T::Err>) -> Self::Value {
 		match value {
 			Ok(value) => Loadable::Loaded(value),
@@ -83,7 +95,11 @@ impl<T: FromStr> QueryIntoValue<Result<T, T::Err>> for SingleQuery<T> {
 	}
 }
 
-impl<T: FromStr<Err: StdError> + ToString> QueryWrite<&'_ Loadable<T, T::Err>> for SingleQuery<T> {
+impl<T> QueryWrite<&'_ Loadable<T, T::Err>> for SingleQuery<T>
+where
+	T: SyncBounds + FromStr + ToString,
+	T::Err: SyncBounds + StdError,
+{
 	fn write(&self, new_value: &Loadable<T, T::Err>) {
 		match new_value {
 			Loadable::Empty => self.write(None),

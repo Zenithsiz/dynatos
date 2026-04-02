@@ -6,11 +6,8 @@
 // Imports
 use {
 	crate::{Effect, Signal, SignalGetCloned, SignalSet, SignalUpdate, SignalWith, Trigger, WeakEffect},
-	core::{
-		cell::{OnceCell, RefCell},
-		ops::{ControlFlow, FromResidual, Residual, Try},
-	},
-	std::rc::Rc,
+	core::ops::{ControlFlow, FromResidual, Residual, Try},
+	dynatos_sync_types::{IMutRw, OnceCell, RcPtr, SyncBounds},
 	zutil_cloned::cloned,
 };
 
@@ -67,23 +64,24 @@ where
 	T: Try<Residual: Residual<Signal<T::Output>>>,
 {
 	/// Inner
-	inner: Rc<Inner<T>>,
+	inner: RcPtr<Inner<T>>,
 }
 
 impl<T> TryMappedSignal<T>
 where
 	T: Try<Residual: Residual<Signal<T::Output>>>,
+	SignalTry<T>: SyncBounds,
 {
 	/// Creates a new mapped signal from a fallible getter
 	pub fn new<S, TryGet, Set>(input: S, try_get: TryGet, set: Set) -> Self
 	where
-		T: 'static,
-		S: SignalWith + SignalUpdate + Clone + 'static,
-		TryGet: Fn(<S as SignalWith>::Value<'_>) -> T + 'static,
-		Set: Fn(<S as SignalUpdate>::Value<'_>, &T::Output) + 'static,
+		T: SyncBounds + 'static,
+		S: SyncBounds + SignalWith + SignalUpdate + Clone + 'static,
+		TryGet: SyncBounds + Fn(<S as SignalWith>::Value<'_>) -> T + 'static,
+		Set: SyncBounds + Fn(<S as SignalUpdate>::Value<'_>, &T::Output) + 'static,
 	{
 		// Output signal
-		let output_sig = Rc::new(RefCell::new(None::<SignalTry<T>>));
+		let output_sig = RcPtr::new(IMutRw::new(None::<SignalTry<T>>));
 
 		// Trigger for gathering dependencies on retrieving the output signal,
 		// but *not* on output signal changes.
@@ -91,7 +89,7 @@ where
 
 		// Weak reference to the `set_effect`, to ensure that we don't end
 		// up with a loop and leak memory
-		let set_weak_effect = Rc::new(OnceCell::<WeakEffect>::new());
+		let set_weak_effect = RcPtr::new(OnceCell::<WeakEffect>::new());
 
 		// The getter effect that sets the output signal
 		#[cloned(input, output_sig, trigger, set_weak_effect)]
@@ -99,7 +97,7 @@ where
 			input.with(|input| {
 				let value = try_get(input);
 
-				let mut output = output_sig.borrow_mut();
+				let mut output = output_sig.write();
 				let (new_output, needs_trigger) = match value.branch() {
 					// If the value was ok, check whether we already had a value or not
 					ControlFlow::Continue(value) => match output.take().map(Try::branch) {
@@ -156,7 +154,7 @@ where
 			.set(set_effect.downgrade())
 			.expect("Set effect should be uninitialized");
 
-		let inner = Rc::new(Inner {
+		let inner = RcPtr::new(Inner {
 			output: output_sig,
 			_get_effect: get_effect,
 			_set_effect: set_effect,
@@ -172,7 +170,7 @@ where
 {
 	fn clone(&self) -> Self {
 		Self {
-			inner: Rc::clone(&self.inner),
+			inner: RcPtr::clone(&self.inner),
 		}
 	}
 }
@@ -188,7 +186,7 @@ where
 		self.inner.trigger.gather_subs();
 		self.inner
 			.output
-			.borrow()
+			.read()
 			.as_ref()
 			.expect("Output signal was missing")
 			.clone()
@@ -196,7 +194,7 @@ where
 }
 
 /// Output signal type
-type OutputSignal<T> = Rc<RefCell<Option<SignalTry<T>>>>;
+type OutputSignal<T> = RcPtr<IMutRw<Option<SignalTry<T>>>>;
 
 /// Signal try type
 type SignalTry<T: Try> = <T::Residual as Residual<Signal<T::Output>>>::TryType;
@@ -210,7 +208,7 @@ where
 	T: Try<Residual: Residual<Signal<T::Output>>>,
 	F: FnOnce(&Signal<T::Output>),
 {
-	let mut output = output_sig.borrow_mut();
+	let mut output = output_sig.write();
 
 	// Take the existing type and branch on it
 	let new_output = match output.take().expect("Output signal was missing").branch() {
@@ -233,10 +231,10 @@ impl<T> MappedSignal<T> {
 	/// Creates a new mapped signal from a fallible getter
 	pub fn new<S, Get, Set>(input: S, get: Get, set: Set) -> Self
 	where
-		T: 'static,
-		S: SignalWith + SignalUpdate + Clone + 'static,
-		Get: Fn(<S as SignalWith>::Value<'_>) -> T + 'static,
-		Set: Fn(<S as SignalUpdate>::Value<'_>, &T) + 'static,
+		T: SyncBounds + 'static,
+		S: SyncBounds + SignalWith + SignalUpdate + Clone + 'static,
+		Get: SyncBounds + Fn(<S as SignalWith>::Value<'_>) -> T + 'static,
+		Set: SyncBounds + Fn(<S as SignalUpdate>::Value<'_>, &T) + 'static,
 	{
 		Self(TryMappedSignal::new(
 			input,
@@ -264,14 +262,15 @@ impl<T> SignalGetCloned for MappedSignal<T> {
 #[extend::ext_sized(name = SignalMapped)]
 pub impl<S> S
 where
-	S: SignalWith + SignalUpdate + Clone + 'static,
+	S: SyncBounds + SignalWith + SignalUpdate + Clone + 'static,
 {
 	/// Maps this signal fallibly
 	fn try_mapped<T, TryGet, Set>(self, try_get: TryGet, set: Set) -> TryMappedSignal<T>
 	where
-		T: Try<Residual: Residual<Signal<T::Output>>> + 'static,
-		TryGet: Fn(<S as SignalWith>::Value<'_>) -> T + 'static,
-		Set: Fn(<S as SignalUpdate>::Value<'_>, &T::Output) + 'static,
+		T: SyncBounds + Try<Residual: Residual<Signal<T::Output>>> + 'static,
+		TryGet: SyncBounds + Fn(<S as SignalWith>::Value<'_>) -> T + 'static,
+		Set: SyncBounds + Fn(<S as SignalUpdate>::Value<'_>, &T::Output) + 'static,
+		SignalTry<T>: SyncBounds,
 	{
 		TryMappedSignal::new(self, try_get, set)
 	}
@@ -279,9 +278,9 @@ where
 	/// Maps this signal
 	fn mapped<T, Get, Set>(self, get: Get, set: Set) -> MappedSignal<T>
 	where
-		T: 'static,
-		Get: Fn(<S as SignalWith>::Value<'_>) -> T + 'static,
-		Set: Fn(<S as SignalUpdate>::Value<'_>, &T) + 'static,
+		T: SyncBounds + 'static,
+		Get: SyncBounds + Fn(<S as SignalWith>::Value<'_>) -> T + 'static,
+		Set: SyncBounds + Fn(<S as SignalUpdate>::Value<'_>, &T) + 'static,
 	{
 		MappedSignal::new(self, get, set)
 	}

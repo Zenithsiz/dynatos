@@ -4,6 +4,7 @@
 use {
 	super::{EnumSplitValue, EnumSplitValueUpdateCtx, SignalStorage},
 	crate::{Signal, SignalSet},
+	dynatos_sync_types::SyncBounds,
 };
 
 macro gen_either($Either:ident, $All:ident, $($t:ident: $T:ident),* $(,)?) {
@@ -19,8 +20,8 @@ macro gen_either($Either:ident, $All:ident, $($t:ident: $T:ident),* $(,)?) {
 
 	impl<$( $T, )* S> EnumSplitValue<S> for $Either<$( $T, )*>
 	where
-		$( $T: Clone + 'static, )*
-		S: SignalSet<Self> + Clone + 'static,
+		$( $T: SyncBounds + Clone + 'static, )*
+		S: SyncBounds + SignalSet<Self> + Clone + 'static,
 
 	{
 		type SigKind = $Either< $( () ${ignore($T)}, )* >;

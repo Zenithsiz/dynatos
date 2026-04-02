@@ -4,6 +4,7 @@
 use {
 	core::ops::Deref,
 	dynatos_reactive::{Derived, Memo, Signal, SignalWith, WithDefault, derived::DerivedRun},
+	dynatos_sync_types::SyncBounds,
 	dynatos_web_router::{QuerySignal, query_signal::QueryParse},
 };
 
@@ -17,7 +18,7 @@ use {
 /// - `LazyCell<N, impl Fn() -> N>`
 ///
 /// Where `N` is any of the types above.
-pub trait WithDynText {
+pub trait WithDynText: SyncBounds {
 	/// Calls `f` with the inner text
 	fn with_text<F, O>(&self, f: F) -> O
 	where
@@ -26,7 +27,7 @@ pub trait WithDynText {
 
 impl<FT, T> WithDynText for FT
 where
-	FT: Fn() -> T,
+	FT: SyncBounds + Fn() -> T,
 	T: WithDynText,
 {
 	fn with_text<F, O>(&self, f: F) -> O
@@ -75,8 +76,8 @@ where
 	Generics Ty;
 	[T] [Signal<T> where T: WithDynText + 'static];
 	[T, F] [Derived<T, F> where T: WithDynText + 'static, F: ?Sized + DerivedRun<T> + 'static];
-	[T, F] [Memo<T, F> where T: WithDynText + 'static, F: ?Sized + 'static];
-	[S, T] [WithDefault<S, T> where Self: for<'a> SignalWith<Value<'a>: Deref<Target: WithDynText>>];
+	[T, F] [Memo<T, F> where T: WithDynText + 'static, F: SyncBounds + ?Sized + 'static];
+	[S, T] [WithDefault<S, T> where S: SyncBounds, T: SyncBounds, Self: for<'a> SignalWith<Value<'a>: Deref<Target: WithDynText>>];
 	[T] [QuerySignal<T> where T: QueryParse<Value: WithDynText>]
 )]
 impl<Generics> WithDynText for Ty {

@@ -1,7 +1,7 @@
 //! Suppressed
 
 // Imports
-use super::Effect;
+use {super::Effect, core::sync::atomic};
 
 /// Effect suppression.
 ///
@@ -21,8 +21,7 @@ impl<'a, F: ?Sized> EffectSuppressed<'a, F> {
 	/// Creates a new dependency gatherer
 	pub fn new(effect: &'a Effect<F>) -> Self {
 		// Set the effect as suppressed
-		let prev_suppressed = effect.inner.suppressed.get();
-		effect.inner.suppressed.set(true);
+		let prev_suppressed = effect.inner.suppressed.swap(true, atomic::Ordering::AcqRel);
 
 		Self {
 			effect,
@@ -34,6 +33,9 @@ impl<'a, F: ?Sized> EffectSuppressed<'a, F> {
 impl<F: ?Sized> Drop for EffectSuppressed<'_, F> {
 	fn drop(&mut self) {
 		// Set it back as it was previously
-		self.effect.inner.suppressed.set(self.prev_suppressed);
+		self.effect
+			.inner
+			.suppressed
+			.set(self.prev_suppressed, atomic::Ordering::Release);
 	}
 }

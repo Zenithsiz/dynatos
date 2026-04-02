@@ -6,6 +6,7 @@ members = [
 	"dynatos-context",
 	"dynatos-loadable",
 	"dynatos-reactive",
+	"dynatos-sync-types",
 	"dynatos-util",
 	"dynatos-web",
 	"dynatos-web-macros",
@@ -23,6 +24,9 @@ members = [
 	"examples/import-html",
 	"examples/query",
 	"examples/router",
+
+	# Tests
+	"tests/dynatos-reactive-sync",
 ]
 resolver = "2"
 
@@ -34,6 +38,7 @@ dynatos-builder-macros      = { path = "dynatos-builder-macros" }
 dynatos-context             = { path = "dynatos-context" }
 dynatos-loadable            = { path = "dynatos-loadable" }
 dynatos-reactive            = { path = "dynatos-reactive" }
+dynatos-sync-types          = { path = "dynatos-sync-types" }
 dynatos-util                = { path = "dynatos-util" }
 dynatos-web                 = { path = "dynatos-web" }
 dynatos-web-macros          = { path = "dynatos-web-macros" }
@@ -163,3 +168,6 @@ clippy.missing_trait_methods = "allow"
 
 # TODO: Should we move to `alloc`?
 clippy.std_instead_of_alloc = "allow"
+
+# TODO: This has too many false positives, but it can be useful, check manually occasionally
+clippy.significant_drop_tightening = "allow"

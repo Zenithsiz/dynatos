@@ -5,7 +5,11 @@ edition = "2024"
 
 [dependencies]
 
-dynatos-util = { workspace = true }
+dynatos-sync-types = { workspace = true }
+dynatos-util       = { workspace = true }
+
+[features]
+sync = ["dynatos-sync-types/sync"]
 
 [lints]
 workspace = true

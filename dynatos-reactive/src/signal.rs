@@ -30,13 +30,12 @@ pub use ops::{
 use {
 	crate::{Trigger, trigger::TriggerExec},
 	core::{
-		cell::{self, RefCell},
 		fmt,
 		marker::Unsize,
 		mem,
 		ops::{CoerceUnsized, Deref, DerefMut},
 	},
-	std::rc::Rc,
+	dynatos_sync_types::{IMutRw, IMutRwRef, IMutRwRefMut, RcPtr},
 };
 
 /// Inner
@@ -45,13 +44,13 @@ struct Inner<T: ?Sized> {
 	trigger: Trigger,
 
 	/// Value
-	value: RefCell<T>,
+	value: IMutRw<T>,
 }
 
 /// Signal
 pub struct Signal<T: ?Sized> {
 	/// Inner
-	inner: Rc<Inner<T>>,
+	inner: RcPtr<Inner<T>>,
 }
 
 impl<T> Signal<T> {
@@ -59,10 +58,12 @@ impl<T> Signal<T> {
 	#[track_caller]
 	pub fn new(value: T) -> Self {
 		let inner = Inner {
-			value:   RefCell::new(value),
+			value:   IMutRw::new(value),
 			trigger: Trigger::new(),
 		};
-		Self { inner: Rc::new(inner) }
+		Self {
+			inner: RcPtr::new(inner),
+		}
 	}
 }
 
@@ -77,7 +78,7 @@ where
 }
 
 /// Reference type for [`SignalBorrow`] impl
-pub struct BorrowRef<'a, T: ?Sized + 'a>(cell::Ref<'a, T>);
+pub struct BorrowRef<'a, T: ?Sized + 'a>(IMutRwRef<'a, T>);
 
 impl<T: ?Sized> Deref for BorrowRef<'_, T> {
 	type Target = T;
@@ -103,7 +104,7 @@ impl<T: ?Sized + 'static> SignalBorrow for Signal<T> {
 	fn borrow(&self) -> Self::Ref<'_> {
 		self.inner.trigger.gather_subs();
 
-		let value = self.inner.value.borrow();
+		let value = self.inner.value.read();
 		BorrowRef(value)
 	}
 }
@@ -119,7 +120,7 @@ impl<T: 'static> SignalReplace<T> for Signal<T> {
 /// Reference type for [`SignalBorrowMut`] impl
 pub struct BorrowRefMut<'a, T: ?Sized + 'a> {
 	/// Value
-	value: cell::RefMut<'a, T>,
+	value: IMutRwRefMut<'a, T>,
 
 	/// Trigger executor
 	// Note: Must be dropped *after* `value`.
@@ -154,7 +155,7 @@ impl<T: ?Sized + 'static> SignalBorrowMut for Signal<T> {
 		Self: 'a;
 
 	fn borrow_mut(&self) -> Self::RefMut<'_> {
-		let value = self.inner.value.borrow_mut();
+		let value = self.inner.value.write();
 		BorrowRefMut {
 			value,
 			_trigger_exec: self.inner.trigger.exec(),
@@ -172,7 +173,7 @@ impl<T: ?Sized> SignalUpdateDefaultImpl for Signal<T> {}
 impl<T: ?Sized> Clone for Signal<T> {
 	fn clone(&self) -> Self {
 		Self {
-			inner: Rc::clone(&self.inner),
+			inner: RcPtr::clone(&self.inner),
 		}
 	}
 }
@@ -181,7 +182,7 @@ impl<T: ?Sized> Clone for Signal<T> {
 impl<T: ?Sized + fmt::Debug> fmt::Debug for Signal<T> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		f.debug_struct("Signal")
-			.field("value", &&*self.inner.value.borrow())
+			.field("value", &&*self.inner.value.read())
 			.field("trigger", &self.inner.trigger)
 			.finish()
 	}

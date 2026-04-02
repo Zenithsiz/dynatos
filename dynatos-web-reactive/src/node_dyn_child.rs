@@ -3,9 +3,9 @@
 // Imports
 use {
 	crate::{NodeDynChildren, WithDynNodes},
-	core::{cell::LazyCell, ops::Deref},
+	core::ops::Deref,
 	dynatos_reactive::{Derived, Memo, Signal, SignalWith, WithDefault, derived::DerivedRun},
-	std::sync::LazyLock,
+	dynatos_sync_types::SyncBounds,
 	wasm_bindgen::JsCast,
 };
 
@@ -61,14 +61,14 @@ where
 /// - `!`
 ///
 /// Where `N` is any of the types above.
-pub trait WithDynNode {
+pub trait WithDynNode: SyncBounds {
 	/// Calls `f` with all nodes.
 	fn with_node(&self, f: impl FnMut(web_sys::Node));
 }
 
 impl<F, N> WithDynNode for F
 where
-	F: Fn() -> N,
+	F: SyncBounds + Fn() -> N,
 	N: WithDynNode,
 {
 	fn with_node(&self, f: impl FnMut(web_sys::Node)) {
@@ -109,8 +109,8 @@ where
 	Generics Ty;
 	[T] [Signal<T> where T: WithDynNode + 'static];
 	[T, F] [Derived<T, F> where T: WithDynNode + 'static, F: ?Sized + DerivedRun<T> + 'static];
-	[T, F] [Memo<T, F> where T: WithDynNode + 'static, F: ?Sized + 'static];
-	[S, T] [WithDefault<S, T> where Self: for<'a> SignalWith<Value<'a>: Deref<Target: WithDynNode>>];
+	[T, F] [Memo<T, F> where T: WithDynNode + 'static, F: SyncBounds + ?Sized + 'static];
+	[S, T] [WithDefault<S, T> where S: SyncBounds, T: SyncBounds, Self: for<'a> SignalWith<Value<'a>: Deref<Target: WithDynNode>>];
 )]
 impl<Generics> WithDynNode for Ty {
 	fn with_node(&self, f: impl FnMut(web_sys::Node)) {
@@ -123,20 +123,24 @@ impl<Generics> WithDynNode for Ty {
 	}
 }
 
-impl<N, F> WithDynNode for LazyCell<N, F>
+#[expect(clippy::absolute_paths, reason = "We want to be explicit due to the `sync` feature")]
+impl<N, F> WithDynNode for core::cell::LazyCell<N, F>
 where
 	N: WithDynNode,
 	F: FnOnce() -> N,
+	Self: SyncBounds,
 {
 	fn with_node(&self, f: impl FnMut(web_sys::Node)) {
 		(**self).with_node(f);
 	}
 }
 
-impl<N, F> WithDynNode for LazyLock<N, F>
+#[expect(clippy::absolute_paths, reason = "We want to be explicit due to the `sync` feature")]
+impl<N, F> WithDynNode for std::sync::LazyLock<N, F>
 where
 	N: WithDynNode,
 	F: FnOnce() -> N,
+	Self: SyncBounds,
 {
 	fn with_node(&self, f: impl FnMut(web_sys::Node)) {
 		(**self).with_node(f);

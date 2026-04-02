@@ -14,11 +14,11 @@ use {
 		effect::EffectSuppressed,
 	},
 	core::{
-		cell::{self, RefCell},
 		fmt,
 		marker::{PhantomData, Unsize},
 		ops::{CoerceUnsized, Deref},
 	},
+	dynatos_sync_types::{SyncBounds, IMutRwRef, IMutRw},
 };
 
 /// Memo signal.
@@ -34,10 +34,10 @@ impl<T, F> Memo<T, F> {
 	#[track_caller]
 	pub fn new(f: F) -> Self
 	where
-		T: PartialEq + 'static,
-		F: Fn() -> T + 'static,
+		T: SyncBounds + PartialEq + 'static,
+		F: SyncBounds + Fn() -> T + 'static,
 	{
-		let value = RefCell::new(None);
+		let value = IMutRw::new(None);
 		let effect = Effect::new(EffectFn {
 			trigger: Trigger::new(),
 			value,
@@ -55,8 +55,8 @@ impl<T, F> Memo<T, F> {
 	#[track_caller]
 	pub fn suppress(&self) -> EffectSuppressed<'_, impl EffectRun>
 	where
-		T: PartialEq + 'static,
-		F: Fn() -> T + 'static,
+		T: SyncBounds + PartialEq + 'static,
+		F: SyncBounds + Fn() -> T + 'static,
 	{
 		self.effect.suppress()
 	}
@@ -65,12 +65,12 @@ impl<T, F> Memo<T, F> {
 	// TODO: Just implement `SignalBorrowMut` and friends?
 	#[track_caller]
 	pub fn update_no_run(&self, value: T) {
-		*self.effect.inner_fn().value.borrow_mut() = Some(value);
+		*self.effect.inner_fn().value.write() = Some(value);
 	}
 }
 
 /// Reference type for [`SignalBorrow`] impl
-pub struct BorrowRef<'a, T: 'a, F: ?Sized>(cell::Ref<'a, Option<T>>, PhantomData<fn(F)>);
+pub struct BorrowRef<'a, T: 'a, F: ?Sized>(IMutRwRef<'a, Option<T>>, PhantomData<fn(F)>);
 
 impl<T, F: ?Sized> Deref for BorrowRef<'_, T, F> {
 	type Target = T;
@@ -97,7 +97,7 @@ impl<T: 'static, F: ?Sized> SignalBorrow for Memo<T, F> {
 		self.effect.inner_fn().trigger.gather_subs();
 
 		let effect_fn = self.effect.inner_fn();
-		let value = effect_fn.value.borrow();
+		let value = effect_fn.value.read();
 		BorrowRef(value, PhantomData)
 	}
 }
@@ -119,7 +119,7 @@ impl<T: fmt::Debug, F: ?Sized> fmt::Debug for Memo<T, F> {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		let effect_fn = self.effect.inner_fn();
 		let mut debug = f.debug_struct("Memo");
-		match effect_fn.value.try_borrow() {
+		match effect_fn.value.try_read() {
 			Ok(value) => debug.field("value", &*value).finish(),
 			Err(_) => debug.finish_non_exhaustive(),
 		}
@@ -139,7 +139,7 @@ struct EffectFn<T, F: ?Sized> {
 	trigger: Trigger,
 
 	/// Value
-	value: RefCell<Option<T>>,
+	value: IMutRw<Option<T>>,
 
 	/// Function
 	f: F,
@@ -147,14 +147,14 @@ struct EffectFn<T, F: ?Sized> {
 
 impl<T, F> EffectRun for EffectFn<T, F>
 where
-	T: PartialEq + 'static,
-	F: Fn() -> T + 'static,
+	T: SyncBounds + PartialEq + 'static,
+	F: SyncBounds + Fn() -> T + 'static,
 {
 	crate::effect_run_impl_inner! {}
 
 	fn run(&self, _ctx: EffectRunCtx<'_>) {
 		let new_value = (self.f)();
-		let mut value = self.value.borrow_mut();
+		let mut value = self.value.write();
 
 		// Write the new value, if it's different from the previous
 		// Note: Since we're comparing against `Some(_)`, any `None` values

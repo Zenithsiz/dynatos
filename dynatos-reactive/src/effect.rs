@@ -28,26 +28,26 @@ use {
 		world::{THREAD_WORLD, WorldTag, WorldTagGuard},
 	},
 	core::{
-		cell::Cell,
 		fmt,
 		hash::{Hash, Hasher},
 		marker::Unsize,
 		ops::{CoerceUnsized, Deref},
+		sync::atomic,
 	},
-	std::rc::Rc,
+	dynatos_sync_types::{CellBool, RcPtr},
 };
 
 /// Effect inner
 #[doc(hidden)]
 pub struct Inner<F: ?Sized> {
 	/// Whether this effect is fresh
-	fresh: Cell<bool>,
+	fresh: CellBool,
 
 	/// Whether this effect is currently suppressed
-	suppressed: Cell<bool>,
+	suppressed: CellBool,
 
 	/// Whether we're currently checking dependencies.
-	checking_deps: Cell<bool>,
+	checking_deps: CellBool,
 
 	/// Where this effect was defined
 	defined_loc: Loc,
@@ -69,7 +69,7 @@ impl<F: ?Sized> Deref for Inner<F> {
 /// Effect
 pub struct Effect<F: ?Sized = dyn EffectRun> {
 	/// Inner
-	pub(crate) inner: Rc<Inner<F>>,
+	pub(crate) inner: RcPtr<Inner<F>>,
 }
 
 impl<F> Effect<F> {
@@ -97,14 +97,16 @@ impl<F> Effect<F> {
 	#[track_caller]
 	pub fn new_raw(run: F) -> Self {
 		let inner = Inner {
-			fresh: Cell::new(false),
-			suppressed: Cell::new(false),
-			checking_deps: Cell::new(false),
+			fresh: CellBool::new(false),
+			suppressed: CellBool::new(false),
+			checking_deps: CellBool::new(false),
 			defined_loc: Loc::caller(),
 			run,
 		};
 
-		Self { inner: Rc::new(inner) }
+		Self {
+			inner: RcPtr::new(inner),
+		}
 	}
 
 	/// Tries to create a new effect.
@@ -139,7 +141,7 @@ impl<F: ?Sized> Effect<F> {
 	#[must_use]
 	pub fn downgrade(&self) -> WeakEffect<F> {
 		WeakEffect {
-			inner: Rc::downgrade(&self.inner),
+			inner: RcPtr::downgrade(&self.inner),
 		}
 	}
 
@@ -150,7 +152,7 @@ impl<F: ?Sized> Effect<F> {
 	/// or [`WeakEffect`]s exist that point to it.
 	#[must_use]
 	pub fn is_inert(&self) -> bool {
-		Rc::strong_count(&self.inner) == 1 && Rc::weak_count(&self.inner) == 0
+		RcPtr::strong_count(&self.inner) == 1 && RcPtr::weak_count(&self.inner) == 0
 	}
 
 	/// Returns a unique identifier to this effect.
@@ -158,7 +160,7 @@ impl<F: ?Sized> Effect<F> {
 	/// Downgrading and cloning the effect will retain the same id
 	#[must_use]
 	pub fn id(&self) -> usize {
-		Rc::as_ptr(&self.inner).addr()
+		RcPtr::as_ptr(&self.inner).addr()
 	}
 
 	/// Creates an effect dependency gatherer
@@ -195,7 +197,7 @@ impl<F: ?Sized> Effect<F> {
 	{
 		// If we're checking dependencies, there's a cycle in the dependency graph,
 		// so just quit since we're already being executed.
-		if self.inner.checking_deps.get() {
+		if self.inner.checking_deps.swap(true, atomic::Ordering::AcqRel) {
 			return;
 		}
 
@@ -207,7 +209,6 @@ impl<F: ?Sized> Effect<F> {
 		//       tree to avoid this check because some subscribers might be marked as
 		//       stale when they actually don't need to be rerun (if dependencies change).
 		// TODO: Add some logging here to debug why an effect is being run?
-		self.inner.checking_deps.set(true);
 		GLOBAL_WORLD
 			.dep_graph()
 			.with_effect_deps(self.downgrade().unsize(), move |trigger, _| {
@@ -215,7 +216,7 @@ impl<F: ?Sized> Effect<F> {
 					.dep_graph()
 					.with_trigger_deps(trigger, move |effect, _| _ = effect.try_run());
 			});
-		self.inner.checking_deps.set(false);
+		self.inner.checking_deps.set(false, atomic::Ordering::Release);
 
 		// If we're suppressed or fresh, we don't need to run.
 		if self.is_suppressed() || self.is_fresh() {
@@ -248,18 +249,18 @@ impl<F: ?Sized> Effect<F> {
 		self.inner.run.run(ctx);
 
 		// And set ourselves as fresh
-		self.inner.fresh.set(true);
+		self.inner.fresh.set(true, atomic::Ordering::Release);
 	}
 
 	/// Sets the effect as stale
 	pub fn set_stale(&self) {
-		self.inner.fresh.set(false);
+		self.inner.fresh.set(false, atomic::Ordering::Release);
 	}
 
 	/// Returns whether the effect is fresh
 	#[must_use]
 	pub fn is_fresh(&self) -> bool {
-		self.inner.fresh.get()
+		self.inner.fresh.get(atomic::Ordering::Acquire)
 	}
 
 	/// Returns whether the effect is stale
@@ -276,7 +277,7 @@ impl<F: ?Sized> Effect<F> {
 	/// Returns whether the effect is suppressed
 	#[must_use]
 	pub fn is_suppressed(&self) -> bool {
-		self.inner.suppressed.get()
+		self.inner.suppressed.get(atomic::Ordering::Acquire)
 	}
 
 	/// Formats this effect into `s`
@@ -284,7 +285,7 @@ impl<F: ?Sized> Effect<F> {
 	fn fmt_debug(&self, mut s: fmt::DebugStruct<'_, '_>) -> Result<(), fmt::Error> {
 		s.field("id", &self.id());
 
-		s.field("suppressed", &self.inner.suppressed.get());
+		s.field("suppressed", &self.inner.suppressed.get(atomic::Ordering::Acquire));
 
 		s.field("defined_loc", &self.defined_loc());
 
@@ -318,7 +319,7 @@ impl<F: ?Sized> Eq for Effect<F> {}
 impl<F: ?Sized> Clone for Effect<F> {
 	fn clone(&self) -> Self {
 		Self {
-			inner: Rc::clone(&self.inner),
+			inner: RcPtr::clone(&self.inner),
 		}
 	}
 }

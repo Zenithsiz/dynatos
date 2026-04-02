@@ -3,6 +3,7 @@
 use {
 	core::ops::Deref,
 	dynatos_reactive::{Derived, Memo, Signal, SignalWith, WithDefault, derived::DerivedRun},
+	dynatos_sync_types::SyncBounds,
 	wasm_bindgen::JsValue,
 };
 
@@ -17,14 +18,14 @@ use {
 /// - [`Signal`], [`Derived`], [`Memo`], [`WithDefault`]
 ///
 /// Where `N` is a dyn prop.
-pub trait ToDynProp {
+pub trait ToDynProp: SyncBounds {
 	/// Gets the current prop
 	fn to_prop(&self) -> Option<JsValue>;
 }
 
 impl<F, T> ToDynProp for F
 where
-	F: Fn() -> T,
+	F: SyncBounds + Fn() -> T,
 	T: ToDynProp,
 {
 	fn to_prop(&self) -> Option<JsValue> {
@@ -85,8 +86,8 @@ impl ToDynProp for Ty {
 	Generics Ty;
 	[T] [Signal<T> where T: ToDynProp + 'static];
 	[T, F] [Derived<T, F> where T: ToDynProp + 'static, F: ?Sized + DerivedRun<T> + 'static];
-	[T, F] [Memo<T, F> where T: ToDynProp + 'static, F: ?Sized + 'static];
-	[S, T] [WithDefault<S, T> where Self: for<'a> SignalWith<Value<'a>: Deref<Target: ToDynProp>>];
+	[T, F] [Memo<T, F> where T: ToDynProp + 'static, F: SyncBounds + ?Sized + 'static];
+	[S, T] [WithDefault<S, T> where S: SyncBounds, T: SyncBounds, Self: for<'a> SignalWith<Value<'a>: Deref<Target: ToDynProp>>];
 )]
 impl<Generics> ToDynProp for Ty {
 	fn to_prop(&self) -> Option<JsValue> {

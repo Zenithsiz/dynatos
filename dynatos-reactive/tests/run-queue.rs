@@ -42,11 +42,9 @@ fn breadth_first() {
 		_ = (a2.get(), b2.get());
 	});
 
-	let a = a.borrow_mut();
-	let b = b.borrow_mut();
-
 	ORDER.lock().clear();
-	drop((a, b));
+
+	drop((a.borrow_mut(), b.borrow_mut()));
 	assert_eq!(*ORDER.lock(), ["a2", "b2", "c"], "Effect was run with wrong order");
 }
 

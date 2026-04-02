@@ -4,6 +4,7 @@
 use {
 	crate::{ObjectAttachEffect, WithDynPred, WithDynText},
 	dynatos_reactive::Effect,
+	dynatos_sync_types::SyncBounds,
 	dynatos_util::TryOrReturnExt,
 	js_sys::WeakRef,
 };
@@ -15,8 +16,8 @@ pub impl web_sys::Element {
 	#[track_caller]
 	fn set_dyn_attr<K, V>(&self, key: K, value: V)
 	where
-		K: AsRef<str> + 'static,
-		V: WithDynText + 'static,
+		K: SyncBounds + AsRef<str> + 'static,
+		V: SyncBounds + WithDynText + 'static,
 	{
 		// Create the value to attach
 		// Note: It's important that we only keep a `WeakRef` to the element.
@@ -48,8 +49,8 @@ pub impl web_sys::Element {
 	#[track_caller]
 	fn set_dyn_attr_if<K, P>(&self, key: K, pred: P)
 	where
-		K: AsRef<str> + 'static,
-		P: WithDynPred + 'static,
+		K: SyncBounds + AsRef<str> + 'static,
+		P: SyncBounds + WithDynPred + 'static,
 	{
 		self.set_dyn_attr(key, move || pred.eval().then_some(""));
 	}
@@ -67,8 +68,8 @@ where
 	#[track_caller]
 	fn with_dyn_attr<K, V>(self, key: K, value: V) -> Self
 	where
-		K: AsRef<str> + 'static,
-		V: WithDynText + 'static,
+		K: SyncBounds + AsRef<str> + 'static,
+		V: SyncBounds + WithDynText + 'static,
 	{
 		self.as_ref().set_dyn_attr(key, value);
 		self
@@ -80,8 +81,8 @@ where
 	#[track_caller]
 	fn with_dyn_attr_if<K, P>(self, key: K, pred: P) -> Self
 	where
-		K: AsRef<str> + 'static,
-		P: WithDynPred + 'static,
+		K: SyncBounds + AsRef<str> + 'static,
+		P: SyncBounds + WithDynPred + 'static,
 	{
 		self.as_ref().set_dyn_attr_if(key, pred);
 		self

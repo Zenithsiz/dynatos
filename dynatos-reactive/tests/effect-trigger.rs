@@ -1,12 +1,12 @@
 //! Effect-trigger tests
 
 // Features
-#![feature(thread_local, proc_macro_hygiene, stmt_expr_attributes)]
+#![feature(macro_attr, thread_local, proc_macro_hygiene, stmt_expr_attributes)]
 
 // Imports
 use {
-	core::{cell::OnceCell, mem},
 	dynatos_reactive::{Effect, Trigger, WeakEffect, WeakTrigger, effect},
+	dynatos_sync_types::{OnceCell, thread_local_or_global},
 	dynatos_util::Counter,
 	zutil_cloned::cloned,
 };
@@ -26,12 +26,12 @@ fn basic() {
 	assert_eq!(TRIGGERS.get(), 1, "Trigger was triggered early");
 
 	// Then trigger and ensure it was triggered
-	trigger.exec();
+	drop(trigger.exec());
 	assert_eq!(TRIGGERS.get(), 2, "Trigger was not triggered");
 
 	// Finally drop the effect and try again
-	mem::drop(effect);
-	trigger.exec();
+	drop(effect);
+	drop(trigger.exec());
 	assert_eq!(TRIGGERS.get(), 2, "Trigger was triggered after effect was dropped");
 }
 
@@ -80,15 +80,10 @@ fn exec_multiple_same_effect() {
 		TRIGGERS.bump();
 	});
 
-	let exec0 = trigger0.exec();
-	let exec1 = trigger1.exec();
-
-	drop((exec0, exec1));
-
+	drop((trigger0.exec(), trigger1.exec()));
 	assert_eq!(TRIGGERS.get(), 2, "Effect was run multiple times in same run queue");
 
-	trigger0.exec();
-
+	drop(trigger0.exec());
 	assert_eq!(
 		TRIGGERS.get(),
 		3,
@@ -119,7 +114,7 @@ fn fresh_stale() {
 /// Ensures the function returned by `Effect::running` is the same as the future being run.
 #[test]
 fn running() {
-	#[thread_local]
+	#[thread_local_or_global]
 	static RUNNING: OnceCell<Effect> = OnceCell::new();
 
 	// Create an effect, and save the running effect within it to `RUNNING`.
@@ -138,10 +133,10 @@ fn running() {
 /// while running stacked futures
 #[test]
 fn running_stacked() {
-	#[thread_local]
+	#[thread_local_or_global]
 	static RUNNING_TOP: OnceCell<Effect> = OnceCell::new();
 
-	#[thread_local]
+	#[thread_local_or_global]
 	static RUNNING_BOTTOM: OnceCell<Effect> = OnceCell::new();
 
 	// Create 2 stacked effects, saving the running within each to `running1` and `running2`.

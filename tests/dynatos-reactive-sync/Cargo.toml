@@ -1,21 +1,20 @@
 [package]
-name    = "dynatos-loadable"
+name    = "tests-dynatos-reactive-sync"
 version = "0.1.0"
 edition = "2024"
 
-[dependencies]
+[dev-dependencies]
 
 dynatos-reactive   = { workspace = true }
 dynatos-sync-types = { workspace = true }
 dynatos-util       = { workspace = true }
 
-duplicate    = { workspace = true }
-extend       = { workspace = true }
-tracing      = { workspace = true }
+app-error    = { workspace = true }
 zutil-cloned = { workspace = true }
 
 [features]
-sync = ["dynatos-reactive/sync", "dynatos-sync-types/sync"]
+default = ["sync"]
+sync    = ["dynatos-reactive/sync"]
 
 [lints]
 workspace = true

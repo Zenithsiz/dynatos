@@ -3,7 +3,8 @@
 // Imports
 use {
 	crate::{Effect, EffectRun, Trigger, WeakEffect, WeakTrigger, loc::Loc},
-	core::{cell::RefCell, error::Error as StdError},
+	core::error::Error as StdError,
+	dynatos_sync_types::IMutRw,
 	itertools::Itertools,
 	petgraph::prelude::{EdgeRef, NodeIndex, StableGraph},
 	std::collections::HashMap,
@@ -72,10 +73,10 @@ struct Inner {
 }
 
 /// Dependency graph
-#[derive(Clone, Debug)]
+#[derive(Debug)]
 pub struct DepGraph {
 	/// Inner
-	inner: RefCell<Inner>,
+	inner: IMutRw<Inner>,
 }
 
 impl DepGraph {
@@ -83,7 +84,7 @@ impl DepGraph {
 	#[must_use]
 	pub fn new() -> Self {
 		Self {
-			inner: RefCell::new(Inner {
+			inner: IMutRw::new(Inner {
 				nodes: HashMap::new(),
 				graph: StableGraph::new(),
 			}),
@@ -92,7 +93,7 @@ impl DepGraph {
 
 	/// Gets the idx of a node, or creates it
 	fn get_or_insert_node(&self, node: Node) -> NodeIndex {
-		let mut inner = self.inner.borrow_mut();
+		let mut inner = self.inner.write();
 		let inner = &mut *inner;
 
 		*inner
@@ -103,7 +104,7 @@ impl DepGraph {
 
 	/// Clears an effect's dependencies and subscribers
 	pub fn clear_effect<F: ?Sized + EffectRun>(&self, effect: &Effect<F>) {
-		let mut inner = self.inner.borrow_mut();
+		let mut inner = self.inner.write();
 		let Some(&effect_idx) = inner.nodes.get(&Node::Effect(effect.downgrade().unsize())) else {
 			return;
 		};
@@ -119,7 +120,7 @@ impl DepGraph {
 	where
 		W: With,
 	{
-		let inner = self.inner.borrow();
+		let inner = self.inner.read();
 		let Some(&trigger_idx) = inner.nodes.get(&start.into()) else {
 			return;
 		};
@@ -190,7 +191,7 @@ impl DepGraph {
 		let trigger_idx = self.get_or_insert_node(Node::Trigger(trigger.downgrade()));
 
 		self.inner
-			.borrow_mut()
+			.write()
 			.graph
 			.add_edge(trigger_idx, effect_idx, Edge::effect_dep());
 	}
@@ -208,14 +209,14 @@ impl DepGraph {
 		let trigger_idx = self.get_or_insert_node(Node::Trigger(trigger.downgrade()));
 
 		self.inner
-			.borrow_mut()
+			.write()
 			.graph
 			.add_edge(effect_idx, trigger_idx, Edge::effect_sub(caller_loc));
 	}
 
 	/// Exports the dependency graph as a dot graph.
 	pub fn export_dot(&self) -> String {
-		let inner = &self.inner.borrow();
+		let inner = &self.inner.read();
 		let graph = inner.graph.map(
 			|_node_idx, node| match node {
 				Node::Trigger(trigger) => match trigger.upgrade() {

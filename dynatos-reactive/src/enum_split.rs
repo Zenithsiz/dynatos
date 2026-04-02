@@ -27,7 +27,8 @@ use {
 		SignalWithDefaultImpl,
 		Trigger,
 	},
-	core::{cell::RefCell, fmt},
+	core::fmt,
+	dynatos_sync_types::{SyncBounds, IMutRw},
 };
 
 /// Enum split signal
@@ -41,10 +42,10 @@ impl<S, T: EnumSplitValue<S> + 'static> EnumSplitSignal<S, T> {
 	pub fn new(signal: S) -> Self
 	where
 		T: 'static,
-		S: SignalGetCloned<Value = T> + SignalSet<T> + Clone + 'static,
+		S: SyncBounds + SignalGetCloned<Value = T> + SignalSet<T> + Clone + 'static,
 	{
 		let effect = Effect::new(EffectFn {
-			inner: RefCell::new(EffectFnInner::default()),
+			inner: IMutRw::new(EffectFnInner::default()),
 			trigger: Trigger::new(),
 			signal,
 		});
@@ -58,7 +59,7 @@ impl<S, T: EnumSplitValue<S> + 'static> EnumSplitSignal<S, T> {
 	#[must_use]
 	pub fn into_effect(self) -> Effect<impl EffectRun>
 	where
-		S: SignalGetCloned<Value = T> + SignalSet<T> + Clone + 'static,
+		S: SyncBounds + SignalGetCloned<Value = T> + SignalSet<T> + Clone + 'static,
 	{
 		self.effect
 	}
@@ -83,7 +84,7 @@ where
 		let mut s = f.debug_struct("EnumSplitSignal");
 		s.field("effect", &self.effect);
 
-		match self.effect.inner_fn().inner.try_borrow() {
+		match self.effect.inner_fn().inner.try_read() {
 			Ok(inner) => s
 				.field("signals", &inner.signals)
 				.field("cur_kind", &inner.cur_kind)
@@ -103,7 +104,7 @@ impl<S, T: EnumSplitValue<S>> SignalBorrow for EnumSplitSignal<S, T> {
 		self.effect.inner_fn().trigger.gather_subs();
 		let effect_fn = self.effect.inner_fn();
 
-		let inner = effect_fn.inner.borrow();
+		let inner = effect_fn.inner.read();
 
 		let cur = inner.cur_kind.as_ref().expect("Should have a current signal");
 		T::get_signal(&inner.signals, cur).expect("Signal for current signal was missing")
@@ -146,7 +147,7 @@ impl<S, T: EnumSplitValue<S>> Default for EffectFnInner<S, T> {
 /// Inner effect function
 struct EffectFn<S, T: EnumSplitValue<S>> {
 	/// Inner
-	inner: RefCell<EffectFnInner<S, T>>,
+	inner: IMutRw<EffectFnInner<S, T>>,
 
 	/// Trigger
 	trigger: Trigger,
@@ -158,7 +159,7 @@ struct EffectFn<S, T: EnumSplitValue<S>> {
 impl<S, T> EffectRun for EffectFn<S, T>
 where
 	T: EnumSplitValue<S> + 'static,
-	S: SignalGetCloned<Value = T> + SignalSet<T> + Clone + 'static,
+	S: SyncBounds + SignalGetCloned<Value = T> + SignalSet<T> + Clone + 'static,
 {
 	crate::effect_run_impl_inner! {}
 
@@ -167,7 +168,7 @@ where
 		let new_value = self.signal.get_cloned();
 
 		// Then update the current signal
-		let mut inner = self.inner.borrow_mut();
+		let mut inner = self.inner.write();
 		let prev_kind = inner.cur_kind.replace(new_value.kind());
 		let update_ctx = EnumSplitValueUpdateCtx::new(self.signal.clone());
 		new_value.update(&mut inner.signals, update_ctx);
@@ -182,13 +183,13 @@ where
 /// Enum split value
 pub trait EnumSplitValue<S> {
 	/// Signals storage
-	type SignalsStorage: Default;
+	type SignalsStorage: SyncBounds + Default;
 
 	/// Signal type
 	type Signal;
 
 	/// Signal kind
-	type SigKind: PartialEq + fmt::Debug;
+	type SigKind: SyncBounds + PartialEq + fmt::Debug;
 
 	/// Extracts a signal from storage
 	fn get_signal(storage: &Self::SignalsStorage, kind: &Self::SigKind) -> Option<Self::Signal>;
@@ -202,8 +203,8 @@ pub trait EnumSplitValue<S> {
 
 impl<S, T> EnumSplitValue<S> for Option<T>
 where
-	T: Clone + 'static,
-	S: SignalSet<Self> + Clone + 'static,
+	T: SyncBounds + Clone + 'static,
+	S: SyncBounds + SignalSet<Self> + Clone + 'static,
 {
 	type SigKind = Option<()>;
 	type Signal = Option<Signal<T>>;
@@ -239,7 +240,7 @@ pub impl<S> S {
 	fn enum_split<T>(self) -> EnumSplitSignal<S, T>
 	where
 		T: EnumSplitValue<S> + 'static,
-		S: SignalGetCloned<Value = T> + SignalSet<T> + Clone + 'static,
+		S: SyncBounds + SignalGetCloned<Value = T> + SignalSet<T> + Clone + 'static,
 	{
 		EnumSplitSignal::new(self)
 	}
@@ -251,7 +252,7 @@ mod tests {
 	use {
 		super::*,
 		crate::{Effect, Signal, SignalGet},
-		core::cell::OnceCell,
+		dynatos_sync_types::{OnceCell, thread_local_or_global},
 		dynatos_util::Counter,
 		zutil_cloned::cloned,
 	};
@@ -263,10 +264,10 @@ mod tests {
 		#[cloned(input)]
 		let signal = EnumSplitSignal::new(input);
 
-		#[thread_local]
+		#[thread_local_or_global]
 		static EFFECT_SOME: OnceCell<Effect> = OnceCell::new();
 
-		#[thread_local]
+		#[thread_local_or_global]
 		static EFFECT_NONE: OnceCell<Effect> = OnceCell::new();
 
 		static TIMES_CHANGED_SOME: Counter = Counter::new();

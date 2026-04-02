@@ -3,9 +3,10 @@
 // Imports
 use {
 	crate::{ObjectAttachEffect, ToDynProp},
-	dynatos_web::{ObjectRemoveProp, ObjectSetProp},
 	dynatos_reactive::Effect,
+	dynatos_sync_types::SyncBounds,
 	dynatos_util::TryOrReturnExt,
+	dynatos_web::{ObjectRemoveProp, ObjectSetProp},
 	js_sys::WeakRef,
 };
 
@@ -16,8 +17,8 @@ pub impl js_sys::Object {
 	#[track_caller]
 	fn add_dyn_prop_value<K, V>(&self, key: K, value: V)
 	where
-		K: AsRef<str> + 'static,
-		V: ToDynProp + 'static,
+		K: SyncBounds + AsRef<str> + 'static,
+		V: SyncBounds + ToDynProp + 'static,
 	{
 		// The object we're attaching to
 		// Note: It's important that we only keep a `WeakRef` to the object.
@@ -63,8 +64,8 @@ where
 	#[track_caller]
 	fn with_dyn_prop_value<K, V>(self, key: K, value: V) -> Self
 	where
-		K: AsRef<str> + 'static,
-		V: ToDynProp + 'static,
+		K: SyncBounds + AsRef<str> + 'static,
+		V: SyncBounds + ToDynProp + 'static,
 	{
 		self.as_ref().add_dyn_prop_value(key, value);
 		self

@@ -2,19 +2,16 @@
 
 use {
 	crate::ObjectAttachEffect,
-	core::{
-		cell::{LazyCell, RefCell},
-		ops::Deref,
-	},
-	dynatos_web::{Child, html},
+	core::ops::Deref,
 	dynatos_reactive::{Derived, Effect, Memo, Signal, SignalWith, WithDefault, derived::DerivedRun, effect},
+	dynatos_sync_types::{IMut, RcPtr, SyncBounds},
 	dynatos_util::TryOrReturnExt,
+	dynatos_web::{Child, html},
 	js_sys::WeakRef,
-	std::{rc::Rc, sync::LazyLock},
 };
 
 /// A dynamic element
-pub struct DynElement(Rc<RefCell<web_sys::Element>>);
+pub struct DynElement(RcPtr<IMut<web_sys::Element>>);
 
 impl DynElement {
 	/// Creates a new dynamic element
@@ -23,14 +20,14 @@ impl DynElement {
 		T: ToDynElement + 'static,
 	{
 		let default_element = web_sys::Element::from(html::template());
-		let element_weak_ref = RefCell::new(WeakRef::<web_sys::Element>::new(&default_element));
+		let element_weak_ref = IMut::new(WeakRef::<web_sys::Element>::new(&default_element));
 
-		let element = Rc::new(RefCell::new(default_element));
-		let element_weak_rc = Rc::downgrade(&element);
+		let element = RcPtr::new(IMut::new(default_element));
+		let element_weak_rc = RcPtr::downgrade(&element);
 
 		let _ = Effect::new(move || {
 			// If our element is gone, we can safely quit.
-			let cur_element = WeakRef::deref(&element_weak_ref.borrow()).or_return()?;
+			let cur_element = WeakRef::deref(&element_weak_ref.lock()).or_return()?;
 
 			// When creating a new effect, always re-attach the effect to it.
 			let this_effect = effect::running().expect("Should have an effect running");
@@ -42,9 +39,9 @@ impl DynElement {
 			cur_element
 				.replace_with_with_node_1(&new_element)
 				.expect("Unable to replace element");
-			*element_weak_ref.borrow_mut() = WeakRef::new(&new_element);
+			*element_weak_ref.lock() = WeakRef::new(&new_element);
 			if let Some(element) = element_weak_rc.upgrade() {
-				*element.borrow_mut() = new_element;
+				*element.lock() = new_element;
 			}
 		});
 
@@ -54,7 +51,7 @@ impl DynElement {
 
 impl Child for DynElement {
 	fn append(&self, node: &web_sys::Node) -> Result<(), wasm_bindgen::JsValue> {
-		self.0.borrow().append(node)
+		self.0.lock().append(node)
 	}
 }
 
@@ -69,14 +66,14 @@ impl Child for DynElement {
 /// - `!`
 ///
 /// Where `N` is any of the types above.
-pub trait ToDynElement {
+pub trait ToDynElement: SyncBounds {
 	/// Gets the element
 	fn to_element(&self) -> web_sys::Element;
 }
 
 impl<F, N> ToDynElement for F
 where
-	F: Fn() -> N,
+	F: SyncBounds + Fn() -> N,
 	N: ToDynElement,
 {
 	fn to_element(&self) -> web_sys::Element {
@@ -104,8 +101,8 @@ impl ToDynElement for Ty {
 	Generics Ty;
 	[T] [Signal<T> where T: ToDynElement + 'static];
 	[T, F] [Derived<T, F> where T: ToDynElement + 'static, F: ?Sized + DerivedRun<T> + 'static];
-	[T, F] [Memo<T, F> where T: ToDynElement + 'static, F: ?Sized + 'static];
-	[S, T] [WithDefault<S, T> where Self: for<'a> SignalWith<Value<'a>: Deref<Target: ToDynElement>>];
+	[T, F] [Memo<T, F> where T: ToDynElement + 'static, F: SyncBounds + ?Sized + 'static];
+	[S, T] [WithDefault<S, T> where S: SyncBounds, T: SyncBounds, Self: for<'a> SignalWith<Value<'a>: Deref<Target: ToDynElement>>];
 )]
 impl<Generics> ToDynElement for Ty {
 	fn to_element(&self) -> web_sys::Element {
@@ -118,20 +115,24 @@ impl<Generics> ToDynElement for Ty {
 	}
 }
 
-impl<N, F> ToDynElement for LazyCell<N, F>
+#[expect(clippy::absolute_paths, reason = "We want to be explicit due to the `sync` feature")]
+impl<N, F> ToDynElement for core::cell::LazyCell<N, F>
 where
 	N: ToDynElement,
 	F: FnOnce() -> N,
+	Self: SyncBounds,
 {
 	fn to_element(&self) -> web_sys::Element {
 		(**self).to_element()
 	}
 }
 
-impl<N, F> ToDynElement for LazyLock<N, F>
+#[expect(clippy::absolute_paths, reason = "We want to be explicit due to the `sync` feature")]
+impl<N, F> ToDynElement for std::sync::LazyLock<N, F>
 where
 	N: ToDynElement,
 	F: FnOnce() -> N,
+	Self: SyncBounds,
 {
 	fn to_element(&self) -> web_sys::Element {
 		(**self).to_element()

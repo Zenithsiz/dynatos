@@ -10,11 +10,11 @@ pub use self::tags::{WorldTag, WorldTagGuard};
 use {
 	self::tags::{WorldTagState, WorldTagsData},
 	crate::{dep_graph::DepGraph, effect_stack::EffectStack, run_queue::RunQueue},
-	core::cell::LazyCell,
+	dynatos_sync_types::{LazyCell, thread_local_or_global},
 };
 
 /// Global world
-#[thread_local]
+#[thread_local_or_global]
 pub static GLOBAL_WORLD: LazyCell<GlobalWorld> = LazyCell::new(GlobalWorld::new);
 
 /// Thread-local world

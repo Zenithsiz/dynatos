@@ -3,14 +3,19 @@
 // TODO: It seems that titles aren't getting dropped for some reason.
 
 // Features
-#![feature(thread_local)]
+#![feature(thread_local, macro_attr)]
 
 // Imports
-use {core::cell::RefCell, dynatos_util::HoleyStack, dynatos_web::ObjectSetProp, wasm_bindgen::prelude::wasm_bindgen};
+use {
+	dynatos_sync_types::{IMut, thread_local_or_global},
+	dynatos_util::HoleyStack,
+	dynatos_web::ObjectSetProp,
+	wasm_bindgen::prelude::wasm_bindgen,
+};
 
 /// Title stack.
-#[thread_local]
-static TITLE_STACK: RefCell<HoleyStack<String>> = RefCell::new(HoleyStack::new());
+#[thread_local_or_global]
+static TITLE_STACK: IMut<HoleyStack<String>> = IMut::new(HoleyStack::new());
 
 /// Title.
 ///
@@ -30,7 +35,7 @@ impl Title {
 		let title: String = title.into();
 
 		// If no title exists, add the current one
-		let mut stack = TITLE_STACK.borrow_mut();
+		let mut stack = TITLE_STACK.lock();
 		if stack.is_empty() {
 			stack.push(self::cur_title());
 		}
@@ -46,7 +51,7 @@ impl Title {
 impl Drop for Title {
 	fn drop(&mut self) {
 		// Remove our title
-		let mut stack = TITLE_STACK.borrow_mut();
+		let mut stack = TITLE_STACK.lock();
 		let _prev_title = stack.pop(self.title_idx).expect("Title was already taken");
 
 		// Then find the next title to set back to.
