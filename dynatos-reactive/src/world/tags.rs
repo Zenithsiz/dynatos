@@ -1,7 +1,7 @@
 //! World tags
 
 // Imports
-use {super::WORLD_STACKS, core::cell::RefCell, dynatos_util::HoleyStack};
+use {super::THREAD_WORLD, core::cell::RefCell, dynatos_util::HoleyStack};
 
 /// Tag state
 #[derive(PartialEq, Eq, Clone, Copy, Debug)]
@@ -32,7 +32,7 @@ pub struct WorldTagGuard {
 
 impl Drop for WorldTagGuard {
 	fn drop(&mut self) {
-		WORLD_STACKS.tags.pop(self.tag, self.idx);
+		THREAD_WORLD.tags.pop(self.tag, self.idx);
 	}
 }
 

@@ -17,8 +17,8 @@ use {
 		SignalUpdateDefaultImpl,
 		SignalWith,
 		SignalWithDefaultImpl,
+		THREAD_WORLD,
 		Trigger,
-		WORLD_STACKS,
 		effect,
 		loc::Loc,
 		trigger::TriggerExec,
@@ -350,7 +350,7 @@ impl<F: Loader> SignalBorrow for AsyncSignal<F> {
 
 			// Otherwise, start loading unless the "unloaded" tag is present
 			None => {
-				if WORLD_STACKS.has_tag(WorldTag::Unloaded) {
+				if THREAD_WORLD.has_tag(WorldTag::Unloaded) {
 					return None;
 				}
 
@@ -489,7 +489,7 @@ pub fn with_unloaded<F, O>(f: F) -> O
 where
 	F: FnOnce() -> O,
 {
-	let _guard = WORLD_STACKS.add_tag(WorldTag::Unloaded);
+	let _guard = THREAD_WORLD.add_tag(WorldTag::Unloaded);
 	f()
 }
 
@@ -497,12 +497,12 @@ where
 ///
 /// See [`with_unloaded`] for details.
 pub fn add_unloaded() -> WorldTagGuard {
-	WORLD_STACKS.add_tag(WorldTag::Unloaded)
+	THREAD_WORLD.add_tag(WorldTag::Unloaded)
 }
 
 /// Returns the "unloaded" tag is present
 pub fn is_unloaded() -> bool {
-	WORLD_STACKS.has_tag(WorldTag::Unloaded)
+	THREAD_WORLD.has_tag(WorldTag::Unloaded)
 }
 
 /// Effect function

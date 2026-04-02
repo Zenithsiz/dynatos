@@ -23,9 +23,9 @@ pub use self::{
 // Imports
 use {
 	crate::{
-		WORLD,
+		GLOBAL_WORLD,
 		loc::Loc,
-		world::{WORLD_STACKS, WorldTag, WorldTagGuard},
+		world::{THREAD_WORLD, WorldTag, WorldTagGuard},
 	},
 	core::{
 		cell::Cell,
@@ -208,10 +208,10 @@ impl<F: ?Sized> Effect<F> {
 		//       stale when they actually don't need to be rerun (if dependencies change).
 		// TODO: Add some logging here to debug why an effect is being run?
 		self.inner.checking_deps.set(true);
-		WORLD
+		GLOBAL_WORLD
 			.dep_graph()
 			.with_effect_deps(self.downgrade().unsize(), move |trigger, _| {
-				WORLD
+				GLOBAL_WORLD
 					.dep_graph()
 					.with_trigger_deps(trigger, move |effect, _| _ = effect.try_run());
 			});
@@ -235,12 +235,12 @@ impl<F: ?Sized> Effect<F> {
 		F: EffectRun + 'static,
 	{
 		// Clear the dependencies/subscribers before running
-		WORLD.dep_graph().clear_effect(self);
+		GLOBAL_WORLD.dep_graph().clear_effect(self);
 
 		// Note: As per the documentation, we remove the "no-dep" tag when
 		//       gathering dependencies inside of an effect, to ensure
 		//       the tag is only active during the current reactivity frame.
-		let _remove_no_dep = WORLD_STACKS.remove_tag(WorldTag::NoDep);
+		let _remove_no_dep = THREAD_WORLD.remove_tag(WorldTag::NoDep);
 
 		// Then run it
 		let ctx = EffectRunCtx::new();
@@ -347,7 +347,7 @@ where
 /// Returns the current running effect
 #[must_use]
 pub fn running() -> Option<Effect> {
-	WORLD_STACKS.effect_stack().top()
+	THREAD_WORLD.effect_stack().top()
 }
 
 /// Adds the "no-dep" tag to the world within the supplied closure.
@@ -371,12 +371,12 @@ where
 ///
 /// See [`with_no_dep`] for details.
 pub fn add_no_dep() -> WorldTagGuard {
-	WORLD_STACKS.add_tag(WorldTag::NoDep)
+	THREAD_WORLD.add_tag(WorldTag::NoDep)
 }
 
 /// Returns if the "no-dep" tag is present
 pub fn is_no_dep() -> bool {
-	WORLD_STACKS.has_tag(WorldTag::NoDep)
+	THREAD_WORLD.has_tag(WorldTag::NoDep)
 }
 
 /// Adds the "no-run" tag to the world within the supplied closure.
@@ -408,10 +408,10 @@ where
 ///
 /// See [`with_no_run`] for details.
 pub fn add_no_run() -> WorldTagGuard {
-	WORLD_STACKS.add_tag(WorldTag::NoRun)
+	THREAD_WORLD.add_tag(WorldTag::NoRun)
 }
 
 /// Returns if the "no-run" tag is present
 pub fn is_no_run() -> bool {
-	WORLD_STACKS.has_tag(WorldTag::NoRun)
+	THREAD_WORLD.has_tag(WorldTag::NoRun)
 }

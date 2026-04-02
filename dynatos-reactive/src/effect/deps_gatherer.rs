@@ -2,7 +2,7 @@
 
 use {
 	super::{Effect, EffectRun},
-	crate::WORLD_STACKS,
+	crate::THREAD_WORLD,
 	core::marker::PhantomData,
 };
 
@@ -20,7 +20,7 @@ impl<'a, F: ?Sized> EffectDepsGatherer<'a, F> {
 		F: EffectRun,
 	{
 		// Push the effect onto the stack
-		WORLD_STACKS.effect_stack().push(effect.clone().unsize());
+		THREAD_WORLD.effect_stack().push(effect.clone().unsize());
 
 		Self(PhantomData)
 	}
@@ -29,6 +29,6 @@ impl<'a, F: ?Sized> EffectDepsGatherer<'a, F> {
 impl<F: ?Sized> Drop for EffectDepsGatherer<'_, F> {
 	fn drop(&mut self) {
 		// Pop our effect from the stack
-		WORLD_STACKS.effect_stack().pop();
+		THREAD_WORLD.effect_stack().pop();
 	}
 }

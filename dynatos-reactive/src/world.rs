@@ -13,17 +13,17 @@ use {
 	core::cell::LazyCell,
 };
 
-/// Default world
+/// Global world
 #[thread_local]
-pub static WORLD: LazyCell<World> = LazyCell::new(World::new);
+pub static GLOBAL_WORLD: LazyCell<GlobalWorld> = LazyCell::new(GlobalWorld::new);
 
-/// Default world stacks
+/// Thread-local world
 #[thread_local]
-pub static WORLD_STACKS: WorldStacks = WorldStacks::new();
+pub static THREAD_WORLD: ThreadWorld = ThreadWorld::new();
 
-/// World
+/// Global world.
 #[derive(Debug)]
-pub struct World {
+pub struct GlobalWorld {
 	/// Dependency graph
 	dep_graph: DepGraph,
 
@@ -31,7 +31,7 @@ pub struct World {
 	run_queue: RunQueue,
 }
 
-impl World {
+impl GlobalWorld {
 	/// Creates a new world
 	#[must_use]
 	pub fn new() -> Self {
@@ -55,15 +55,15 @@ impl World {
 }
 
 #[coverage(off)]
-impl Default for World {
+impl Default for GlobalWorld {
 	fn default() -> Self {
 		Self::new()
 	}
 }
 
-/// World stacks
+/// Per-thread world.
 #[derive(Debug)]
-pub struct WorldStacks {
+pub struct ThreadWorld {
 	/// Tags
 	tags: WorldTagsData,
 
@@ -71,7 +71,7 @@ pub struct WorldStacks {
 	effect_stack: EffectStack,
 }
 
-impl WorldStacks {
+impl ThreadWorld {
 	/// Creates a new world
 	#[must_use]
 	pub const fn new() -> Self {
@@ -106,7 +106,7 @@ impl WorldStacks {
 }
 
 #[coverage(off)]
-impl Default for WorldStacks {
+impl Default for ThreadWorld {
 	fn default() -> Self {
 		Self::new()
 	}
