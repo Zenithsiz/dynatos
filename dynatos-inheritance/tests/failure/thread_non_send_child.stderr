@@ -1,0 +1,50 @@
+error[E0277]: `RefCell<u32>` cannot be shared between threads safely
+  --> tests/failure/thread_non_send_child.rs:22:11
+   |
+22 |     struct B(A): Send + Sync {
+   |              ^ `RefCell<u32>` cannot be shared between threads safely
+   |
+   = help: within `BStorage`, the trait `Sync` is not implemented for `RefCell<u32>`
+   = note: if you want to do aliasing and mutation between multiple threads, use `std::sync::RwLock` instead
+help: the trait `ValueFor<T>` is implemented for `A`
+  --> tests/failure/thread_non_send_child.rs:15:1
+   |
+15 | / dynatos_inheritance::value! {
+16 | |     struct A(): Send + Sync {
+   | |____________^
+note: required because it appears within the type `BFields`
+  --> tests/failure/thread_non_send_child.rs:22:9
+   |
+22 |     struct B(A): Send + Sync {
+   |            ^
+note: required because it appears within the type `BStorage`
+  --> tests/failure/thread_non_send_child.rs:22:9
+   |
+22 |     struct B(A): Send + Sync {
+   |            ^
+note: required for `B` to implement `Send`
+  --> tests/failure/thread_non_send_child.rs:21:1
+   |
+21 | / dynatos_inheritance::value! {
+22 | |     struct B(A): Send + Sync {
+   | |            ^
+23 | |         a: RefCell<u32>,
+...  |
+26 | | }
+   | |_^
+note: required for `A` to implement `ValueFor<B>`
+  --> tests/failure/thread_non_send_child.rs:15:1
+   |
+15 | / dynatos_inheritance::value! {
+16 | |     struct A(): Send + Sync {
+   | |            ^
+17 | |     }
+18 | |     impl Self {}
+19 | | }
+   | |_^
+note: required by a bound in `dynatos_inheritance::Value::Parent`
+  --> src/value.rs
+   |
+   |     type Parent: ValueFor<Self>;
+   |                  ^^^^^^^^^^^^^^ required by this bound in `Value::Parent`
+   = note: this error originates in the macro `dynatos_inheritance::value` (in Nightly builds, run with -Z macro-backtrace for more info)

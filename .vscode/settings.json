@@ -13,6 +13,7 @@
 		"qself",
 		"scopeguard",
 		"thiserror",
+		"trybuild",
 		"unsize",
 		"zutil"
 	],
