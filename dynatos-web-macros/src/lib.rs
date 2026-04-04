@@ -209,7 +209,10 @@ impl Node {
 								);
 							},
 							NodeTy::Expr => syn::parse_quote! {
-								dynatos_web_reactive::NodeDynChildren::add_dyn_children(&#el, #child);
+								dynatos_web_reactive::NodeDynChildren::add_dyn_children(
+									AsRef::<web_sys::Node>::as_ref(&#el),
+									#child
+								);
 							},
 						};
 
