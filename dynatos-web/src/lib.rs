@@ -6,11 +6,13 @@
 // Modules
 mod event_listener;
 pub mod html;
+mod object_attach_value;
 pub mod parse;
 
 // Exports
 pub use self::{
 	event_listener::{ElementAddListener, EventListener, EventTargetAddListener, EventTargetWithListener, ev},
+	object_attach_value::{ObjectAttachValue, ObjectWithValue},
 	parse::{parse, parse_html_element},
 };
 

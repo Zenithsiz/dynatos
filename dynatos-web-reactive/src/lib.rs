@@ -18,7 +18,6 @@ mod node_dyn_child;
 mod node_dyn_children;
 mod node_dyn_text;
 mod object_attach_effect;
-mod object_attach_value;
 mod object_dyn_prop;
 mod to_dyn_prop;
 mod with_dyn_pred;
@@ -34,7 +33,6 @@ pub use {
 		node_dyn_children::{NodeDynChildren, NodeWithDynChildren, WithDynNodes},
 		node_dyn_text::{NodeDynText, NodeWithDynText},
 		object_attach_effect::{ObjectAttachEffect, ObjectWithEffect},
-		object_attach_value::{ObjectAttachValue, ObjectWithValue},
 		object_dyn_prop::{ObjectDynProp, ObjectWithDynProp},
 		to_dyn_prop::ToDynProp,
 		with_dyn_pred::WithDynPred,

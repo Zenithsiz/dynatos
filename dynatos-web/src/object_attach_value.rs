@@ -2,8 +2,8 @@
 
 // Imports
 use {
+	crate::{ObjectGet, ObjectSetProp},
 	core::any::Any,
-	dynatos_web::{ObjectGet, ObjectSetProp},
 	wasm_bindgen::prelude::wasm_bindgen,
 };
 
@@ -20,8 +20,8 @@ pub impl js_sys::Object {
 		let prop_name = "__dynatos_values";
 		let values = match self.get::<js_sys::Array>(prop_name) {
 			Ok(values) => values,
-			Err(dynatos_web::GetError::WrongType(err)) => panic!("Values aray was the wrong type: {err:?}"),
-			Err(dynatos_web::GetError::Missing) => {
+			Err(crate::GetError::WrongType(err)) => panic!("Values aray was the wrong type: {err:?}"),
+			Err(crate::GetError::Missing) => {
 				let values = js_sys::Array::new();
 				self.set_prop(prop_name, &values);
 				values
