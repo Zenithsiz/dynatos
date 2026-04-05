@@ -6,7 +6,7 @@ use {
 	crate::Location,
 	core::{error::Error as StdError, fmt, marker::PhantomData, str::FromStr},
 	dynatos_reactive::{Memo, SignalBorrow, SignalBorrowMut},
-	dynatos_sync_types::{SyncBounds, RcPtr},
+	dynatos_sync_types::{RcPtr, SyncBounds},
 };
 
 /// Parses multiple values from the query
@@ -17,17 +17,18 @@ pub struct MultiQuery<T> {
 	/// Queries with our key
 	queries: Memo<Vec<String>, QueriesFn>,
 
-	/// Phantom
+	location: Location,
 	_phantom: PhantomData<fn() -> T>,
 }
 
 impl<T> MultiQuery<T> {
 	/// Creates a new query
-	pub fn new(key: impl Into<RcPtr<str>>) -> Self {
+	pub fn new(location: Location, key: impl Into<RcPtr<str>>) -> Self {
 		let key = key.into();
 		Self {
-			key:      RcPtr::clone(&key),
-			queries:  super::queries_memo(key),
+			key: RcPtr::clone(&key),
+			queries: super::queries_memo(location.clone(), key),
+			location,
 			_phantom: PhantomData,
 		}
 	}
@@ -42,9 +43,10 @@ impl<T> MultiQuery<T> {
 impl<T> Clone for MultiQuery<T> {
 	fn clone(&self) -> Self {
 		Self {
-			key: RcPtr::clone(&self.key),
-			queries: self.queries.clone(),
-			..*self
+			key:      RcPtr::clone(&self.key),
+			queries:  self.queries.clone(),
+			location: self.location.clone(),
+			_phantom: PhantomData,
 		}
 	}
 }
@@ -99,44 +101,42 @@ impl<T: FromStr<Err: StdError> + ToString> QueryWrite<&[T]> for MultiQuery<T> {
 		let _suppress_queries = self.queries.suppress();
 		self.queries.update_no_run(new_value.iter().map(T::to_string).collect());
 
-		dynatos_context::with_expect::<Location, _, _>(|location| {
-			let mut location = location.borrow_mut();
-			let mut added_query = false;
-			let mut queries = vec![];
-			for (key, value) in location.query_pairs().into_owned() {
-				// If it's another key, keep it
-				if key != *self.key {
-					queries.push((key, value));
-					continue;
-				}
-
-				// If we already added our query, this is a duplicate, so skip it
-				if added_query {
-					continue;
-				}
-
-				// If it's our key, add all values
-				added_query = true;
-				queries.extend(
-					new_value
-						.iter()
-						.map(T::to_string)
-						.map(|value| (self.key.to_string(), value)),
-				);
+		let mut location = self.location.borrow_mut();
+		let mut added_query = false;
+		let mut queries = vec![];
+		for (key, value) in location.query_pairs().into_owned() {
+			// If it's another key, keep it
+			if key != *self.key {
+				queries.push((key, value));
+				continue;
 			}
 
-			// If we haven't added ours yet by now, add it at the end
-			if !added_query {
-				queries.extend(
-					new_value
-						.iter()
-						.map(T::to_string)
-						.map(|value| (self.key.to_string(), value)),
-				);
+			// If we already added our query, this is a duplicate, so skip it
+			if added_query {
+				continue;
 			}
 
-			location.query_pairs_mut().clear().extend_pairs(queries);
-		});
+			// If it's our key, add all values
+			added_query = true;
+			queries.extend(
+				new_value
+					.iter()
+					.map(T::to_string)
+					.map(|value| (self.key.to_string(), value)),
+			);
+		}
+
+		// If we haven't added ours yet by now, add it at the end
+		if !added_query {
+			queries.extend(
+				new_value
+					.iter()
+					.map(T::to_string)
+					.map(|value| (self.key.to_string(), value)),
+			);
+		}
+
+		location.query_pairs_mut().clear().extend_pairs(queries);
 	}
 }
 

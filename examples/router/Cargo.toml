@@ -5,7 +5,6 @@ edition = "2024"
 
 [dependencies]
 
-dynatos-context      = { workspace = true }
 dynatos-reactive     = { workspace = true }
 dynatos-util         = { workspace = true }
 dynatos-web          = { workspace = true }
@@ -21,6 +20,7 @@ tracing-web              = { workspace = true }
 url                      = { workspace = true }
 wasm-bindgen             = { workspace = true }
 web-sys                  = { workspace = true }
+zutil-cloned             = { workspace = true }
 
 [lints]
 workspace = true

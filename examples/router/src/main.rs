@@ -1,17 +1,18 @@
 //! Router example
 
 // Features
-#![feature(try_blocks, thread_local)]
+#![feature(try_blocks, thread_local, stmt_expr_attributes, proc_macro_hygiene)]
 
 // Imports
 use {
 	app_error::AppError,
 	core::cell::LazyCell,
-	dynatos_web::{NodeWithChildren, NodeWithText, html},
-	dynatos_web_reactive::{NodeWithDynChildren, ObjectWithContext},
-	dynatos_web_router::Location,
 	dynatos_reactive::SignalGetCloned,
+	dynatos_web::{NodeWithChildren, NodeWithText, html},
+	dynatos_web_reactive::NodeWithDynChildren,
+	dynatos_web_router::Location,
 	tracing_subscriber::prelude::*,
+	zutil_cloned::cloned,
 };
 
 fn main() {
@@ -39,17 +40,20 @@ fn run() -> Result<(), AppError> {
 
 	let location = Location::new();
 
-	body.with_context(location).with_child(
+	body.with_child(
 		html::div()
 			.with_children([html::p().with_text("Header"), html::hr()])
-			.with_dyn_children(self::render_route)
+			.with_dyn_children(
+				#[cloned(location)]
+				move || self::render_route(&location),
+			)
 			.with_children([
 				html::hr(),
-				dynatos_web_router::anchor("/test").with_text("Test"),
+				dynatos_web_router::anchor(location.clone(), "/test").with_text("Test"),
 				html::br(),
-				dynatos_web_router::anchor("/cached").with_text("Cached"),
+				dynatos_web_router::anchor(location.clone(), "/cached").with_text("Cached"),
 				html::br(),
-				dynatos_web_router::anchor("/empty").with_text("Empty"),
+				dynatos_web_router::anchor(location, "/empty").with_text("Empty"),
 			]),
 	);
 
@@ -60,8 +64,8 @@ fn run() -> Result<(), AppError> {
 static ROUTE_CACHED: LazyCell<web_sys::HtmlElement> = LazyCell::new(|| self::page("Cached"));
 
 
-fn render_route() -> Option<web_sys::HtmlElement> {
-	let location = dynatos_context::with_expect::<Location, _, _>(|location| location.get_cloned());
+fn render_route(location: &Location) -> Option<web_sys::HtmlElement> {
+	let location = location.get_cloned();
 
 	tracing::info!(%location, "Rendering route");
 	match location.path().trim_end_matches('/') {

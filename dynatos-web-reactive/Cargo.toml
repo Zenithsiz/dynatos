@@ -5,7 +5,6 @@ edition = "2024"
 
 [dependencies]
 
-dynatos-context             = { workspace = true }
 dynatos-reactive            = { workspace = true }
 dynatos-sync-types          = { workspace = true }
 dynatos-util                = { workspace = true }
@@ -21,7 +20,7 @@ wasm-bindgen = { workspace = true }
 web-sys      = { workspace = true }
 
 [features]
-sync = ["dynatos-context/sync", "dynatos-reactive/sync", "dynatos-sync-types/sync", "dynatos-web-router/sync"]
+sync = ["dynatos-reactive/sync", "dynatos-sync-types/sync", "dynatos-web-router/sync"]
 
 [lints]
 workspace = true

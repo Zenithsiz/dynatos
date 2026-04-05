@@ -9,7 +9,7 @@ use {
 	dynatos_loadable::Loadable,
 	dynatos_reactive::{SignalBorrowMut, SignalGetCloned, SignalSet},
 	dynatos_web::{EventTargetWithListener, NodeWithChildren, NodeWithText, ev, html},
-	dynatos_web_reactive::{NodeWithDynText, ObjectWithContext},
+	dynatos_web_reactive::NodeWithDynText,
 	dynatos_web_router::{Location, QuerySignal, SingleQuery},
 	tracing_subscriber::prelude::*,
 	zutil_cloned::cloned,
@@ -40,24 +40,25 @@ fn run() -> Result<(), AppError> {
 
 	let location = Location::new();
 
-	body.with_context::<Location>(location).with_child(self::page());
+	body.with_child(self::page(location));
 
 	Ok(())
 }
 
-fn page() -> web_sys::HtmlElement {
+fn page(location: Location) -> web_sys::HtmlElement {
 	// TODO: If we add `.with_loadable_default()`, use it again in this example.
-	let query = QuerySignal::new(SingleQuery::<i32>::new("a"));
+	let query = SingleQuery::<i32>::new(location.clone(), "a");
+	let query = QuerySignal::new(location.clone(), query);
 
 	html::div().with_children([
 		#[cloned(query)]
 		html::p().with_dyn_text(move || format!("{:?}", query.get_cloned())),
 		html::hr(),
-		dynatos_web_router::anchor("/?a=5").with_text("5"),
+		dynatos_web_router::anchor(location.clone(), "/?a=5").with_text("5"),
 		html::br(),
-		dynatos_web_router::anchor("/?a=7").with_text("7"),
+		dynatos_web_router::anchor(location.clone(), "/?a=7").with_text("7"),
 		html::br(),
-		dynatos_web_router::anchor("/?a=abc").with_text("abc"),
+		dynatos_web_router::anchor(location, "/?a=abc").with_text("abc"),
 		html::br(),
 		#[cloned(query)]
 		html::button()

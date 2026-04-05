@@ -57,7 +57,7 @@ impl<T: QueryParse> QuerySignal<T> {
 	/// Creates a new query signal with `query`.
 	#[track_caller]
 	#[define_opaque(UpdateEffect)]
-	pub fn new(query: T) -> Self
+	pub fn new(location: Location, query: T) -> Self
 	where
 		T: 'static,
 		T::Value: 'static,
@@ -66,7 +66,6 @@ impl<T: QueryParse> QuerySignal<T> {
 
 		// Note: This access must skip dependencies to ensure that the query signal itself
 		//       doesn't change whenever the location changes, and only it's value does.
-		let location = dynatos_context::expect_cloned::<Location>();
 		let location_path = RcPtr::<str>::from(location.borrow_no_dep().path());
 
 		let inner = Signal::new(None);
@@ -307,14 +306,12 @@ pub trait QueryWriteValue = QueryParse + for<'a> QueryWrite<&'a <Self as QueryPa
 type QueriesFn = impl Fn() -> Vec<String>;
 
 #[define_opaque(QueriesFn)]
-fn queries_memo(key: RcPtr<str>) -> Memo<Vec<String>, QueriesFn> {
+fn queries_memo(location: Location, key: RcPtr<str>) -> Memo<Vec<String>, QueriesFn> {
 	Memo::new(move || {
-		dynatos_context::with_expect::<Location, _, _>(|location| {
-			location
-				.borrow()
-				.query_pairs()
-				.filter_map(|(query, value)| (query == *key).then_some(value.into_owned()))
-				.collect::<Vec<_>>()
-		})
+		location
+			.borrow()
+			.query_pairs()
+			.filter_map(|(query, value)| (query == *key).then_some(value.into_owned()))
+			.collect::<Vec<_>>()
 	})
 }

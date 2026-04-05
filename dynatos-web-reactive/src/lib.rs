@@ -17,7 +17,6 @@ mod html_element_dyn_css_prop;
 mod node_dyn_child;
 mod node_dyn_children;
 mod node_dyn_text;
-mod object_attach_context;
 mod object_attach_effect;
 mod object_attach_value;
 mod object_dyn_prop;
@@ -34,7 +33,6 @@ pub use {
 		node_dyn_child::{NodeDynChild, NodeWithDynChild, WithDynNode},
 		node_dyn_children::{NodeDynChildren, NodeWithDynChildren, WithDynNodes},
 		node_dyn_text::{NodeDynText, NodeWithDynText},
-		object_attach_context::{ObjectAttachContext, ObjectWithContext},
 		object_attach_effect::{ObjectAttachEffect, ObjectWithEffect},
 		object_attach_value::{ObjectAttachValue, ObjectWithValue},
 		object_dyn_prop::{ObjectDynProp, ObjectWithDynProp},
