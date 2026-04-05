@@ -200,14 +200,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "dynatos-context"
-version = "0.1.0"
-dependencies = [
- "dynatos-sync-types",
- "dynatos-util",
-]
-
-[[package]]
 name = "dynatos-inheritance"
 version = "0.1.0"
 dependencies = [

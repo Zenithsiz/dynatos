@@ -3,7 +3,6 @@
 members = [
 	"dynatos-builder",
 	"dynatos-builder-macros",
-	"dynatos-context",
 	"dynatos-inheritance",
 	"dynatos-inheritance-macros",
 	"dynatos-loadable",
@@ -37,7 +36,6 @@ resolver = "2"
 # Workspace members
 dynatos-builder             = { path = "dynatos-builder" }
 dynatos-builder-macros      = { path = "dynatos-builder-macros" }
-dynatos-context             = { path = "dynatos-context" }
 dynatos-inheritance         = { path = "dynatos-inheritance" }
 dynatos-inheritance-macros  = { path = "dynatos-inheritance-macros" }
 dynatos-loadable            = { path = "dynatos-loadable" }
