@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 
+# Workspace
 dynatos-util       = { workspace = true }
 dynatos-web-macros = { workspace = true }
 dynatos-web-parser = { workspace = true }

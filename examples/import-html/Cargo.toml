@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 
+# Workspace
 dynatos-web = { features = ["app-error"], workspace = true }
 
 app-error                = { workspace = true }

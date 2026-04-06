@@ -5,11 +5,10 @@ edition = "2024"
 
 [dependencies]
 
+# Workspace
 dynatos-reactive     = { workspace = true }
 dynatos-web          = { features = ["app-error"], workspace = true }
 dynatos-web-reactive = { workspace = true }
-
-zutil-cloned = { workspace = true }
 
 app-error                = { workspace = true }
 console_error_panic_hook = { workspace = true }
@@ -17,6 +16,7 @@ tracing                  = { workspace = true }
 tracing-subscriber       = { workspace = true }
 tracing-web              = { workspace = true }
 web-sys                  = { workspace = true }
+zutil-cloned             = { workspace = true }
 
 [lints]
 workspace = true

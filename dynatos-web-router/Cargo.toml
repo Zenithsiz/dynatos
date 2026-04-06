@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 
+# Workspace
 dynatos-loadable   = { workspace = true }
 dynatos-reactive   = { workspace = true }
 dynatos-sync-types = { workspace = true }

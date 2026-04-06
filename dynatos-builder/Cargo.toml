@@ -5,6 +5,7 @@ edition = "2024"
 
 [dependencies]
 
+# Workspace
 dynatos-builder-macros = { workspace = true }
 
 [lints]
