@@ -17,5 +17,6 @@
 		"unsize",
 		"zutil"
 	],
-	"rust-analyzer.cargo.features": "all"
+	"rust-analyzer.cargo.features": "all",
+	"rust-analyzer.check.overrideCommand": ["cargo", "hack", "--feature-powerset", "clippy", "--message-format=json"]
 }
