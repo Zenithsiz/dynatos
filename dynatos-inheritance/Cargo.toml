@@ -7,9 +7,6 @@ edition = "2024"
 
 # Workspace
 dynatos-inheritance-macros = { workspace = true }
-dynatos-util               = { workspace = true }
-
-duplicate = { workspace = true }
 
 [dev-dependencies]
 trybuild = { workspace = true }

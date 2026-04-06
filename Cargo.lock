@@ -58,14 +58,11 @@ dependencies = [
  "app-error",
  "console_error_panic_hook",
  "dynatos-reactive",
- "dynatos-util",
  "dynatos-web",
  "dynatos-web-reactive",
- "extend",
  "tracing",
  "tracing-subscriber",
  "tracing-web",
- "wasm-bindgen",
  "web-sys",
  "zutil-cloned",
 ]
@@ -77,14 +74,11 @@ dependencies = [
  "app-error",
  "console_error_panic_hook",
  "dynatos-reactive",
- "dynatos-util",
  "dynatos-web",
  "dynatos-web-reactive",
- "extend",
  "tracing",
  "tracing-subscriber",
  "tracing-web",
- "wasm-bindgen",
  "web-sys",
 ]
 
@@ -151,14 +145,11 @@ dependencies = [
  "app-error",
  "console_error_panic_hook",
  "dynatos-reactive",
- "dynatos-util",
  "dynatos-web",
  "dynatos-web-reactive",
- "extend",
  "tracing",
  "tracing-subscriber",
  "tracing-web",
- "wasm-bindgen",
  "web-sys",
  "zutil-cloned",
 ]
@@ -170,15 +161,12 @@ dependencies = [
  "app-error",
  "console_error_panic_hook",
  "dynatos-reactive",
- "dynatos-util",
  "dynatos-web",
  "dynatos-web-reactive",
- "extend",
  "strum",
  "tracing",
  "tracing-subscriber",
  "tracing-web",
- "wasm-bindgen",
  "web-sys",
  "zutil-cloned",
 ]
@@ -203,9 +191,7 @@ dependencies = [
 name = "dynatos-inheritance"
 version = "0.1.0"
 dependencies = [
- "duplicate",
  "dynatos-inheritance-macros",
- "dynatos-util",
  "trybuild",
 ]
 
@@ -224,13 +210,9 @@ dependencies = [
 name = "dynatos-loadable"
 version = "0.1.0"
 dependencies = [
- "duplicate",
  "dynatos-reactive",
  "dynatos-sync-types",
- "dynatos-util",
  "extend",
- "tracing",
- "zutil-cloned",
 ]
 
 [[package]]
@@ -245,8 +227,6 @@ dependencies = [
  "futures",
  "itertools",
  "petgraph",
- "pin-project",
- "scopeguard",
  "tracing",
  "wasm-bindgen-futures",
  "zutil-cloned",
@@ -258,14 +238,12 @@ version = "0.1.0"
 dependencies = [
  "derive_more",
  "duplicate",
- "dynatos-util",
 ]
 
 [[package]]
 name = "dynatos-util"
 version = "0.1.0"
 dependencies = [
- "duplicate",
  "extend",
 ]
 
@@ -292,7 +270,6 @@ name = "dynatos-web-macros"
 version = "0.1.0"
 dependencies = [
  "dynatos-web-parser",
- "itertools",
  "proc-macro2",
  "quote",
  "strum",
@@ -320,7 +297,6 @@ dependencies = [
  "dynatos-web-router",
  "extend",
  "js-sys",
- "tracing",
  "wasm-bindgen",
  "web-sys",
 ]
@@ -330,22 +306,16 @@ name = "dynatos-web-reactive-macros"
 version = "0.1.0"
 dependencies = [
  "derive_utils",
- "quote",
- "syn",
 ]
 
 [[package]]
 name = "dynatos-web-router"
 version = "0.1.0"
 dependencies = [
- "duplicate",
  "dynatos-loadable",
  "dynatos-reactive",
  "dynatos-sync-types",
- "dynatos-util",
  "dynatos-web",
- "extend",
- "js-sys",
  "thiserror",
  "tracing",
  "url",
@@ -358,14 +328,11 @@ dependencies = [
 name = "dynatos-web-title"
 version = "0.1.0"
 dependencies = [
- "duplicate",
- "dynatos-reactive",
  "dynatos-sync-types",
  "dynatos-util",
  "dynatos-web",
  "extend",
  "js-sys",
- "tracing",
  "wasm-bindgen",
  "web-sys",
 ]
@@ -637,17 +604,11 @@ version = "0.1.0"
 dependencies = [
  "app-error",
  "console_error_panic_hook",
- "dynatos-reactive",
- "dynatos-util",
  "dynatos-web",
- "dynatos-web-reactive",
- "extend",
  "tracing",
  "tracing-subscriber",
  "tracing-web",
- "wasm-bindgen",
  "web-sys",
- "zutil-cloned",
 ]
 
 [[package]]
@@ -743,26 +704,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "pin-project"
-version = "1.1.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "f1749c7ed4bcaf4c3d0a3efc28538844fb29bcdd7d2b67b2be7e20ba861ff517"
-dependencies = [
- "pin-project-internal",
-]
-
-[[package]]
-name = "pin-project-internal"
-version = "1.1.11"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "d9b20ed30f105399776b9c883e68e536ef602a16ae6f596d2c473591d6ad64c6"
-dependencies = [
- "proc-macro2",
- "quote",
- "syn",
-]
-
-[[package]]
 name = "pin-project-lite"
 version = "0.2.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -806,16 +747,12 @@ dependencies = [
  "console_error_panic_hook",
  "dynatos-loadable",
  "dynatos-reactive",
- "dynatos-util",
  "dynatos-web",
  "dynatos-web-reactive",
  "dynatos-web-router",
- "extend",
  "tracing",
  "tracing-subscriber",
  "tracing-web",
- "url",
- "wasm-bindgen",
  "web-sys",
  "zutil-cloned",
 ]
@@ -836,16 +773,12 @@ dependencies = [
  "app-error",
  "console_error_panic_hook",
  "dynatos-reactive",
- "dynatos-util",
  "dynatos-web",
  "dynatos-web-reactive",
  "dynatos-web-router",
- "extend",
  "tracing",
  "tracing-subscriber",
  "tracing-web",
- "url",
- "wasm-bindgen",
  "web-sys",
  "zutil-cloned",
 ]
@@ -864,12 +797,6 @@ name = "rustversion"
 version = "1.0.22"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b39cdef0fa800fc44525c84ccb54a029961a8215f9619753635a9c0d2538d46d"
-
-[[package]]
-name = "scopeguard"
-version = "1.2.0"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "94143f37725109f92c262ed2cf5e59bce7498c01bcc1502d7b9afe439a4e9f49"
 
 [[package]]
 name = "semver"

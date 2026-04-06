@@ -86,6 +86,8 @@ clippy.nursery     = { level = "warn", priority = -1 }
 clippy.pedantic    = { level = "warn", priority = -1 }
 clippy.restriction = { level = "warn", priority = -1 }
 
+rust.unused_crate_dependencies = "warn"
+
 # We enable restriction group and then allow any we don't care
 clippy.blanket_clippy_restriction_lints = "allow"
 

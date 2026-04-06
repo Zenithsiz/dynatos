@@ -5,8 +5,6 @@ edition = "2024"
 
 [dependencies]
 
-dynatos-util = { workspace = true }
-
 derive_more = { features = ["full"], workspace = true }
 duplicate   = { workspace = true }
 

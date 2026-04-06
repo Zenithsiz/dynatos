@@ -8,19 +8,14 @@ edition = "2024"
 dynatos-loadable   = { workspace = true }
 dynatos-reactive   = { workspace = true }
 dynatos-sync-types = { workspace = true }
-dynatos-util       = { workspace = true }
 dynatos-web        = { workspace = true }
 
-zutil-cloned = { workspace = true }
-
-duplicate    = { workspace = true }
-extend       = { workspace = true }
-js-sys       = { workspace = true }
 thiserror    = { workspace = true }
 tracing      = { workspace = true }
 url          = { workspace = true }
 wasm-bindgen = { workspace = true }
 web-sys      = { features = ["History", "Location"], workspace = true }
+zutil-cloned = { workspace = true }
 
 [features]
 sync = ["dynatos-loadable/sync", "dynatos-reactive/sync", "dynatos-sync-types/sync"]

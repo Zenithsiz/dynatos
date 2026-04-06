@@ -15,7 +15,6 @@ dynatos-web-router          = { workspace = true }
 duplicate    = { workspace = true }
 extend       = { workspace = true }
 js-sys       = { workspace = true }
-tracing      = { workspace = true }
 wasm-bindgen = { workspace = true }
 web-sys      = { workspace = true }
 

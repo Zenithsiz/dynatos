@@ -5,8 +5,7 @@ edition = "2024"
 
 [dependencies]
 
-duplicate = { workspace = true }
-extend    = { workspace = true }
+extend = { workspace = true }
 
 [lints]
 workspace = true

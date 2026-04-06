@@ -5,21 +5,18 @@ edition = "2024"
 
 [dependencies]
 
-dynatos-reactive   = { workspace = true }
 dynatos-sync-types = { workspace = true }
 dynatos-util       = { workspace = true }
 dynatos-web        = { workspace = true }
 
-duplicate    = { workspace = true }
 extend       = { workspace = true }
 js-sys       = { workspace = true }
-tracing      = { workspace = true }
 wasm-bindgen = { workspace = true }
 web-sys      = { workspace = true }
 
 
 [features]
-sync = ["dynatos-sync-types/sync", "dynatos-reactive/sync"]
+sync = ["dynatos-sync-types/sync"]
 
 [lints]
 workspace = true
