@@ -185,12 +185,12 @@ pub fn def(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 			);
 
 			fn from_fields(fields: Self::Fields) -> Self {
-				let storage = unsafe { <#storage_name as dynatos_inheritance::StorageFromFields>::from_fields(
+				let storage = <#storage_name as dynatos_inheritance::StorageFromFields>::from_fields(
 					dynatos_inheritance::BaseStorage::new(),
 					fields,
-				) };
+				);
 
-				unsafe { <Self as dynatos_inheritance::Value>::from_storage(storage) }
+				<Self as dynatos_inheritance::Value>::from_storage(storage)
 			}
 		}
 
