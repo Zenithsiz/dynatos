@@ -6,8 +6,8 @@ edition = "2024"
 [dependencies]
 
 # Workspace
-dynatos-sync-types = { workspace = true }
-dynatos-util       = { workspace = true }
+dynatos-sync-types = { path = "../dynatos-sync-types" }
+dynatos-util       = { path = "../dynatos-util" }
 
 derive_more          = { features = ["full"], workspace = true }
 duplicate            = { workspace = true }

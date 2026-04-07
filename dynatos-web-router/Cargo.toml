@@ -6,10 +6,10 @@ edition = "2024"
 [dependencies]
 
 # Workspace
-dynatos-loadable   = { workspace = true }
-dynatos-reactive   = { workspace = true }
-dynatos-sync-types = { workspace = true }
-dynatos-web        = { workspace = true }
+dynatos-loadable   = { path = "../dynatos-loadable" }
+dynatos-reactive   = { path = "../dynatos-reactive" }
+dynatos-sync-types = { path = "../dynatos-sync-types" }
+dynatos-web        = { path = "../dynatos-web" }
 
 thiserror    = { workspace = true }
 tracing      = { workspace = true }

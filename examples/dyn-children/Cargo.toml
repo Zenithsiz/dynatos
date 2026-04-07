@@ -6,9 +6,9 @@ edition = "2024"
 [dependencies]
 
 # Workspace
-dynatos-reactive     = { workspace = true }
-dynatos-web          = { features = ["app-error"], workspace = true }
-dynatos-web-reactive = { workspace = true }
+dynatos-reactive     = { path = "../../dynatos-reactive" }
+dynatos-web          = { features = ["app-error"], path = "../../dynatos-web" }
+dynatos-web-reactive = { path = "../../dynatos-web-reactive" }
 
 app-error                = { workspace = true }
 console_error_panic_hook = { workspace = true }

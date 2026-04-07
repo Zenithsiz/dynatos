@@ -33,23 +33,6 @@ resolver = "2"
 
 [workspace.dependencies]
 
-# Workspace members
-dynatos-builder             = { path = "dynatos-builder" }
-dynatos-builder-macros      = { path = "dynatos-builder-macros" }
-dynatos-inheritance         = { path = "dynatos-inheritance" }
-dynatos-inheritance-macros  = { path = "dynatos-inheritance-macros" }
-dynatos-loadable            = { path = "dynatos-loadable" }
-dynatos-reactive            = { path = "dynatos-reactive" }
-dynatos-sync-types          = { path = "dynatos-sync-types" }
-dynatos-util                = { path = "dynatos-util" }
-dynatos-web                 = { path = "dynatos-web" }
-dynatos-web-macros          = { path = "dynatos-web-macros" }
-dynatos-web-parser          = { path = "dynatos-web-parser" }
-dynatos-web-reactive        = { path = "dynatos-web-reactive" }
-dynatos-web-reactive-macros = { path = "dynatos-web-reactive-macros" }
-dynatos-web-router          = { path = "dynatos-web-router" }
-dynatos-web-title           = { path = "dynatos-web-title" }
-
 anyhow                   = "1.0.102"
 app-error                = "0.1.0"
 console_error_panic_hook = "0.1.7"

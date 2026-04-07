@@ -6,9 +6,9 @@ edition = "2024"
 [dependencies]
 
 # Workspace
-dynatos-util       = { workspace = true }
-dynatos-web-macros = { workspace = true }
-dynatos-web-parser = { workspace = true }
+dynatos-util       = { path = "../dynatos-util" }
+dynatos-web-macros = { path = "../dynatos-web-macros" }
+dynatos-web-parser = { path = "../dynatos-web-parser" }
 
 app-error = { optional = true, workspace = true }
 duplicate = { workspace = true }

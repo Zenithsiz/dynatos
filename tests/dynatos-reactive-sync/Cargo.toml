@@ -5,9 +5,9 @@ edition = "2024"
 
 [dev-dependencies]
 
-dynatos-reactive   = { workspace = true }
-dynatos-sync-types = { workspace = true }
-dynatos-util       = { workspace = true }
+dynatos-reactive   = { path = "../../dynatos-reactive" }
+dynatos-sync-types = { path = "../../dynatos-sync-types" }
+dynatos-util       = { path = "../../dynatos-util" }
 
 app-error    = { workspace = true }
 zutil-cloned = { workspace = true }

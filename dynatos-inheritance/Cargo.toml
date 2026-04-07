@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 
 # Workspace
-dynatos-inheritance-macros = { workspace = true }
+dynatos-inheritance-macros = { path = "../dynatos-inheritance-macros" }
 
 [dev-dependencies]
 trybuild = { workspace = true }
