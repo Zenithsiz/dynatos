@@ -3,7 +3,8 @@
 // TODO: It seems that titles aren't getting dropped for some reason.
 
 // Features
-#![feature(thread_local, macro_attr)]
+#![feature(macro_attr)]
+#![cfg_attr(not(feature = "sync"), feature(thread_local))]
 
 // Imports
 use {

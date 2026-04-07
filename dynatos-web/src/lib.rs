@@ -1,7 +1,7 @@
 //! Html wrappers for `dynatos`
 
 // Features
-#![feature(decl_macro, if_let_guard, macro_metavar_expr)]
+#![feature(decl_macro, macro_metavar_expr)]
 
 // Modules
 mod event_listener;

@@ -1,18 +1,8 @@
 //! Types for synchronization
 
 // Features
-#![feature(
-	cfg_select,
-	nonpoison_rwlock,
-	nonpoison_mutex,
-	sync_nonpoison,
-	trait_alias,
-	decl_macro,
-	macro_attr,
-	unsize,
-	coerce_unsized,
-	dispatch_from_dyn
-)]
+#![feature(trait_alias, decl_macro, macro_attr, unsize, coerce_unsized, dispatch_from_dyn)]
+#![cfg_attr(feature = "sync", feature(nonpoison_rwlock, nonpoison_mutex, sync_nonpoison))]
 // Lints
 #![expect(clippy::absolute_paths, reason = "It's easier when working with features")]
 

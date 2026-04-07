@@ -1,7 +1,7 @@
 //! Import html example
 
 // Features
-#![feature(macro_metavar_expr, never_type, unboxed_closures, fn_traits)]
+#![feature(macro_metavar_expr, unboxed_closures)]
 
 // Imports
 use {

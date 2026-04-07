@@ -1,14 +1,7 @@
 //! Dynatos framework
 
 // Features
-#![feature(
-	unboxed_closures,
-	unsize,
-	never_type,
-	proc_macro_hygiene,
-	stmt_expr_attributes,
-	oneshot_channel
-)]
+#![feature(unboxed_closures, never_type, proc_macro_hygiene)]
 
 // Modules
 mod dyn_element;

@@ -1,8 +1,5 @@
 //! Macros for [`dynatos-builder`]
 
-// Features
-#![feature(if_let_guard, try_blocks)]
-
 // Imports
 use {
 	convert_case::Casing,

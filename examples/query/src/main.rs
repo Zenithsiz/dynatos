@@ -1,7 +1,7 @@
 //! Query example
 
 // Features
-#![feature(try_blocks, stmt_expr_attributes, proc_macro_hygiene)]
+#![feature(stmt_expr_attributes, proc_macro_hygiene)]
 
 // Imports
 use {

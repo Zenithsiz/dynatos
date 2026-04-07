@@ -1,8 +1,5 @@
 //! Macros for `dynatos-web`
 
-// Features
-#![feature(if_let_guard)]
-
 // Imports
 use {
 	dynatos_web_parser::{XHtml, XHtmlNode},

@@ -1,7 +1,7 @@
 //! Router example
 
 // Features
-#![feature(try_blocks, thread_local, stmt_expr_attributes, proc_macro_hygiene)]
+#![feature(thread_local, stmt_expr_attributes, proc_macro_hygiene)]
 
 // Imports
 use {

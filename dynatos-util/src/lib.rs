@@ -1,7 +1,7 @@
 //! Utilities for `dynatos`
 
 // Features
-#![feature(decl_macro, never_type, try_trait_v2, option_reference_flattening)]
+#![feature(try_trait_v2, option_reference_flattening)]
 
 // Modules
 pub mod counter;

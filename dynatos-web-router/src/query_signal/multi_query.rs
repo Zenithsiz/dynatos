@@ -95,7 +95,6 @@ impl<T: FromStr<Err: StdError> + ToString> QueryWrite<&'_ Result<Vec<T>, QueryPa
 }
 
 impl<T: FromStr<Err: StdError> + ToString> QueryWrite<&[T]> for MultiQuery<T> {
-	#[expect(clippy::str_to_string, reason = "False positive")]
 	fn write(&self, new_value: &[T]) {
 		// Update our queries memo manually and prevent it from being added
 		let _suppress_queries = self.queries.suppress();

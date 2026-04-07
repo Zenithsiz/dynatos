@@ -2,17 +2,13 @@
 
 // Features
 #![feature(
-	decl_macro,
-	macro_metavar_expr,
-	macro_metavar_expr_concat,
 	const_trait_impl,
 	const_convert,
 	const_heap,
 	const_cmp,
 	const_clone,
 	allocator_api,
-	try_as_dyn,
-	debug_closure_helpers
+	try_as_dyn
 )]
 
 // Modules
