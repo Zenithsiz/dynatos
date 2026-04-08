@@ -91,9 +91,8 @@ impl DerefMut for BorrowRefMut<'_> {
 
 impl Drop for BorrowRefMut<'_> {
 	fn drop(&mut self) {
-		let history = self.0.ctx.window().history().expect("Unable to get history");
-
 		// Push the new location into history
+		let history = self.0.ctx.history();
 		match history.push_state_with_url(&JsValue::UNDEFINED, "", Some(self.0.location.as_str())) {
 			Ok(()) => tracing::debug!("Pushed history: {:?}", self.0.location.as_str()),
 			Err(err) => tracing::error!("Unable to push history {:?}: {err:?}", self.0.location.as_str()),
@@ -115,7 +114,6 @@ impl SignalBorrowMut for Location {
 
 /// Parses the location as url
 fn parse_location_url(ctx: &DynatosWebCtx) -> Url {
-	let location = ctx.document().location().expect("Document had no location");
-	let location = location.href().expect("Unable to get location href");
+	let location = ctx.location().href().expect("Unable to get location href");
 	location.parse::<Url>().expect("Location href was an invalid url")
 }

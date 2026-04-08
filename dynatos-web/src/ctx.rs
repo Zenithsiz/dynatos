@@ -2,6 +2,7 @@
 
 // Imports
 use {
+	crate::JsResultContext,
 	app_error::{AppError, Context, app_error},
 	dynatos_sync_types::RcPtr,
 	wasm_bindgen::JsCast,
@@ -17,6 +18,8 @@ struct Inner {
 	window:   web_sys::Window,
 	document: web_sys::Document,
 	body:     web_sys::HtmlBodyElement,
+	history:  web_sys::History,
+	location: web_sys::Location,
 }
 
 /// Dynatos web context
@@ -39,7 +42,16 @@ impl DynatosWebCtx {
 			.dyn_into()
 			.map_err(|body| app_error!("Body was not an `HtmlBodyElement`: {body:?}"))?;
 
-		let inner = Inner { window, document, body };
+		let history = window.history().context("Unable to get history")?;
+		let location = document.location().context("Missing location")?;
+
+		let inner = Inner {
+			window,
+			document,
+			body,
+			history,
+			location,
+		};
 		Ok(Self(RcPtr::new(inner)))
 	}
 
@@ -59,5 +71,17 @@ impl DynatosWebCtx {
 	#[must_use]
 	pub fn body(&self) -> &web_sys::HtmlBodyElement {
 		&self.0.body
+	}
+
+	/// Returns the browser history
+	#[must_use]
+	pub fn history(&self) -> &web_sys::History {
+		&self.0.history
+	}
+
+	/// Returns the browser location
+	#[must_use]
+	pub fn location(&self) -> &web_sys::Location {
+		&self.0.location
 	}
 }
