@@ -1,5 +1,5 @@
 [package]
-name    = "dyn-children"
+name    = "examples-dyn-children"
 version = "0.1.0"
 edition = "2024"
 

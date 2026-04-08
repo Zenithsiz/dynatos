@@ -1,5 +1,5 @@
 [package]
-name    = "dyn-element"
+name    = "examples-dyn-element"
 version = "0.1.0"
 edition = "2024"
 

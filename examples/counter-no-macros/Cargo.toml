@@ -1,5 +1,5 @@
 [package]
-name    = "counter-no-macros"
+name    = "examples-counter-no-macros"
 version = "0.1.0"
 edition = "2024"
 
