@@ -208,6 +208,7 @@ impl Node {
 							NodeTy::Expr => syn::parse_quote! {
 								dynatos_web_reactive::NodeDynChildren::add_dyn_children(
 									AsRef::<web_sys::Node>::as_ref(&#el),
+									&ctx,
 									#child
 								);
 							},
@@ -220,7 +221,7 @@ impl Node {
 				Self {
 					ty:   NodeTy::Element,
 					expr: syn::parse_quote! {{
-						let #el = #constructor(ctx);
+						let #el = #constructor(&ctx);
 						#(#add_attrs)*
 						#(#add_children)*
 						#el
