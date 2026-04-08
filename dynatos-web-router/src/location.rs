@@ -3,8 +3,8 @@
 // Imports
 use {
 	core::ops::{Deref, DerefMut},
-	dynatos_web::{EventTargetAddListener, ev},
 	dynatos_reactive::{Signal, SignalBorrow, SignalBorrowMut, signal},
+	dynatos_web::{DynatosWebCtx, EventTargetAddListener, ev},
 	url::Url,
 	wasm_bindgen::JsValue,
 	zutil_cloned::cloned,
@@ -15,6 +15,8 @@ use {
 struct Inner {
 	/// Location
 	location: Url,
+
+	ctx: DynatosWebCtx,
 }
 
 /// Location
@@ -23,24 +25,24 @@ pub struct Location(Signal<Inner>);
 
 impl Location {
 	/// Creates a new location
-	#[expect(
-		clippy::new_without_default,
-		reason = "We want locations to only be created explicitly"
-	)]
 	#[must_use]
 	#[track_caller]
-	pub fn new() -> Self {
-		let location = self::parse_location_url();
-		let inner = Inner { location };
+	pub fn new(ctx: &DynatosWebCtx) -> Self {
+		let location = self::parse_location_url(ctx);
+		let inner = Inner {
+			location,
+			ctx: ctx.clone(),
+		};
 		let inner = Signal::new(inner);
 
 		// Add an event listener on the document for when the user navigates manually
-		let window = web_sys::window().expect("Unable to get window");
-		#[cloned(inner)]
-		window.add_event_listener::<ev!(popstate)>(move |_ev| {
-			let new_location = self::parse_location_url();
-			inner.borrow_mut().location = new_location;
-		});
+		ctx.window().add_event_listener::<ev!(popstate)>(
+			#[cloned(ctx, inner)]
+			move |_ev| {
+				let new_location = self::parse_location_url(&ctx);
+				inner.borrow_mut().location = new_location;
+			},
+		);
 
 		Self(inner)
 	}
@@ -89,8 +91,7 @@ impl DerefMut for BorrowRefMut<'_> {
 
 impl Drop for BorrowRefMut<'_> {
 	fn drop(&mut self) {
-		let window = web_sys::window().expect("Unable to get window");
-		let history = window.history().expect("Unable to get history");
+		let history = self.0.ctx.window().history().expect("Unable to get history");
 
 		// Push the new location into history
 		match history.push_state_with_url(&JsValue::UNDEFINED, "", Some(self.0.location.as_str())) {
@@ -113,11 +114,8 @@ impl SignalBorrowMut for Location {
 }
 
 /// Parses the location as url
-fn parse_location_url() -> Url {
-	let window = web_sys::window().expect("Unable to get window");
-	let document = window.document().expect("Unable to get document");
-
-	let location = document.location().expect("Document had no location");
+fn parse_location_url(ctx: &DynatosWebCtx) -> Url {
+	let location = ctx.document().location().expect("Document had no location");
 	let location = location.href().expect("Unable to get location href");
 	location.parse::<Url>().expect("Location href was an invalid url")
 }

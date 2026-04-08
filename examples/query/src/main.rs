@@ -8,7 +8,7 @@ use {
 	app_error::AppError,
 	dynatos_loadable::Loadable,
 	dynatos_reactive::{SignalBorrowMut, SignalGetCloned, SignalSet},
-	dynatos_web::{EventTargetWithListener, NodeWithChildren, NodeWithText, ev, html},
+	dynatos_web::{DynatosWebCtx, EventTargetWithListener, NodeWithChildren, NodeWithText, ev, html},
 	dynatos_web_reactive::NodeWithDynText,
 	dynatos_web_router::{Location, QuerySignal, SingleQuery},
 	tracing_subscriber::prelude::*,
@@ -34,42 +34,39 @@ fn main() {
 }
 
 fn run() -> Result<(), AppError> {
-	let window = web_sys::window().expect("Unable to get window");
-	let document = window.document().expect("Unable to get document");
-	let body = document.body().expect("Unable to get document body");
+	let ctx = DynatosWebCtx::new().expect("Unable to create dynatos web context");
 
-	let location = Location::new();
-
-	body.with_child(self::page(location));
+	let location = Location::new(&ctx);
+	ctx.body().with_child(self::page(&ctx, location));
 
 	Ok(())
 }
 
-fn page(location: Location) -> web_sys::HtmlElement {
+fn page(ctx: &DynatosWebCtx, location: Location) -> web_sys::HtmlElement {
 	// TODO: If we add `.with_loadable_default()`, use it again in this example.
 	let query = SingleQuery::<i32>::new(location.clone(), "a");
 	let query = QuerySignal::new(location.clone(), query);
 
-	html::div().with_children([
+	html::div(ctx).with_children([
 		#[cloned(query)]
-		html::p().with_dyn_text(move || format!("{:?}", query.get_cloned())),
-		html::hr(),
-		dynatos_web_router::anchor(location.clone(), "/?a=5").with_text("5"),
-		html::br(),
-		dynatos_web_router::anchor(location.clone(), "/?a=7").with_text("7"),
-		html::br(),
-		dynatos_web_router::anchor(location, "/?a=abc").with_text("abc"),
-		html::br(),
+		html::p(ctx).with_dyn_text(move || format!("{:?}", query.get_cloned())),
+		html::hr(ctx),
+		dynatos_web_router::anchor(ctx, location.clone(), "/?a=5").with_text("5"),
+		html::br(ctx),
+		dynatos_web_router::anchor(ctx, location.clone(), "/?a=7").with_text("7"),
+		html::br(ctx),
+		dynatos_web_router::anchor(ctx, location, "/?a=abc").with_text("abc"),
+		html::br(ctx),
 		#[cloned(query)]
-		html::button()
+		html::button(ctx)
 			.with_event_listener::<ev!(click)>(move |_ev| {
 				if let Loadable::Loaded(value) = &mut *query.borrow_mut() {
 					*value += 1;
 				}
 			})
 			.with_text("Add"),
-		html::br(),
-		html::button()
+		html::br(ctx),
+		html::button(ctx)
 			.with_event_listener::<ev!(click)>(move |_ev| {
 				query.set(6);
 			})

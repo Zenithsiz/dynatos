@@ -6,7 +6,7 @@
 // Imports
 use {
 	app_error::AppError,
-	dynatos_web::{JsResultContext, NodeWithChildren, NodeWithText, html, html_file},
+	dynatos_web::{DynatosWebCtx, JsResultContext, NodeWithChildren, NodeWithText, html, html_file},
 	tracing_subscriber::prelude::*,
 };
 
@@ -29,26 +29,24 @@ fn main() {
 }
 
 fn run() -> Result<(), AppError> {
-	let window = web_sys::window().expect("Unable to get window");
-	let document = window.document().expect("Unable to get document");
-	let body = document.body().expect("Unable to get document body");
+	let ctx = DynatosWebCtx::new().expect("Unable to create dynatos web context");
 
-	let root = self::import_html();
-	body.append_child(&root).context("Unable to append element")?;
+	let root = self::import_html(&ctx);
+	ctx.body().append_child(&root).context("Unable to append element")?;
 
 	Ok(())
 }
 
-fn import_html() -> web_sys::HtmlElement {
+fn import_html(ctx: &DynatosWebCtx) -> web_sys::HtmlElement {
 	let static_literal = html!(r#"<div>Static from literal</div>"#);
 
 	let static_file = html_file!("examples/import-html/src/pages/static.html");
 
-	let element1 = html::p;
-	let element2_value = html::p;
+	let element1 = || html::p(ctx);
+	let element2_value = || html::p(ctx);
 
-	let node1 = || html::p().with_text("Node 1");
-	let node2_value = || html::p().with_text("Node 2");
+	let node1 = || html::p(ctx).with_text("Node 1");
+	let node2_value = || html::p(ctx).with_text("Node 2");
 
 	let attr1 = "my-attr1";
 	let attr2_value = "my-attr2";
@@ -63,8 +61,10 @@ fn import_html() -> web_sys::HtmlElement {
 	let text1 = "my-text1";
 	let text2_value = "my-text2";
 
-	let dynamic =
-		dynatos_web::parse_html_element(include_str!("pages/dynamic.html"), dynatos_web::parse::environment! {
+	let dynamic = dynatos_web::parse_html_element(
+		ctx,
+		include_str!("pages/dynamic.html"),
+		dynatos_web::parse::environment! {
 			element {
 				element1,
 				element2: element2_value,
@@ -86,10 +86,11 @@ fn import_html() -> web_sys::HtmlElement {
 				text1,
 				text2: text2_value,
 			}
-		})
-		.expect("Unable to parse html");
+		},
+	)
+	.expect("Unable to parse html");
 
-	html::div()
+	html::div(ctx)
 		.with_child(static_literal)
 		.with_child(static_file)
 		.with_child(dynamic)

@@ -7,7 +7,7 @@ edition = "2024"
 
 # Workspace
 dynatos-reactive     = { path = "../../dynatos-reactive" }
-dynatos-web          = { features = ["app-error"], path = "../../dynatos-web" }
+dynatos-web          = { path = "../../dynatos-web" }
 dynatos-web-reactive = { path = "../../dynatos-web-reactive" }
 
 app-error                = { workspace = true }

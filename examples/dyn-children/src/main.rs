@@ -6,9 +6,9 @@
 // Imports
 use {
 	app_error::AppError,
-	dynatos_web::{JsResultContext, NodeWithChildren, NodeWithText, html},
-	dynatos_web_reactive::NodeWithDynChildren,
 	dynatos_reactive::{Signal, SignalBorrowMut, SignalGet, SignalSet},
+	dynatos_web::{DynatosWebCtx, JsResultContext, NodeWithChildren, NodeWithText, html},
+	dynatos_web_reactive::NodeWithDynChildren,
 	tracing_subscriber::prelude::*,
 	zutil_cloned::cloned,
 };
@@ -32,36 +32,38 @@ fn main() {
 }
 
 fn run() -> Result<(), AppError> {
-	let window = web_sys::window().expect("Unable to get window");
-	let document = window.document().expect("Unable to get document");
-	let body = document.body().expect("Unable to get document body");
+	let ctx = DynatosWebCtx::new().expect("Unable to create dynatos web context");
 
-	let parent = self::parent();
-	body.append_child(&parent).context("Unable to append counter")?;
+	let parent = self::parent(&ctx);
+	ctx.body().append_child(&parent).context("Unable to append counter")?;
 
 	Ok(())
 }
 
-fn parent() -> web_sys::HtmlElement {
+fn parent(ctx: &DynatosWebCtx) -> web_sys::HtmlElement {
 	let base = Signal::new(0);
 	let num_children = Signal::new(2);
 
-	html::div()
-		.with_child(self::counter("Number of children", num_children.clone()))
-		.with_child(self::counter("Base", base.clone()))
-		.with_child(html::hr())
-		.with_dyn_children(move || self::child(base.get(), num_children.get()))
-		.with_child(html::hr())
-		.with_child(html::p().with_text("Footer"))
+	html::div(ctx)
+		.with_child(self::counter(ctx, "Number of children", num_children.clone()))
+		.with_child(self::counter(ctx, "Base", base.clone()))
+		.with_child(html::hr(ctx))
+		.with_dyn_children(
+			ctx,
+			#[cloned(ctx)]
+			move || self::child(&ctx, base.get(), num_children.get()),
+		)
+		.with_child(html::hr(ctx))
+		.with_child(html::p(ctx).with_text("Footer"))
 }
 
-fn child(base: i32, num_children: i32) -> Vec<web_sys::HtmlElement> {
+fn child(ctx: &DynatosWebCtx, base: i32, num_children: i32) -> Vec<web_sys::HtmlElement> {
 	(0..num_children)
-		.map(|idx| html::p().with_text(format!("{}", base + idx)))
+		.map(|idx| html::p(ctx).with_text(format!("{}", base + idx)))
 		.collect()
 }
 
-fn counter(name: &str, value: Signal<i32>) -> web_sys::HtmlElement {
+fn counter(ctx: &DynatosWebCtx, name: &str, value: Signal<i32>) -> web_sys::HtmlElement {
 	#[cloned(value)]
 	let reset = move |_ev| value.set(0);
 	#[cloned(value)]

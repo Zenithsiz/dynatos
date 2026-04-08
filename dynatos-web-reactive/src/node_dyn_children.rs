@@ -7,7 +7,7 @@ use {
 	dynatos_reactive::{Derived, Effect, Memo, Signal, SignalWith, WithDefault, derived::DerivedRun},
 	dynatos_sync_types::{IMut, SyncBounds},
 	dynatos_util::TryOrReturnExt,
-	dynatos_web::html,
+	dynatos_web::{DynatosWebCtx, html},
 	js_sys::WeakRef,
 	wasm_bindgen::JsCast,
 };
@@ -17,7 +17,7 @@ use {
 pub impl web_sys::Node {
 	/// Adds dynamic children to this node
 	#[track_caller]
-	fn add_dyn_children<C>(&self, children: C)
+	fn add_dyn_children<C>(&self, ctx: &DynatosWebCtx, children: C)
 	where
 		C: WithDynNodes + 'static,
 	{
@@ -30,7 +30,7 @@ pub impl web_sys::Node {
 		// TODO: Find a better solution than using an empty `<template>` element?
 		let node = WeakRef::new(self);
 		let prev_children = IMut::new(vec![]);
-		let empty_child = web_sys::Node::from(html::template());
+		let empty_child = web_sys::Node::from(html::template(ctx));
 		let child_effect = Effect::try_new(move || {
 			// Try to get the node
 			let node = node.deref().or_return()?;
@@ -93,11 +93,11 @@ where
 	///
 	/// Returns the node, for chaining
 	#[track_caller]
-	fn with_dyn_children<C>(self, children: C) -> Self
+	fn with_dyn_children<C>(self, ctx: &DynatosWebCtx, children: C) -> Self
 	where
 		C: WithDynNodes + 'static,
 	{
-		self.as_ref().add_dyn_children(children);
+		self.as_ref().add_dyn_children(ctx, children);
 		self
 	}
 }

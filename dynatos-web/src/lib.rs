@@ -4,6 +4,7 @@
 #![feature(decl_macro, macro_metavar_expr)]
 
 // Modules
+mod ctx;
 mod event_listener;
 pub mod html;
 mod object_attach_value;
@@ -11,6 +12,7 @@ pub mod parse;
 
 // Exports
 pub use self::{
+	ctx::DynatosWebCtx,
 	event_listener::{ElementAddListener, EventListener, EventTargetAddListener, EventTargetWithListener, ev},
 	object_attach_value::{ObjectAttachValue, ObjectWithValue},
 	parse::{parse, parse_html_element},
@@ -44,22 +46,14 @@ pub use dynatos_web_macros::html_file;
 
 /// Creates a text node
 #[must_use]
-pub fn text(data: &str) -> web_sys::Text {
-	// TODO: Cache the document in a thread local?
-	let window = web_sys::window().expect("Unable to get window");
-	let document = window.document().expect("Unable to get document");
-
-	document.create_text_node(data)
+pub fn text(ctx: &DynatosWebCtx, data: &str) -> web_sys::Text {
+	ctx.document().create_text_node(data)
 }
 
 /// Creates a comment node
 #[must_use]
-pub fn comment(data: &str) -> web_sys::Comment {
-	// TODO: Cache the document in a thread local?
-	let window = web_sys::window().expect("Unable to get window");
-	let document = window.document().expect("Unable to get document");
-
-	document.create_comment(data)
+pub fn comment(ctx: &DynatosWebCtx, data: &str) -> web_sys::Comment {
+	ctx.document().create_comment(data)
 }
 
 /// Extension trait to set the text content in a builder-style.
@@ -424,7 +418,6 @@ where
 
 /// Extension trait to be able to use [`.context`](app_error::AppError::context)
 /// on a `Result<T, JsValue>`.
-#[cfg(feature = "app-error")]
 #[extend::ext(name = JsResultContext)]
 pub impl<T> Result<T, JsValue> {
 	fn context(self, context: &'static str) -> Result<T, app_error::AppError> {

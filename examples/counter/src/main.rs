@@ -6,8 +6,8 @@
 // Imports
 use {
 	app_error::AppError,
-	dynatos_web::{JsResultContext, html},
 	dynatos_reactive::{Signal, SignalBorrowMut, SignalGet, SignalSet},
+	dynatos_web::{DynatosWebCtx, JsResultContext, html},
 	tracing_subscriber::prelude::*,
 	zutil_cloned::cloned,
 };
@@ -31,17 +31,15 @@ fn main() {
 }
 
 fn run() -> Result<(), AppError> {
-	let window = web_sys::window().expect("Unable to get window");
-	let document = window.document().expect("Unable to get document");
-	let body = document.body().expect("Unable to get document body");
+	let ctx = DynatosWebCtx::new().expect("Unable to create dynatos web context");
 
-	let counter = self::counter();
-	body.append_child(&counter).context("Unable to append counter")?;
+	let counter = self::counter(&ctx);
+	ctx.body().append_child(&counter).context("Unable to append counter")?;
 
 	Ok(())
 }
 
-fn counter() -> web_sys::HtmlElement {
+fn counter(ctx: &DynatosWebCtx) -> web_sys::HtmlElement {
 	let value = Signal::new(0);
 
 	#[cloned(value)]

@@ -20,7 +20,7 @@ wasm-bindgen = { workspace = true }
 web-sys      = { workspace = true }
 
 [features]
-sync = ["dynatos-reactive/sync", "dynatos-sync-types/sync", "dynatos-web-router/sync"]
+sync = ["dynatos-reactive/sync", "dynatos-sync-types/sync", "dynatos-web-router/sync", "dynatos-web/sync"]
 
 [lints]
 workspace = true

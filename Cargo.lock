@@ -253,6 +253,7 @@ version = "0.1.0"
 dependencies = [
  "app-error",
  "duplicate",
+ "dynatos-sync-types",
  "dynatos-util",
  "dynatos-web-macros",
  "dynatos-web-parser",
@@ -334,7 +335,6 @@ dependencies = [
  "extend",
  "js-sys",
  "wasm-bindgen",
- "web-sys",
 ]
 
 [[package]]

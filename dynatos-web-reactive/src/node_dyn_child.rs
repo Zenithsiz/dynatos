@@ -6,6 +6,7 @@ use {
 	core::ops::Deref,
 	dynatos_reactive::{Derived, Memo, Signal, SignalWith, WithDefault, derived::DerivedRun},
 	dynatos_sync_types::SyncBounds,
+	dynatos_web::DynatosWebCtx,
 	wasm_bindgen::JsCast,
 };
 
@@ -14,7 +15,7 @@ use {
 pub impl web_sys::Node {
 	/// Adds a dynamic child to this node
 	#[track_caller]
-	fn add_dyn_child<C>(&self, child: C)
+	fn add_dyn_child<C>(&self, ctx: &DynatosWebCtx, child: C)
 	where
 		C: WithDynNode + 'static,
 	{
@@ -26,7 +27,7 @@ pub impl web_sys::Node {
 			}
 		}
 
-		self.add_dyn_children(Wrapper(child));
+		self.add_dyn_children(ctx, Wrapper(child));
 	}
 }
 
@@ -40,11 +41,11 @@ where
 	///
 	/// Returns the node, for chaining
 	#[track_caller]
-	fn with_dyn_child<C>(self, child: C) -> Self
+	fn with_dyn_child<C>(self, ctx: &DynatosWebCtx, child: C) -> Self
 	where
 		C: WithDynNode + 'static,
 	{
-		self.as_ref().add_dyn_child(child);
+		self.as_ref().add_dyn_child(ctx, child);
 		self
 	}
 }

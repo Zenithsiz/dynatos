@@ -6,11 +6,12 @@ edition = "2024"
 [dependencies]
 
 # Workspace
+dynatos-sync-types = { path = "../dynatos-sync-types" }
 dynatos-util       = { path = "../dynatos-util" }
 dynatos-web-macros = { path = "../dynatos-web-macros" }
 dynatos-web-parser = { path = "../dynatos-web-parser" }
 
-app-error = { optional = true, workspace = true }
+app-error = { workspace = true }
 duplicate = { workspace = true }
 extend = { workspace = true }
 itertools = { workspace = true }
@@ -26,6 +27,7 @@ web-sys = { features = [
 	"DragEvent",
 	"Element",
 	"FocusEvent",
+	"HtmlBodyElement",
 	"HtmlCanvasElement",
 	"HtmlElement",
 	"HtmlImageElement",
@@ -41,7 +43,7 @@ web-sys = { features = [
 ], workspace = true }
 
 [features]
-app-error = ["dep:app-error"]
+sync = ["dynatos-sync-types/sync"]
 
 [lints]
 workspace = true

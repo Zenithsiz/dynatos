@@ -4,7 +4,7 @@
 #[expect(unused_imports, reason = "Used by macros")]
 use {crate::EventTargetAddListener, core::marker::PhantomData};
 use {
-	crate::{ElementAddAttr, HTML_NAMESPACE, NodeAddChildren},
+	crate::{DynatosWebCtx, ElementAddAttr, HTML_NAMESPACE, NodeAddChildren},
 	dynatos_web_parser::{XHtml, XHtmlElement, XHtmlNode},
 	wasm_bindgen::{JsCast, JsValue},
 };
@@ -15,7 +15,11 @@ use {
 /// before and after the parsed element.
 ///
 /// See [`parse`] for details.
-pub fn parse_html_element(input: &str, mut environment: impl Environment) -> Result<web_sys::HtmlElement, Error> {
+pub fn parse_html_element(
+	ctx: &DynatosWebCtx,
+	input: &str,
+	mut environment: impl Environment,
+) -> Result<web_sys::HtmlElement, Error> {
 	let html = XHtml::parse(input).map_err(Error::Parse)?;
 
 	let is_whitespace_only = |s: &str| s.chars().all(char::is_whitespace);
@@ -31,32 +35,40 @@ pub fn parse_html_element(input: &str, mut environment: impl Environment) -> Res
 		_ => return Err(Error::SingleElement),
 	};
 
-	let element = self::parse_xhtml_element(element, &mut environment)?;
+	let element = self::parse_xhtml_element(ctx, element, &mut environment)?;
 	let element = element.dyn_into().map_err(Error::CastHtmlElement)?;
 	Ok(element)
 }
 
 /// Parses html at runtime, emitting it as an [`HtmlElement`](web_sys::HtmlElement) list
-pub fn parse(input: &str, mut environment: impl Environment) -> Result<Vec<web_sys::Node>, Error> {
+pub fn parse(ctx: &DynatosWebCtx, input: &str, mut environment: impl Environment) -> Result<Vec<web_sys::Node>, Error> {
 	let html = XHtml::parse(input).map_err(Error::Parse)?;
 	let children = html
 		.children
 		.iter()
-		.map(|node| self::parse_xhtml_node(node, &mut environment))
+		.map(|node| self::parse_xhtml_node(ctx, node, &mut environment))
 		.collect::<Result<Vec<_>, _>>()?;
 
 	Ok(children)
 }
 
-fn parse_xhtml_node(node: &XHtmlNode<'_>, environment: &mut impl Environment) -> Result<web_sys::Node, Error> {
+fn parse_xhtml_node(
+	ctx: &DynatosWebCtx,
+	node: &XHtmlNode<'_>,
+	environment: &mut impl Environment,
+) -> Result<web_sys::Node, Error> {
 	match node {
-		XHtmlNode::Element(element) => self::parse_xhtml_element(element, environment),
-		XHtmlNode::Text(text) => self::parse_xhtml_text(text, environment),
-		XHtmlNode::Comment(comment) => Ok(crate::comment(comment).into()),
+		XHtmlNode::Element(element) => self::parse_xhtml_element(ctx, element, environment),
+		XHtmlNode::Text(text) => self::parse_xhtml_text(ctx, text, environment),
+		XHtmlNode::Comment(comment) => Ok(crate::comment(ctx, comment).into()),
 	}
 }
 
-fn parse_xhtml_text(mut text: &str, environment: &mut impl Environment) -> Result<web_sys::Node, Error> {
+fn parse_xhtml_text(
+	ctx: &DynatosWebCtx,
+	mut text: &str,
+	environment: &mut impl Environment,
+) -> Result<web_sys::Node, Error> {
 	let mut output = String::new();
 	while !text.is_empty() {
 		// Find the first escape
@@ -79,17 +91,14 @@ fn parse_xhtml_text(mut text: &str, environment: &mut impl Environment) -> Resul
 		output.push_str(&expr);
 	}
 
-	Ok(crate::text(&output).into())
+	Ok(crate::text(ctx, &output).into())
 }
 
 fn parse_xhtml_element(
+	ctx: &DynatosWebCtx,
 	xhtml_element: &XHtmlElement<'_>,
 	environment: &mut impl Environment,
 ) -> Result<web_sys::Node, Error> {
-	// TODO: Cache these
-	let window = web_sys::window().expect("Unable to get window");
-	let document = window.document().expect("Unable to get document");
-
 	if xhtml_element.name.is_empty() {
 		let expr_name = xhtml_element.inner.expect("Empty tags should have a span");
 		return environment.eval_node(expr_name);
@@ -97,7 +106,8 @@ fn parse_xhtml_element(
 
 	let element = match xhtml_element.name.strip_prefix(':') {
 		Some(element) => environment.eval_element(element)?,
-		None => document
+		None => ctx
+			.document()
 			.create_element_ns(Some(HTML_NAMESPACE), xhtml_element.name)
 			.map_err(Error::CreateElement)?,
 	};
@@ -120,7 +130,7 @@ fn parse_xhtml_element(
 	}
 
 	for child in &xhtml_element.children {
-		let child = self::parse_xhtml_node(child, environment)?;
+		let child = self::parse_xhtml_node(ctx, child, environment)?;
 		element.add_child(child);
 	}
 

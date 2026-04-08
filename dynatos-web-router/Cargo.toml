@@ -19,7 +19,7 @@ web-sys      = { features = ["History", "Location"], workspace = true }
 zutil-cloned = { workspace = true }
 
 [features]
-sync = ["dynatos-loadable/sync", "dynatos-reactive/sync", "dynatos-sync-types/sync"]
+sync = ["dynatos-loadable/sync", "dynatos-reactive/sync", "dynatos-sync-types/sync", "dynatos-web/sync"]
 
 [lints]
 workspace = true

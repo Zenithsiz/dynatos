@@ -4,17 +4,17 @@
 use {
 	crate::Location,
 	dynatos_reactive::{SignalBorrow, SignalSet},
-	dynatos_web::{ElementWithAttr, EventTargetWithListener, ev, html},
+	dynatos_web::{DynatosWebCtx, ElementWithAttr, EventTargetWithListener, ev, html},
 };
 
 /// Creates a reactive anchor element.
 ///
 /// Expects a context of type [`Location`](crate::Location).
-pub fn anchor<U>(location: Location, new_location: U) -> web_sys::HtmlElement
+pub fn anchor<U>(ctx: &DynatosWebCtx, location: Location, new_location: U) -> web_sys::HtmlElement
 where
 	U: AsRef<str> + 'static,
 {
-	html::a()
+	html::a(ctx)
 		.with_attr("href", new_location.as_ref())
 		.with_event_listener::<ev!(click)>(move |ev| {
 			ev.prevent_default();

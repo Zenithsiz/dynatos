@@ -10,7 +10,7 @@
 use {
 	dynatos_sync_types::{IMut, thread_local_or_global},
 	dynatos_util::HoleyStack,
-	dynatos_web::ObjectSetProp,
+	dynatos_web::{DynatosWebCtx, ObjectSetProp},
 	wasm_bindgen::prelude::wasm_bindgen,
 };
 
@@ -25,11 +25,13 @@ static TITLE_STACK: IMut<HoleyStack<String>> = IMut::new(HoleyStack::new());
 pub struct Title {
 	/// Title index
 	title_idx: usize,
+
+	ctx: DynatosWebCtx,
 }
 
 impl Title {
 	/// Creates a title.
-	pub fn new<S>(title: S) -> Self
+	pub fn new<S>(ctx: &DynatosWebCtx, title: S) -> Self
 	where
 		S: Into<String>,
 	{
@@ -38,14 +40,17 @@ impl Title {
 		// If no title exists, add the current one
 		let mut stack = TITLE_STACK.lock();
 		if stack.is_empty() {
-			stack.push(self::cur_title());
+			stack.push(ctx.document().title());
 		}
 
 		// Then set the title and add ours to the stack
-		self::set_title(&title);
+		ctx.document().set_title(&title);
 		let title_idx = stack.push(title);
 
-		Self { title_idx }
+		Self {
+			title_idx,
+			ctx: ctx.clone(),
+		}
 	}
 }
 
@@ -57,7 +62,7 @@ impl Drop for Title {
 
 		// Then find the next title to set back to.
 		let next_title = stack.top().expect("Should contain at least 1 title");
-		self::set_title(next_title);
+		self.ctx.document().set_title(next_title);
 	}
 }
 
@@ -65,9 +70,9 @@ impl Drop for Title {
 #[extend::ext(name = ObjectAttachTitle)]
 pub impl js_sys::Object {
 	/// Attaches a title to this object
-	fn attach_title(&self, title: &str) {
+	fn attach_title(&self, ctx: &DynatosWebCtx, title: &str) {
 		let prop_name = "__dynatos_web_title";
-		let title = Title::new(title);
+		let title = Title::new(ctx, title);
 		self.set_prop(prop_name, WasmTitle(title));
 	}
 }
@@ -81,29 +86,12 @@ where
 	/// Attaches a title to this object.
 	///
 	/// Returns the object, for chaining
-	fn with_title(self, title: &str) -> Self {
-		self.as_ref().attach_title(title);
+	fn with_title(self, ctx: &DynatosWebCtx, title: &str) -> Self {
+		self.as_ref().attach_title(ctx, title);
 		self
 	}
 }
 
-/// Returns the current title
-fn cur_title() -> String {
-	web_sys::window()
-		.expect("Unable to get window")
-		.document()
-		.expect("Unable to get document")
-		.title()
-}
-
-/// Sets the title
-fn set_title(title: &str) {
-	web_sys::window()
-		.expect("Unable to get window")
-		.document()
-		.expect("Unable to get document")
-		.set_title(title);
-}
 
 /// A wasm `Title` type.
 #[wasm_bindgen]

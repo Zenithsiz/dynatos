@@ -6,7 +6,7 @@ use {
 	dynatos_reactive::{Derived, Effect, Memo, Signal, SignalWith, WithDefault, derived::DerivedRun, effect},
 	dynatos_sync_types::{IMut, RcPtr, SyncBounds},
 	dynatos_util::TryOrReturnExt,
-	dynatos_web::{Child, html},
+	dynatos_web::{Child, DynatosWebCtx, html},
 	js_sys::WeakRef,
 };
 
@@ -15,11 +15,11 @@ pub struct DynElement(RcPtr<IMut<web_sys::Element>>);
 
 impl DynElement {
 	/// Creates a new dynamic element
-	pub fn new<T>(f: T) -> Self
+	pub fn new<T>(ctx: &DynatosWebCtx, f: T) -> Self
 	where
 		T: ToDynElement + 'static,
 	{
-		let default_element = web_sys::Element::from(html::template());
+		let default_element = web_sys::Element::from(html::template(ctx));
 		let element_weak_ref = IMut::new(WeakRef::<web_sys::Element>::new(&default_element));
 
 		let element = RcPtr::new(IMut::new(default_element));

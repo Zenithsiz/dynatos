@@ -220,7 +220,7 @@ impl Node {
 				Self {
 					ty:   NodeTy::Element,
 					expr: syn::parse_quote! {{
-						let #el = #constructor();
+						let #el = #constructor(ctx);
 						#(#add_attrs)*
 						#(#add_children)*
 						#el
@@ -274,16 +274,16 @@ impl Node {
 
 				let text: syn::Expr = match self::format_text_args(&args, true) {
 					TextArg::Cons(s) => syn::parse_quote! {
-						dynatos_web::text(#s)
+						dynatos_web::text(&ctx, #s)
 					},
 					TextArg::DynArg(expr) => syn::parse_quote! {
 						dynatos_web_reactive::NodeWithDynText::with_dyn_text(
-							dynatos_web::text(""),
+							dynatos_web::text(&ctx, ""),
 							move || #expr
 						)
 					},
 					TextArg::StaticArg(expr) => syn::parse_quote! {
-						dynatos_web::text(&#expr)
+						dynatos_web::text(&ctx, &#expr)
 					},
 				};
 
@@ -296,7 +296,7 @@ impl Node {
 			},
 			XHtmlNode::Comment(comment) => Self {
 				ty:   NodeTy::Comment {},
-				expr: syn::parse_quote! { dynatos_web::comment(#comment) },
+				expr: syn::parse_quote! { dynatos_web::comment(&ctx, #comment) },
 			},
 		};
 

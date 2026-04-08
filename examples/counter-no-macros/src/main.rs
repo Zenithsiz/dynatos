@@ -4,7 +4,7 @@
 use {
 	app_error::AppError,
 	dynatos_reactive::{Signal, SignalBorrowMut, SignalGet, SignalSet},
-	dynatos_web::{EventTargetWithListener, JsResultContext, NodeWithChildren, NodeWithText, ev, html},
+	dynatos_web::{DynatosWebCtx, EventTargetWithListener, JsResultContext, NodeWithChildren, NodeWithText, ev, html},
 	dynatos_web_reactive::NodeWithDynText,
 	tracing_subscriber::prelude::*,
 };
@@ -28,37 +28,35 @@ fn main() {
 }
 
 fn run() -> Result<(), AppError> {
-	let window = web_sys::window().expect("Unable to get window");
-	let document = window.document().expect("Unable to get document");
-	let body = document.body().expect("Unable to get document body");
+	let ctx = DynatosWebCtx::new().expect("Unable to create dynatos web context");
 
-	let counter = self::counter();
-	body.append_child(&counter).context("Unable to append counter")?;
+	let counter = self::counter(&ctx);
+	ctx.body().append_child(&counter).context("Unable to append counter")?;
 
 	Ok(())
 }
 
-fn counter() -> web_sys::HtmlElement {
+fn counter(ctx: &DynatosWebCtx) -> web_sys::HtmlElement {
 	let value = Signal::new(0);
-	html::div().with_children([
+	html::div(ctx).with_children([
 		{
 			let value = value.clone();
-			html::button()
+			html::button(ctx)
 				.with_text("Clear")
 				.with_event_listener::<ev!(click)>(move |_ev| value.set(0))
 		},
 		{
 			let value = value.clone();
-			html::button()
+			html::button(ctx)
 				.with_text("+")
 				.with_event_listener::<ev!(click)>(move |_ev| *value.borrow_mut() += 1)
 		},
 		{
 			let value = value.clone();
-			html::button()
+			html::button(ctx)
 				.with_text("-")
 				.with_event_listener::<ev!(click)>(move |_ev| *value.borrow_mut() -= 1)
 		},
-		html::span().with_dyn_text(move || format!("Value: {}.", value.get())),
+		html::span(ctx).with_dyn_text(move || format!("Value: {}.", value.get())),
 	])
 }

@@ -6,9 +6,9 @@
 // Imports
 use {
 	app_error::AppError,
-	core::cell::LazyCell,
+	core::cell::OnceCell,
 	dynatos_reactive::SignalGetCloned,
-	dynatos_web::{NodeWithChildren, NodeWithText, html},
+	dynatos_web::{DynatosWebCtx, NodeWithChildren, NodeWithText, html},
 	dynatos_web_reactive::NodeWithDynChildren,
 	dynatos_web_router::Location,
 	tracing_subscriber::prelude::*,
@@ -34,26 +34,25 @@ fn main() {
 }
 
 fn run() -> Result<(), AppError> {
-	let window = web_sys::window().expect("Unable to get window");
-	let document = window.document().expect("Unable to get document");
-	let body = document.body().expect("Unable to get document body");
+	let ctx = DynatosWebCtx::new().expect("Unable to create dynatos web context");
 
-	let location = Location::new();
+	let location = Location::new(&ctx);
 
-	body.with_child(
-		html::div()
-			.with_children([html::p().with_text("Header"), html::hr()])
+	ctx.body().with_child(
+		html::div(&ctx)
+			.with_children([html::p(&ctx).with_text("Header"), html::hr(&ctx)])
 			.with_dyn_children(
-				#[cloned(location)]
-				move || self::render_route(&location),
+				&ctx,
+				#[cloned(ctx, location)]
+				move || self::render_route(&ctx, &location),
 			)
 			.with_children([
-				html::hr(),
-				dynatos_web_router::anchor(location.clone(), "/test").with_text("Test"),
-				html::br(),
-				dynatos_web_router::anchor(location.clone(), "/cached").with_text("Cached"),
-				html::br(),
-				dynatos_web_router::anchor(location, "/empty").with_text("Empty"),
+				html::hr(&ctx),
+				dynatos_web_router::anchor(&ctx, location.clone(), "/test").with_text("Test"),
+				html::br(&ctx),
+				dynatos_web_router::anchor(&ctx, location.clone(), "/cached").with_text("Cached"),
+				html::br(&ctx),
+				dynatos_web_router::anchor(&ctx, location, "/empty").with_text("Empty"),
 			]),
 	);
 
@@ -61,26 +60,29 @@ fn run() -> Result<(), AppError> {
 }
 
 #[thread_local]
-static ROUTE_CACHED: LazyCell<web_sys::HtmlElement> = LazyCell::new(|| self::page("Cached"));
+static ROUTE_CACHED: OnceCell<web_sys::HtmlElement> = OnceCell::new();
 
 
-fn render_route(location: &Location) -> Option<web_sys::HtmlElement> {
+fn render_route(ctx: &DynatosWebCtx, location: &Location) -> Option<web_sys::HtmlElement> {
 	let location = location.get_cloned();
 
 	tracing::info!(%location, "Rendering route");
 	match location.path().trim_end_matches('/') {
 		// Always re-create page a
-		"/test" => Some(self::page("Test")),
+		"/test" => Some(self::page(ctx, "Test")),
 		// Cache the 2nd route to show that `dyn_child` can handle the same element fine.
-		"/cached" => Some(LazyCell::force(&ROUTE_CACHED).clone()),
+		"/cached" => {
+			let route = ROUTE_CACHED.get_or_init(|| self::page(ctx, "Cached"));
+			Some(route.clone())
+		},
 		// Have a page without any content
 		"/empty" => None,
 		// And finally a catch-all page
-		page => Some(self::page(&format!("Unknown Page ({page:?})"))),
+		page => Some(self::page(ctx, &format!("Unknown Page ({page:?})"))),
 	}
 }
 
-fn page(name: &str) -> web_sys::HtmlElement {
+fn page(ctx: &DynatosWebCtx, name: &str) -> web_sys::HtmlElement {
 	tracing::info!(%name, "Rendering page");
-	html::p().with_text(format!("Page {name}"))
+	html::p(ctx).with_text(format!("Page {name}"))
 }

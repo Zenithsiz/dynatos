@@ -13,11 +13,10 @@ dynatos-web        = { path = "../dynatos-web" }
 extend       = { workspace = true }
 js-sys       = { workspace = true }
 wasm-bindgen = { workspace = true }
-web-sys      = { workspace = true }
 
 
 [features]
-sync = ["dynatos-sync-types/sync"]
+sync = ["dynatos-sync-types/sync", "dynatos-web/sync"]
 
 [lints]
 workspace = true
