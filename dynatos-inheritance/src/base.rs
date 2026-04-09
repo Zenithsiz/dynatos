@@ -211,8 +211,12 @@ impl Drop for Base {
 			let vtable = self.vtable();
 
 			// SAFETY: No more reference exist to the value, so we can
-			//         drop it safely.
-			unsafe { (vtable.drop)(self.storage) };
+			//         drop the storage safely.
+			unsafe { (vtable.drop_storage)(self.storage) };
+
+			// SAFETY: No more reference exist to the value, so we can
+			//         deallocate the allocation.
+			unsafe { Global.deallocate(self.storage.cast(), vtable.storage_layout) };
 		}
 	}
 }
