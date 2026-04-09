@@ -10,7 +10,7 @@ use {
 // TODO: Does this need to be an `unsafe trait`?
 //       We encode all the layout with `ReprTransparent` and
 //       `Contains`, but there could be some hidden unsoundness.
-pub const trait Value: [const] ReprTransparent<Base> + Sized + 'static {
+pub const trait Value: [const] ReprTransparent<Base> + [const] AsRef<Base> + Sized + 'static {
 	/// Fields
 	type Fields;
 

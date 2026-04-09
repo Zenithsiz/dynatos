@@ -159,6 +159,12 @@ impl const Value for Base {
 
 impl<T> ValueFor<T> for Base {}
 
+impl const AsRef<Self> for Base {
+	fn as_ref(&self) -> &Self {
+		self
+	}
+}
+
 impl FromFields for Base {
 	type Fields = ();
 
