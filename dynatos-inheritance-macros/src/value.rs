@@ -9,16 +9,19 @@ use {
 
 #[derive(Clone, Copy, Default, Debug)]
 struct MainImpls {
-	const_: bool,
-	send:   bool,
-	sync:   bool,
+	const_:  bool,
+	send:    bool,
+	sync:    bool,
+	default: bool,
 }
 
 #[derive(Clone, Copy, Default, Debug)]
 struct StorageImpls {
-	debug:  bool,
-	const_: bool,
-	clone:  bool,
+	debug:           bool,
+	const_:          bool,
+	clone:           bool,
+	default_storage: bool,
+	default_fields:  bool,
 }
 
 #[derive(Clone, Copy, Default, Debug)]
@@ -55,8 +58,17 @@ pub fn def(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 	let mut storage_impls = StorageImpls::default();
 	let mut vtable_impls = VTableImpls::default();
 	for trait_ in &input.traits {
+		// TODO: Warn if both `DefaultFields` and `Default` are specified.
 		match trait_.to_string().as_str() {
 			"CloneStorage" => storage_impls.clone = true,
+			"DefaultFields" => {
+				storage_impls.default_fields = true;
+			},
+			"Default" => {
+				main_impls.default = true;
+				storage_impls.default_storage = true;
+				storage_impls.default_fields = true;
+			},
 			"Send" => main_impls.send = true,
 			"Sync" => main_impls.sync = true,
 			"Debug" => {
@@ -110,6 +122,18 @@ pub fn def(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 		}
 	});
 
+	let default_impl = main_impls.default.then(|| {
+		quote::quote! {
+			impl Default for #name {
+				fn default() -> Self {
+					<Self as dynatos_inheritance::Value>::from_storage(
+						<Self as dynatos_inheritance::Value>::Storage::default()
+					)
+				}
+			}
+		}
+	});
+
 	let debug_impl = quote::quote! {
 		impl core::fmt::Debug for #name {
 			fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
@@ -145,6 +169,7 @@ pub fn def(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 		#send_impl
 		#sync_impl
 		#debug_impl
+		#default_impl
 
 		impl #name {
 			#(
@@ -289,7 +314,8 @@ fn storage(
 
 	let const_trait = storage_impls.const_.then(|| quote::quote! { const });
 
-	let mut derives = vec![];
+	let mut storage_derives = vec![];
+	let mut fields_derives = vec![];
 	let mut extra_impls = vec![];
 	if storage_impls.clone {
 		extra_impls.push(quote::quote! {
@@ -312,7 +338,14 @@ fn storage(
 		});
 	}
 	if storage_impls.debug {
-		derives.push(quote::quote! { Debug });
+		storage_derives.push(quote::quote! { Debug });
+		fields_derives.push(quote::quote! { Debug });
+	}
+	if storage_impls.default_storage {
+		storage_derives.push(quote::quote! { Default });
+	}
+	if storage_impls.default_fields {
+		fields_derives.push(quote::quote! { Default });
 	}
 
 	let debug_fields_impl = storage_impls.debug.then(|| {
@@ -335,12 +368,12 @@ fn storage(
 	});
 
 	quote::quote! {
-		#[derive( #( #derives, )* )]
+		#[derive( #( #fields_derives, )* )]
 		#vis struct #fields_name {
 			#( pub #fields: #field_tys, )*
 		}
 
-		#[derive( #( #derives, )* )]
+		#[derive( #( #storage_derives, )* )]
 		#[repr(C)]
 		#vis struct #storage_name {
 			parent: <<#name as dynatos_inheritance::Value>::Parent as dynatos_inheritance::Value>::Storage,
