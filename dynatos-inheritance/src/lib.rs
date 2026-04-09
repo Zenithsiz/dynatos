@@ -22,6 +22,7 @@ mod storage;
 mod util;
 mod value;
 mod vtable;
+mod weak;
 
 // Exports
 pub use {
@@ -35,6 +36,7 @@ pub use {
 		util::{Contains, ReprTransparent},
 		value::{Value, ValueFor},
 		vtable::BaseVTable,
+		weak::{ValueDowngrade, WeakValue},
 	},
 	dynatos_inheritance_macros::value,
 };

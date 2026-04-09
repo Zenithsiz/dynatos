@@ -15,8 +15,8 @@ use {
 
 /// Base value for all inheritance values
 pub struct Base {
-	storage: NonNull<BaseStorage>,
-	vtable:  NonNull<BaseVTable>,
+	pub(crate) storage: NonNull<BaseStorage>,
+	pub(crate) vtable:  NonNull<BaseVTable>,
 }
 
 impl Base {
@@ -207,6 +207,7 @@ impl fmt::Debug for Base {
 
 impl Drop for Base {
 	fn drop(&mut self) {
+		// If we were the last strong reference, drop the value
 		if self.storage().ref_count.dec_strong() {
 			let vtable = self.vtable();
 
@@ -214,9 +215,12 @@ impl Drop for Base {
 			//         drop the storage safely.
 			unsafe { (vtable.drop_storage)(self.storage) };
 
-			// SAFETY: No more reference exist to the value, so we can
-			//         deallocate the allocation.
-			unsafe { Global.deallocate(self.storage.cast(), vtable.storage_layout) };
+			// Then if were the last weak reference, drop the allocation
+			if self.storage().ref_count.dec_weak() {
+				// SAFETY: No more reference exist to the value, so we can
+				//         deallocate the allocation.
+				unsafe { Global.deallocate(self.storage.cast(), vtable.storage_layout) };
+			}
 		}
 	}
 }
