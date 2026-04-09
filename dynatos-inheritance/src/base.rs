@@ -183,6 +183,14 @@ impl Clone for Base {
 	}
 }
 
+impl PartialEq for Base {
+	fn eq(&self, other: &Self) -> bool {
+		self.storage == other.storage
+	}
+}
+
+impl Eq for Base {}
+
 impl fmt::Debug for Base {
 	fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
 		let mut s = f.debug_struct("Base");

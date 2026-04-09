@@ -136,7 +136,7 @@ pub fn def(input: proc_macro::TokenStream) -> proc_macro::TokenStream {
 		#storage_impls
 		#vtable_impls
 
-		#[derive(Clone)]
+		#[derive(PartialEq, Eq, Clone)]
 		#[repr(transparent)]
 		#vis struct #name(dynatos_inheritance::Base);
 
