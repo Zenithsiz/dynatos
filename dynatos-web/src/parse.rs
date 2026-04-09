@@ -41,8 +41,8 @@ pub fn parse_html_element(
 }
 
 /// Parses html at runtime, emitting it as an [`HtmlElement`](web_sys::HtmlElement) list
-pub fn parse(ctx: &DynatosWebCtx, input: &str, mut environment: impl Environment) -> Result<Vec<web_sys::Node>, Error> {
-	let html = XHtml::parse(input).map_err(Error::Parse)?;
+pub fn parse(ctx: &DynatosWebCtx, input: &str, mut environment: impl Environment) -> Result<Vec<Node>, Error> {
+	let html = XHtml::parse(input).map_err(Error::parse)?;
 	let children = html
 		.children
 		.iter()
@@ -139,8 +139,12 @@ fn parse_xhtml_element(
 
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
-	#[error("Unable to parse html")]
-	Parse(#[source] dynatos_web_parser::Error),
+	#[error("Unable to parse html at {input:?}")]
+	Parse {
+		input: String,
+		#[source]
+		err:   dynatos_web_parser::Error,
+	},
 
 	#[error("Expected a single element")]
 	SingleElement,
@@ -174,6 +178,14 @@ pub enum Error {
 }
 
 impl Error {
+	#[must_use]
+	pub fn parse((input, err): (&str, dynatos_web_parser::Error)) -> Self {
+		Self::Parse {
+			input: input.to_owned(),
+			err,
+		}
+	}
+
 	#[must_use]
 	pub fn eval_element(element_name: &str) -> Self {
 		Self::EnvironmentMissingElement {

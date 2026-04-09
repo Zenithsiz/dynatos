@@ -23,15 +23,50 @@ pub struct XHtml<'a> {
 
 impl<'a> XHtml<'a> {
 	/// Parses an `XHtml` document
-	pub fn parse(mut s: &'a str) -> Result<Self, Error> {
+	pub fn parse(mut s: &'a str) -> Result<Self, (&'a str, Error)> {
+		// Ignore the doctype if it exists
+		if s.starts_with("<!") &&
+			let Err(err) = Self::parse_doctype(&mut s)
+		{
+			return Err((s, err));
+		}
+
 		// Parse all children until `s` is empty.
-		let children = iter::from_fn(|| match s.is_empty() {
+		let res = iter::from_fn(|| match s.is_empty() {
 			true => None,
 			false => Some(XHtmlNode::parse(&mut s)),
 		})
-		.collect::<Result<Vec<_>, _>>()?;
+		.collect::<Result<Vec<_>, _>>();
 
-		Ok(XHtml { children })
+		match res {
+			Ok(children) => Ok(XHtml { children }),
+			Err(err) => Err((s, err)),
+		}
+	}
+
+	/// Parses the doctype
+	// TODO: This is not a good way of doing this
+	fn parse_doctype(s: &mut &'a str) -> Result<(), Error> {
+		if self::eat(s, "<!").is_none() {
+			return Err(Error::Doctype);
+		}
+		if s.get(0..7).is_none_or(|s| !s.eq_ignore_ascii_case("doctype")) {
+			return Err(Error::Doctype);
+		}
+		*s = &s[7..];
+
+		self::eat_whitespace(s);
+
+		if s.get(0..4).is_none_or(|s| !s.eq_ignore_ascii_case("html")) {
+			return Err(Error::Doctype);
+		}
+		*s = &s[4..];
+
+		if self::eat(s, ">").is_none() {
+			return Err(Error::Doctype);
+		}
+
+		Ok(())
 	}
 }
 
@@ -163,7 +198,7 @@ fn parse_ident<'a>(s: &mut &'a str) -> Option<&'a str> {
 	// TODO: This is technically not compliant, but for our purposes it's
 	//       good enough, and we need some extra characters.
 	let is_start = |ch: char| ch.is_xid_start() || matches!(ch, ':' | '@');
-	let is_cont = |ch: char| ch.is_xid_continue();
+	let is_cont = |ch: char| ch.is_xid_continue() || matches!(ch, '-');
 
 	let end = {
 		let rest = s.strip_prefix(is_start)?;
@@ -324,6 +359,9 @@ fn span_from_start_end<'a>(start: &'a str, end: &'a str) -> &'a str {
 // TODO: This should have a span associated
 #[derive(thiserror::Error, Debug)]
 pub enum Error {
+	#[error("Expected `<!doctype html>`")]
+	Doctype,
+
 	#[error("Expected `-->` after `<!--`")]
 	CommentEnd,
 

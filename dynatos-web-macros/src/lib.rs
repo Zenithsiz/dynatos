@@ -17,7 +17,7 @@ pub fn html(input: TokenStream) -> TokenStream {
 	let input_lit = syn::parse_macro_input!(input as syn::LitStr);
 	let input = input_lit.value();
 
-	self::parse_html(&input, None)
+	self::parse_html(&input, input_lit.span(), None)
 }
 
 #[proc_macro]
@@ -27,13 +27,19 @@ pub fn html_file(input: TokenStream) -> TokenStream {
 	let input_file = input_file.canonicalize().expect("Unable to canonicalize input file");
 	let input = fs::read_to_string(&input_file).expect("Unable to read file");
 
-	self::parse_html(&input, Some(&input_file))
+	self::parse_html(&input, input_file_lit.span(), Some(&input_file))
 }
 
 /// Parses html from `input`
-fn parse_html(input: &str, dep_file: Option<&Path>) -> TokenStream {
+fn parse_html(input: &str, span: proc_macro2::Span, dep_file: Option<&Path>) -> TokenStream {
 	// Parse the html and parse all the root nodes
-	let html = XHtml::parse(input).expect("Unable to parse html");
+	let html = match XHtml::parse(input) {
+		Ok(html) => html,
+		Err((input, err)) =>
+			return syn::Error::new(span, format!("{err} at {input:?}"))
+				.to_compile_error()
+				.into(),
+	};
 	let root = html
 		.children
 		.iter()
