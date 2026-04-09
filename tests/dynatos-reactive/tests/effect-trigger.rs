@@ -1,7 +1,8 @@
 //! Effect-trigger tests
 
 // Features
-#![feature(macro_attr, thread_local, proc_macro_hygiene, stmt_expr_attributes)]
+#![feature(macro_attr, proc_macro_hygiene, stmt_expr_attributes)]
+#![cfg_attr(not(feature = "sync"), feature(thread_local))]
 
 // Imports
 use {

@@ -27,7 +27,8 @@ members = [
 	"examples/router",
 
 	# Tests
-	"tests/dynatos-reactive-sync",
+	"tests/dynatos-inheritance",
+	"tests/dynatos-reactive",
 ]
 resolver = "2"
 

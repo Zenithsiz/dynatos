@@ -7,13 +7,14 @@ error[E0308]: mismatched types
 25 | | }
    | | ^
    | | |
-   | |_expected a tuple with 2 elements, found one with 1 element
-   |   arguments to this function are incorrect
+   | | expected a tuple with 2 elements, found one with 1 element
+   | |_arguments to this function are incorrect
+   |   this return type influences the call expression's return type
    |
    = note: expected tuple `(BFields, AFields)`
               found tuple `(BFields,)`
 note: associated function defined here
-  --> src/lib.rs
+  --> $WORKSPACE/dynatos-inheritance/src/lib.rs
    |
    |     fn from_fields(base: BaseStorage, fields: Self::Fields) -> Self;
    |        ^^^^^^^^^^^
@@ -28,13 +29,14 @@ error[E0308]: mismatched types
 25 | | }
    | | ^
    | | |
-   | |_expected a tuple with 2 elements, found one with 1 element
-   |   arguments to this function are incorrect
+   | | expected a tuple with 2 elements, found one with 1 element
+   | |_arguments to this function are incorrect
+   |   this return type influences the call expression's return type
    |
    = note: expected tuple `(BMethods, AMethods)`
               found tuple `(BMethods,)`
 note: associated function defined here
-  --> src/lib.rs
+  --> $WORKSPACE/dynatos-inheritance/src/lib.rs
    |
    |     fn from_methods(base: BaseVTable, methods: Self::Methods) -> Self;
    |        ^^^^^^^^^^^^

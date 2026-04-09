@@ -1,13 +1,7 @@
 //! Run queue tests
 
 // Features
-#![feature(
-	thread_local,
-	proc_macro_hygiene,
-	stmt_expr_attributes,
-	nonpoison_mutex,
-	sync_nonpoison
-)]
+#![feature(proc_macro_hygiene, stmt_expr_attributes, nonpoison_mutex, sync_nonpoison)]
 
 // Imports
 use {
@@ -75,7 +69,6 @@ fn order() {
 	let a_first = a.first().expect("Empty `a`s").clone();
 	let a_last = a.last().expect("Empty `a`s").clone();
 
-	#[expect(clippy::redundant_iter_cloned, reason = "False positive")]
 	let _a_effects = a
 		.array_windows()
 		.cloned()

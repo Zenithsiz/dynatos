@@ -1,18 +1,7 @@
 //! Const tests
 
 // Features
-#![feature(
-	decl_macro,
-	const_trait_impl,
-	const_cmp,
-	const_index,
-	const_clone,
-	more_qualified_paths,
-	macro_metavar_expr,
-	macro_metavar_expr_concat,
-	trivial_bounds,
-	const_convert
-)]
+#![feature(const_trait_impl, const_clone, more_qualified_paths, trivial_bounds, const_convert)]
 
 // Imports
 use dynatos_inheritance::{CloneStorage, Downcast, FromFields};

@@ -13,7 +13,7 @@ error[E0277]: `NonNull<BaseStorage>` cannot be sent between threads safely
    |
    = help: within `{closure@$DIR/tests/failure/thread_non_send.rs:26:16: 26:23}`, the trait `Send` is not implemented for `NonNull<BaseStorage>`
 note: required because it appears within the type `Base`
-  --> src/base.rs
+  --> $WORKSPACE/dynatos-inheritance/src/base.rs
    |
    | pub struct Base {
    |            ^^^^
@@ -51,7 +51,7 @@ error[E0277]: `NonNull<BaseVTable>` cannot be sent between threads safely
    |
    = help: within `{closure@$DIR/tests/failure/thread_non_send.rs:26:16: 26:23}`, the trait `Send` is not implemented for `NonNull<BaseVTable>`
 note: required because it appears within the type `Base`
-  --> src/base.rs
+  --> $WORKSPACE/dynatos-inheritance/src/base.rs
    |
    | pub struct Base {
    |            ^^^^

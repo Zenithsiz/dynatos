@@ -43,7 +43,7 @@ note: required for `A` to implement `ValueFor<B>`
 19 | | }
    | |_^
 note: required by a bound in `dynatos_inheritance::Value::Parent`
-  --> src/value.rs
+  --> $WORKSPACE/dynatos-inheritance/src/value.rs
    |
    |     type Parent: ValueFor<Self>;
    |                  ^^^^^^^^^^^^^^ required by this bound in `Value::Parent`

@@ -1,18 +1,7 @@
 //! Thread tests
 
 // Features
-#![feature(
-	box_vec_non_null,
-	decl_macro,
-	const_trait_impl,
-	const_cmp,
-	const_index,
-	more_qualified_paths,
-	macro_metavar_expr,
-	macro_metavar_expr_concat,
-	trivial_bounds,
-	unsize
-)]
+#![feature(const_trait_impl, more_qualified_paths, trivial_bounds)]
 
 // Imports
 use {dynatos_inheritance::FromFields, std::thread};
