@@ -2,14 +2,14 @@
 
 // Imports
 use {
-	crate::{DebugFields, StorageFromFields},
-	core::{fmt, sync::atomic::AtomicUsize},
+	crate::{DebugFields, StorageFromFields, ref_count::RefCount},
+	core::fmt,
 };
 
 /// Base storage for values
 #[derive(Debug)]
 pub struct BaseStorage {
-	pub(crate) ref_count: AtomicUsize,
+	pub(crate) ref_count: RefCount,
 }
 
 impl BaseStorage {
@@ -17,7 +17,7 @@ impl BaseStorage {
 	#[must_use]
 	pub const fn new() -> Self {
 		Self {
-			ref_count: AtomicUsize::new(1),
+			ref_count: RefCount::new(),
 		}
 	}
 }

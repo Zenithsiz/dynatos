@@ -9,7 +9,6 @@ use {
 		fmt,
 		mem,
 		ptr::NonNull,
-		sync::atomic,
 	},
 	std::alloc::Global,
 };
@@ -121,9 +120,10 @@ impl Base {
 	/// It *cannot* be one of it's parents, else this will
 	/// return `Err`.
 	pub fn into_storage_of<T: Value>(self) -> Result<T::Storage, Self> {
-		// Note: If only 1 reference exists, then no more can be created,
-		//       since we hold it.
-		if !self.is::<T>() || self.storage().ref_count.load(atomic::Ordering::Acquire) != 1 {
+		// Note: If the ref-count is unique, no more can be created since we hold
+		//       the last copy.
+		// TODO: Replace this with a decrement instead?
+		if !self.is::<T>() || !self.storage().ref_count.is_unique() {
 			return Err(self);
 		}
 
@@ -181,7 +181,7 @@ impl CloneStorage for Base {
 
 impl Clone for Base {
 	fn clone(&self) -> Self {
-		self.storage().ref_count.fetch_add(1, atomic::Ordering::AcqRel);
+		self.storage().ref_count.inc_strong();
 		Self {
 			storage: self.storage,
 			vtable:  self.vtable,
@@ -207,8 +207,7 @@ impl fmt::Debug for Base {
 
 impl Drop for Base {
 	fn drop(&mut self) {
-		let ref_count = self.storage().ref_count.fetch_sub(1, atomic::Ordering::AcqRel);
-		if ref_count == 1 {
+		if self.storage().ref_count.dec_strong() {
 			let vtable = self.vtable();
 
 			// SAFETY: No more reference exist to the value, so we can

@@ -17,6 +17,7 @@ mod clone_storage;
 mod debug;
 mod downcast;
 mod extend;
+mod ref_count;
 mod storage;
 mod util;
 mod value;
