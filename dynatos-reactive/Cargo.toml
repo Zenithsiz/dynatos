@@ -6,8 +6,8 @@ edition = "2024"
 [dependencies]
 
 # Workspace
-dynatos-sync-types = { path = "../dynatos-sync-types" }
-dynatos-util       = { path = "../dynatos-util" }
+dynatos-sync-types = { default-features = false, path = "../dynatos-sync-types" }
+dynatos-util       = { default-features = false, path = "../dynatos-util" }
 
 derive_more          = { features = ["full"], workspace = true }
 duplicate            = { workspace = true }
@@ -15,12 +15,17 @@ extend               = { workspace = true }
 futures              = { workspace = true }
 itertools            = { workspace = true }
 petgraph             = { workspace = true }
+tokio                = { features = ["rt"], optional = true, workspace = true }
 tracing              = { workspace = true }
-wasm-bindgen-futures = { workspace = true }
+wasm-bindgen-futures = { optional = true, workspace = true }
 zutil-cloned         = { workspace = true }
 
 [features]
-sync = ["dynatos-sync-types/sync"]
+default = ["wasm-js-promise"]
+
+sync            = ["dynatos-sync-types/sync"]
+tokio           = ["dep:tokio", "sync"]
+wasm-js-promise = ["dep:wasm-bindgen-futures"]
 
 [lints]
 workspace = true

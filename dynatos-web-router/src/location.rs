@@ -5,8 +5,8 @@ use {
 	core::ops::{Deref, DerefMut},
 	dynatos_reactive::{Signal, SignalBorrow, SignalBorrowMut, signal},
 	dynatos_web::{DynatosWebCtx, EventTargetAddListener, ev},
+	dynatos_web::types::JsValue,
 	url::Url,
-	wasm_bindgen::JsValue,
 	zutil_cloned::cloned,
 };
 
@@ -20,7 +20,8 @@ struct Inner {
 }
 
 /// Location
-#[derive(Clone)]
+// TODO: Rename to avoid confusing with web's `Location`?
+#[derive(Clone, Debug)]
 pub struct Location(Signal<Inner>);
 
 impl Location {
@@ -36,13 +37,12 @@ impl Location {
 		let inner = Signal::new(inner);
 
 		// Add an event listener on the document for when the user navigates manually
-		ctx.window().add_event_listener::<ev!(popstate)>(
-			#[cloned(ctx, inner)]
-			move |_ev| {
-				let new_location = self::parse_location_url(&ctx);
-				inner.borrow_mut().location = new_location;
-			},
-		);
+		#[cloned(ctx, inner)]
+		let update = move |_ev| {
+			let new_location = self::parse_location_url(&ctx);
+			inner.borrow_mut().location = new_location;
+		};
+		ctx.window().add_event_listener::<ev!(popstate)>(ctx, update);
 
 		Self(inner)
 	}
@@ -73,29 +73,36 @@ impl SignalBorrow for Location {
 
 /// Reference type for [`SignalBorrowMut`] impl
 #[derive(Debug)]
-pub struct BorrowRefMut<'a>(signal::BorrowRefMut<'a, Inner>);
+pub struct BorrowRefMut<'a>(Option<signal::BorrowRefMut<'a, Inner>>);
 
 impl Deref for BorrowRefMut<'_> {
 	type Target = Url;
 
 	fn deref(&self) -> &Self::Target {
-		&self.0.location
+		&self.0.as_ref().expect("Should exist").location
 	}
 }
 
 impl DerefMut for BorrowRefMut<'_> {
 	fn deref_mut(&mut self) -> &mut Self::Target {
-		&mut self.0.location
+		&mut self.0.as_mut().expect("Should exist").location
 	}
 }
 
 impl Drop for BorrowRefMut<'_> {
 	fn drop(&mut self) {
+		// Note: We need to drop the borrow *before* pushing the url because with
+		//       SSR, changing the url immediately calls any events, which can try
+		//       to borrow us and deadlock.
+		let borrow = self.0.take().expect("Should exist");
+		let history = borrow.ctx.history().clone();
+		let location = borrow.location.clone();
+		let _exec_guard = borrow.into_trigger_exec();
+
 		// Push the new location into history
-		let history = self.0.ctx.history();
-		match history.push_state_with_url(&JsValue::UNDEFINED, "", Some(self.0.location.as_str())) {
-			Ok(()) => tracing::debug!("Pushed history: {:?}", self.0.location.as_str()),
-			Err(err) => tracing::error!("Unable to push history {:?}: {err:?}", self.0.location.as_str()),
+		match history.push_state_with_url(&JsValue::UNDEFINED, "", Some(location.as_str())) {
+			Ok(()) => tracing::debug!("Pushed history: {:?}", location.as_str()),
+			Err(err) => tracing::error!("Unable to push history {:?}: {err:?}", location.as_str()),
 		}
 	}
 }
@@ -108,7 +115,7 @@ impl SignalBorrowMut for Location {
 
 	fn borrow_mut(&self) -> Self::RefMut<'_> {
 		let value = self.0.borrow_mut();
-		BorrowRefMut(value)
+		BorrowRefMut(Some(value))
 	}
 }
 

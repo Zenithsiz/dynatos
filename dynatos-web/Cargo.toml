@@ -6,45 +6,29 @@ edition = "2024"
 [dependencies]
 
 # Workspace
-dynatos-sync-types = { path = "../dynatos-sync-types" }
-dynatos-util       = { path = "../dynatos-util" }
-dynatos-web-macros = { path = "../dynatos-web-macros" }
-dynatos-web-parser = { path = "../dynatos-web-parser" }
+dynatos-inheritance = { default-features = false, optional = true, path = "../dynatos-inheritance" }
+dynatos-sync-types  = { default-features = false, path = "../dynatos-sync-types" }
+dynatos-util        = { default-features = false, path = "../dynatos-util" }
+dynatos-web-macros  = { default-features = false, path = "../dynatos-web-macros" }
+dynatos-web-parser  = { default-features = false, path = "../dynatos-web-parser" }
+dynatos-web-ssr     = { default-features = false, optional = true, path = "../dynatos-web-ssr" }
+dynatos-web-types   = { default-features = false, path = "../dynatos-web-types" }
 
-app-error = { workspace = true }
-duplicate = { workspace = true }
-extend = { workspace = true }
-itertools = { workspace = true }
-js-sys = { workspace = true }
-thiserror = { workspace = true }
-tracing = { workspace = true }
-wasm-bindgen = { workspace = true }
-web-sys = { features = [
-	"ClipboardEvent",
-	"Comment",
-	"CssStyleDeclaration",
-	"Document",
-	"DragEvent",
-	"Element",
-	"FocusEvent",
-	"History",
-	"HtmlBodyElement",
-	"HtmlCanvasElement",
-	"HtmlElement",
-	"HtmlImageElement",
-	"HtmlInputElement",
-	"HtmlTextAreaElement",
-	"InputEvent",
-	"Location",
-	"PointerEvent",
-	"PopStateEvent",
-	"SubmitEvent",
-	"Text",
-	"WheelEvent",
-	"Window",
-], workspace = true }
+app-error    = { workspace = true }
+duplicate    = { workspace = true }
+extend       = { workspace = true }
+itertools    = { workspace = true }
+js-sys       = { optional = true, workspace = true }
+thiserror    = { workspace = true }
+tracing      = { workspace = true }
+wasm-bindgen = { optional = true, workspace = true }
+web-sys      = { optional = true, workspace = true }
 
 [features]
+default = ["csr"]
+
+csr  = ["dep:js-sys", "dep:wasm-bindgen", "dep:web-sys", "dynatos-web-types/csr"]
+ssr  = ["dep:dynatos-inheritance", "dep:dynatos-web-ssr", "dynatos-web-types/ssr", "sync"]
 sync = ["dynatos-sync-types/sync"]
 
 [lints]

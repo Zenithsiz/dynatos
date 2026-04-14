@@ -2,6 +2,7 @@
 
 // Features
 #![feature(unboxed_closures, never_type, proc_macro_hygiene)]
+#![cfg_attr(feature = "ssr", feature(nonpoison_mutex, sync_nonpoison))]
 
 // Modules
 mod dyn_element;

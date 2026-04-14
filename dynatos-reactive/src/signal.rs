@@ -124,7 +124,16 @@ pub struct BorrowRefMut<'a, T: ?Sized + 'a> {
 
 	/// Trigger executor
 	// Note: Must be dropped *after* `value`.
-	_trigger_exec: Option<TriggerExec>,
+	trigger_exec: Option<TriggerExec>,
+}
+
+impl<T: ?Sized> BorrowRefMut<'_, T> {
+	/// Drops the reference without executing any triggers,
+	/// and returns the trigger execution.
+	#[must_use]
+	pub fn into_trigger_exec(self) -> Option<TriggerExec> {
+		self.trigger_exec
+	}
 }
 
 impl<T: ?Sized> Deref for BorrowRefMut<'_, T> {
@@ -158,7 +167,7 @@ impl<T: ?Sized + 'static> SignalBorrowMut for Signal<T> {
 		let value = self.inner.value.write();
 		BorrowRefMut {
 			value,
-			_trigger_exec: self.inner.trigger.exec(),
+			trigger_exec: self.inner.trigger.exec(),
 		}
 	}
 }

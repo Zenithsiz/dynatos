@@ -2,34 +2,53 @@
 
 // Imports
 use {
+	crate::{
+		DynatosWebCtx,
+		types::{ErasableGenericJsValue, EventTarget, FromWasmAbi, WeakRef, cfg_ssr_expr},
+	},
+	dynatos_sync_types::SyncBounds,
 	dynatos_util::TryOrReturnExt,
-	js_sys::WeakRef,
-	wasm_bindgen::{ErasableGeneric, JsCast, JsValue, closure::Closure, convert::FromWasmAbi},
 };
 
 /// Extension trait to define an event listener on an event target with a closure
 #[extend::ext(name = EventTargetAddListener)]
-pub impl web_sys::EventTarget {
+pub impl EventTarget {
 	/// Adds an event listener to this target
-	fn add_event_listener<E>(&self, f: impl Fn(E::Event) + 'static)
+	fn add_event_listener<E>(&self, ctx: &DynatosWebCtx, f: impl SyncBounds + Fn(E::Event) + 'static)
 	where
 		E: EventListener,
 	{
-		self.add_event_listener_untyped(E::name(), f);
+		self.add_event_listener_untyped(ctx, E::name(), f);
 	}
 
 	/// Adds an untyped event listener to this target
-	fn add_event_listener_untyped<Ev: FromWasmAbi>(&self, event_type: &str, f: impl Fn(Ev) + 'static) {
-		// Build the closure
-		let closure = Closure::<dyn Fn(Ev)>::new(f)
-			.into_js_value()
-			.dyn_into::<js_sys::Function>()
-			.expect("Should be a valid function");
+	fn add_event_listener_untyped<Ev: FromWasmAbi>(
+		&self,
+		ctx: &DynatosWebCtx,
+		event_type: &str,
+		f: impl SyncBounds + Fn(Ev) + 'static,
+	) {
+		cfg_ssr_expr!(
+			ssr = self
+				.add_event_listener_with_callback(ctx.ssr_state(), event_type, f)
+				.expect("Unable to add event listener"),
+			csr = {
+				use wasm_bindgen::JsCast;
 
-		// Then add it
-		// TODO: Can this fail? On MDN, nothing seems to mention it can throw.
-		self.add_event_listener_with_callback(event_type, &closure)
-			.expect("Unable to add event listener");
+				let _: &DynatosWebCtx = ctx;
+
+				// Build the closure
+				let closure = wasm_bindgen::closure::Closure::<dyn Fn(Ev)>::new(f)
+					.into_js_value()
+					.dyn_into::<js_sys::Function>()
+					.expect("Should be a valid function");
+
+				// Then add it
+				// TODO: Can this fail? On MDN, nothing seems to mention it can throw.
+				self.add_event_listener_with_callback(event_type, &closure)
+					.expect("Unable to add event listener");
+			}
+		);
 	}
 }
 
@@ -37,16 +56,16 @@ pub impl web_sys::EventTarget {
 #[extend::ext(name = EventTargetWithListener)]
 pub impl<T> T
 where
-	T: AsRef<web_sys::EventTarget>,
+	T: AsRef<EventTarget>,
 {
 	/// Adds an event listener to this target
 	///
 	/// Returns the type, for chaining
-	fn with_event_listener<E>(self, f: impl Fn(E::Event) + 'static) -> Self
+	fn with_event_listener<E>(self, ctx: &DynatosWebCtx, f: impl SyncBounds + Fn(E::Event) + 'static) -> Self
 	where
 		E: EventListener,
 	{
-		self.as_ref().add_event_listener::<E>(f);
+		self.as_ref().add_event_listener::<E>(ctx, f);
 		self
 	}
 }
@@ -55,19 +74,19 @@ where
 #[extend::ext(name = ElementAddListener)]
 pub impl<ET> ET
 where
-	ET: ErasableGeneric<Repr = JsValue> + AsRef<web_sys::EventTarget> + 'static,
+	ET: SyncBounds + ErasableGenericJsValue + AsRef<EventTarget> + 'static,
 {
 	/// Adds an event listener to this target
-	fn add_event_listener_el<E, F>(&self, f: F)
+	fn add_event_listener_el<E, F>(&self, ctx: &DynatosWebCtx, f: F)
 	where
 		E: EventListener,
-		F: Fn(ET, E::Event) + 'static,
+		F: SyncBounds + Fn(ET, E::Event) + 'static,
 	{
 		// Build the closure
 		// Note: Important that `el` is a weak reference here, else we
 		//       create a circular reference from node <-> event listener.
 		let el = WeakRef::new(self);
-		<ET as AsRef<web_sys::EventTarget>>::as_ref(self).add_event_listener::<E>(move |ev| {
+		<ET as AsRef<EventTarget>>::as_ref(self).add_event_listener::<E>(ctx, move |ev| {
 			let el = el.deref().or_return()?;
 			f(el, ev);
 		});
@@ -76,11 +95,12 @@ where
 	/// Adds an event listener to this target
 	///
 	/// Returns the type, for chaining
-	fn with_event_listener_el<E>(self, f: impl Fn(ET, E::Event) + 'static) -> Self
+	fn with_event_listener_el<E, F>(self, ctx: &DynatosWebCtx, f: F) -> Self
 	where
 		E: EventListener,
+		F: SyncBounds + Fn(ET, E::Event) + 'static,
 	{
-		self.add_event_listener_el::<E, _>(f);
+		self.add_event_listener_el::<E, _>(ctx, f);
 		self
 	}
 }
@@ -105,7 +125,21 @@ pub macro ev($Event:ident) {
 )]
 mod ev {
 	// Imports
-	use super::EventListener;
+	use {
+		super::EventListener,
+		crate::types::{
+			ClipboardEvent,
+			DragEvent,
+			Event,
+			FocusEvent,
+			InputEvent,
+			MouseEvent,
+			PointerEvent,
+			PopStateEvent,
+			SubmitEvent,
+			WheelEvent,
+		},
+	};
 
 	macro define_events(
 		$(
@@ -126,22 +160,22 @@ mod ev {
 	}
 
 	define_events! {
-		load: web_sys::Event;
-		click: web_sys::PointerEvent;
-		change: web_sys::Event;
-		input: web_sys::InputEvent;
-		submit: web_sys::SubmitEvent;
-		blur: web_sys::FocusEvent;
-		dblclick: web_sys::MouseEvent;
-		wheel: web_sys::WheelEvent;
-		paste: web_sys::ClipboardEvent;
-		drop: web_sys::DragEvent;
-		dragstart: web_sys::DragEvent;
-		dragover: web_sys::DragEvent;
-		popstate: web_sys::PopStateEvent;
-		pointermove: web_sys::PointerEvent;
-		pointerdown: web_sys::PointerEvent;
-		pointerup: web_sys::PointerEvent;
-		pointerout: web_sys::PointerEvent;
+		load: Event;
+		click: PointerEvent;
+		change: Event;
+		input: InputEvent;
+		submit: SubmitEvent;
+		blur: FocusEvent;
+		dblclick: MouseEvent;
+		wheel: WheelEvent;
+		paste: ClipboardEvent;
+		drop: DragEvent;
+		dragstart: DragEvent;
+		dragover: DragEvent;
+		popstate: PopStateEvent;
+		pointermove: PointerEvent;
+		pointerdown: PointerEvent;
+		pointerup: PointerEvent;
+		pointerout: PointerEvent;
 	}
 }

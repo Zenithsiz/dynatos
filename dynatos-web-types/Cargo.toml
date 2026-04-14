@@ -1,0 +1,46 @@
+[package]
+name    = "dynatos-web-types"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+
+dynatos-inheritance = { default-features = false, optional = true, path = "../dynatos-inheritance" }
+dynatos-web-ssr     = { default-features = false, optional = true, path = "../dynatos-web-ssr" }
+
+js-sys = { optional = true, workspace = true }
+wasm-bindgen = { optional = true, workspace = true }
+web-sys = { features = [
+	"ClipboardEvent",
+	"Comment",
+	"CssStyleDeclaration",
+	"Document",
+	"DragEvent",
+	"Element",
+	"FocusEvent",
+	"History",
+	"HtmlBodyElement",
+	"HtmlCanvasElement",
+	"HtmlElement",
+	"HtmlHeadElement",
+	"HtmlImageElement",
+	"HtmlInputElement",
+	"HtmlTextAreaElement",
+	"InputEvent",
+	"Location",
+	"PointerEvent",
+	"PopStateEvent",
+	"SubmitEvent",
+	"Text",
+	"WheelEvent",
+	"Window",
+], optional = true, workspace = true }
+
+[features]
+default = ["csr"]
+
+csr = ["dep:js-sys", "dep:wasm-bindgen", "dep:web-sys"]
+ssr = ["dep:dynatos-inheritance", "dep:dynatos-web-ssr"]
+
+[lints]
+workspace = true

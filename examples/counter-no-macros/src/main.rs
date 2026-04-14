@@ -43,19 +43,19 @@ fn counter(ctx: &DynatosWebCtx) -> web_sys::HtmlElement {
 			let value = value.clone();
 			html::button(ctx)
 				.with_text("Clear")
-				.with_event_listener::<ev!(click)>(move |_ev| value.set(0))
+				.with_event_listener::<ev!(click)>(ctx, move |_ev| value.set(0))
 		},
 		{
 			let value = value.clone();
 			html::button(ctx)
 				.with_text("+")
-				.with_event_listener::<ev!(click)>(move |_ev| *value.borrow_mut() += 1)
+				.with_event_listener::<ev!(click)>(ctx, move |_ev| *value.borrow_mut() += 1)
 		},
 		{
 			let value = value.clone();
 			html::button(ctx)
 				.with_text("-")
-				.with_event_listener::<ev!(click)>(move |_ev| *value.borrow_mut() -= 1)
+				.with_event_listener::<ev!(click)>(ctx, move |_ev| *value.borrow_mut() -= 1)
 		},
 		html::span(ctx).with_dyn_text(move || format!("Value: {}.", value.get())),
 	])

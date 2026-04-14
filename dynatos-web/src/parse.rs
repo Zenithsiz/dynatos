@@ -4,9 +4,13 @@
 #[expect(unused_imports, reason = "Used by macros")]
 use {crate::EventTargetAddListener, core::marker::PhantomData};
 use {
-	crate::{DynatosWebCtx, ElementAddAttr, HTML_NAMESPACE, NodeAddChildren},
+	crate::{
+		DynatosWebCtx,
+		ElementAddAttr,
+		NodeAddChildren,
+		types::{Element, HtmlElement, Node, WebError, cfg_ssr_expr},
+	},
 	dynatos_web_parser::{XHtml, XHtmlElement, XHtmlNode},
-	wasm_bindgen::{JsCast, JsValue},
 };
 
 /// Parses html as a single html element
@@ -19,8 +23,8 @@ pub fn parse_html_element(
 	ctx: &DynatosWebCtx,
 	input: &str,
 	mut environment: impl Environment,
-) -> Result<web_sys::HtmlElement, Error> {
-	let html = XHtml::parse(input).map_err(Error::Parse)?;
+) -> Result<HtmlElement, Error> {
+	let html = XHtml::parse(input).map_err(Error::parse)?;
 
 	let is_whitespace_only = |s: &str| s.chars().all(char::is_whitespace);
 	let element = match *html.children.as_slice() {
@@ -36,11 +40,22 @@ pub fn parse_html_element(
 	};
 
 	let element = self::parse_xhtml_element(ctx, element, &mut environment)?;
-	let element = element.dyn_into().map_err(Error::CastHtmlElement)?;
+
+	let element = cfg_ssr_expr!(
+		ssr = {
+			use dynatos_inheritance::Downcast;
+			element.downcast().map_err(Error::CastHtmlElement)?
+		},
+		csr = {
+			use wasm_bindgen::JsCast;
+			element.dyn_into().map_err(Error::CastHtmlElement)?
+		}
+	);
+
 	Ok(element)
 }
 
-/// Parses html at runtime, emitting it as an [`HtmlElement`](web_sys::HtmlElement) list
+/// Parses html at runtime, emitting it as an [`HtmlElement`](HtmlElement) list
 pub fn parse(ctx: &DynatosWebCtx, input: &str, mut environment: impl Environment) -> Result<Vec<Node>, Error> {
 	let html = XHtml::parse(input).map_err(Error::parse)?;
 	let children = html
@@ -56,7 +71,7 @@ fn parse_xhtml_node(
 	ctx: &DynatosWebCtx,
 	node: &XHtmlNode<'_>,
 	environment: &mut impl Environment,
-) -> Result<web_sys::Node, Error> {
+) -> Result<Node, Error> {
 	match node {
 		XHtmlNode::Element(element) => self::parse_xhtml_element(ctx, element, environment),
 		XHtmlNode::Text(text) => self::parse_xhtml_text(ctx, text, environment),
@@ -64,11 +79,7 @@ fn parse_xhtml_node(
 	}
 }
 
-fn parse_xhtml_text(
-	ctx: &DynatosWebCtx,
-	mut text: &str,
-	environment: &mut impl Environment,
-) -> Result<web_sys::Node, Error> {
+fn parse_xhtml_text(ctx: &DynatosWebCtx, mut text: &str, environment: &mut impl Environment) -> Result<Node, Error> {
 	let mut output = String::new();
 	while !text.is_empty() {
 		// Find the first escape
@@ -87,7 +98,7 @@ fn parse_xhtml_text(
 		let expr = &text[2..end];
 		text = &text[end + 2..];
 
-		let expr = environment.eval_text(expr)?;
+		let expr = environment.eval_text(ctx, expr)?;
 		output.push_str(&expr);
 	}
 
@@ -98,17 +109,17 @@ fn parse_xhtml_element(
 	ctx: &DynatosWebCtx,
 	xhtml_element: &XHtmlElement<'_>,
 	environment: &mut impl Environment,
-) -> Result<web_sys::Node, Error> {
+) -> Result<Node, Error> {
 	if xhtml_element.name.is_empty() {
 		let expr_name = xhtml_element.inner.expect("Empty tags should have a span");
-		return environment.eval_node(expr_name);
+		return environment.eval_node(ctx, expr_name);
 	}
 
 	let element = match xhtml_element.name.strip_prefix(':') {
-		Some(element) => environment.eval_element(element)?,
+		Some(element) => environment.eval_element(ctx, element)?,
 		None => ctx
 			.document()
-			.create_element_ns(Some(HTML_NAMESPACE), xhtml_element.name)
+			.create_element_ns(Some(crate::HTML_NAMESPACE), xhtml_element.name)
 			.map_err(Error::CreateElement)?,
 	};
 
@@ -116,13 +127,13 @@ fn parse_xhtml_element(
 	for (&key, &value) in &xhtml_element.attrs {
 		match key {
 			key if let Some(key) = key.strip_prefix(':') => {
-				let value = environment.eval_attr(key, value)?;
+				let value = environment.eval_attr(ctx, key, value)?;
 				element.add_attr(key, value);
 			},
 
 			key if let Some(event_type) = key.strip_prefix('@') => {
 				let value = value.ok_or(Error::EventListenerValue)?;
-				environment.eval_ev(&element, event_type, value)?;
+				environment.eval_ev(ctx, &element, event_type, value)?;
 			},
 
 			key => element.add_attr(key, value.unwrap_or("")),
@@ -150,13 +161,13 @@ pub enum Error {
 	SingleElement,
 
 	#[error("Unable to cast node to `HtmlElement`: {0:?}")]
-	CastHtmlElement(web_sys::Node),
+	CastHtmlElement(Node),
 
 	#[error("Expected `}}%` after `%{{`")]
 	TextEscapeEnd,
 
 	#[error("Unable to create element: {0:?}")]
-	CreateElement(JsValue),
+	CreateElement(WebError),
 
 	#[error("Found an event listener attribute without a value")]
 	EventListenerValue,
@@ -223,27 +234,33 @@ impl Error {
 /// Parsing environment
 pub trait Environment {
 	/// Evaluates an element
-	fn eval_element(&mut self, element_name: &str) -> Result<web_sys::Element, Error> {
+	fn eval_element(&mut self, _ctx: &DynatosWebCtx, element_name: &str) -> Result<Element, Error> {
 		Err(Error::eval_element(element_name))
 	}
 
 	/// Evaluates a node
-	fn eval_node(&mut self, expr: &str) -> Result<web_sys::Node, Error> {
+	fn eval_node(&mut self, _ctx: &DynatosWebCtx, expr: &str) -> Result<Node, Error> {
 		Err(Error::eval_node(expr))
 	}
 
 	/// Evaluates an attribute
-	fn eval_attr(&mut self, attr: &str, value: Option<&str>) -> Result<String, Error> {
+	fn eval_attr(&mut self, _ctx: &DynatosWebCtx, attr: &str, value: Option<&str>) -> Result<String, Error> {
 		Err(Error::eval_attr(attr, value))
 	}
 
 	/// Evaluates an event listener, adding it to `element`
-	fn eval_ev(&mut self, _element: &web_sys::Element, event_type: &str, value: &str) -> Result<(), Error> {
+	fn eval_ev(
+		&mut self,
+		_ctx: &DynatosWebCtx,
+		_element: &Element,
+		event_type: &str,
+		value: &str,
+	) -> Result<(), Error> {
 		Err(Error::eval_ev(event_type, value))
 	}
 
 	/// Evaluates a text
-	fn eval_text(&mut self, expr: &str) -> Result<String, Error> {
+	fn eval_text(&mut self, _ctx: &DynatosWebCtx, expr: &str) -> Result<String, Error> {
 		Err(Error::eval_text(expr))
 	}
 }
@@ -258,47 +275,47 @@ pub macro environment(
 	$( ev      { $( $ev     :ident $(: $     ev_output:expr)? ),* $(,)? } )?
 	$( text    { $( $text   :ident $(: $   text_output:expr)? ),* $(,)? } )?
 ) {{
-	struct E<Element, Node, Attr, Ev, Text> {
-		$( $( ${ignore($element)} )* element: Element, )?
-		$( $( ${ignore($node   )} )* node   : Node   , )?
-		$( $( ${ignore($attr   )} )* attr   : Attr   , )?
-		$( $( ${ignore($ev     )} )* ev     : Ev     , )?
-		$( $( ${ignore($text   )} )* text   : Text   , )?
+	struct E<ElementFn, NodeFn, AttrFn, EvFn, TextFn> {
+		$( $( ${ignore($element)} )* element: ElementFn, )?
+		$( $( ${ignore($node   )} )* node   : NodeFn   , )?
+		$( $( ${ignore($attr   )} )* attr   : AttrFn   , )?
+		$( $( ${ignore($ev     )} )* ev     : EvFn     , )?
+		$( $( ${ignore($text   )} )* text   : TextFn   , )?
 
-		_phantom: PhantomData<(Element, Node, Attr, Ev, Text)>
+		_phantom: PhantomData<(ElementFn, NodeFn, AttrFn, EvFn, TextFn)>
 	}
 
-	impl<Element, Node, Attr, Ev, Text> Environment for E<Element, Node, Attr, Ev, Text>
+	impl<ElementFn, NodeFn, AttrFn, EvFn, TextFn> Environment for E<ElementFn, NodeFn, AttrFn, EvFn, TextFn>
 	where
-		$( $( ${ignore($element)} )* Element: Fn(&str) -> Result<web_sys::Element, Error>, )?
-		$( $( ${ignore($element)} )* Node: Fn(&str) -> Result<web_sys::Node, Error>, )?
-		$( $( ${ignore($attr   )} )* Attr: Fn(&str, Option<&str>) -> Result<String, Error>, )?
-		$( $( ${ignore($ev     )} )* Ev: Fn(&web_sys::Element, &str, &str) -> Result<(), Error>, )?
-		$( $( ${ignore($text   )} )* Text: Fn(&str) -> Result<String, Error>, )?
+		$( $( ${ignore($element)} )* ElementFn: Fn(&DynatosWebCtx, &str) -> Result<Element, Error>, )?
+		$( $( ${ignore($element)} )* NodeFn: Fn(&DynatosWebCtx, &str) -> Result<Node, Error>, )?
+		$( $( ${ignore($attr   )} )* AttrFn: Fn(&DynatosWebCtx, &str, Option<&str>) -> Result<String, Error>, )?
+		$( $( ${ignore($ev     )} )* EvFn: Fn(&DynatosWebCtx, &Element, &str, &str) -> Result<(), Error>, )?
+		$( $( ${ignore($text   )} )* TextFn: Fn(&DynatosWebCtx, &str) -> Result<String, Error>, )?
 	{
-		$( fn eval_element(&mut self, element_name: &str) -> Result<web_sys::Element, Error> {
+		$( fn eval_element(&mut self, ctx: &DynatosWebCtx, element_name: &str) -> Result<Element, Error> {
 			$( ${ignore($element)} )*
-			(self.element)(element_name)
+			(self.element)(ctx, element_name)
 		} )?
 
-		$( fn eval_node(&mut self, expr: &str) -> Result<web_sys::Node, Error> {
+		$( fn eval_node(&mut self, ctx: &DynatosWebCtx, expr: &str) -> Result<Node, Error> {
 			$( ${ignore($node)} )*
-			(self.node)(expr)
+			(self.node)(ctx, expr)
 		} )?
 
-		$( fn eval_attr(&mut self, attr: &str, value: Option<&str>) -> Result<String, Error> {
+		$( fn eval_attr(&mut self, ctx: &DynatosWebCtx, attr: &str, value: Option<&str>) -> Result<String, Error> {
 			$( ${ignore($attr)} )*
-			(self.attr)(attr, value)
+			(self.attr)(ctx, attr, value)
 		} )?
 
-		$( fn eval_ev(&mut self, element: &web_sys::Element, event_type: &str, value: &str) -> Result<(), Error> {
+		$( fn eval_ev(&mut self, ctx: &DynatosWebCtx, element: &Element, event_type: &str, value: &str) -> Result<(), Error> {
 			$( ${ignore($ev)} )*
-			(self.ev)(element, event_type, value)
+			(self.ev)(ctx, element, event_type, value)
 		} )?
 
-		$( fn eval_text(&mut self, expr: &str) -> Result<String, Error> {
+		$( fn eval_text(&mut self, ctx: &DynatosWebCtx, expr: &str) -> Result<String, Error> {
 			$( ${ignore($text)} )*
-			(self.text)(expr)
+			(self.text)(ctx, expr)
 		} )?
 	}
 
@@ -309,31 +326,31 @@ pub macro environment(
 		or_else!(! $( $( ${ignore($ev     )} )* , _ )?),
 		or_else!(! $( $( ${ignore($text   )} )* , _ )?),
 	> {
-		$( element: |element_name: &str| match element_name {
+		$( element: |ctx: &DynatosWebCtx, element_name: &str| match element_name {
 			$( stringify!($element) => Ok(or_else!($element $( , $element_output)?)().into()), )*
 			_ => Err(Error::eval_element(element_name)),
 		},)?
 
-		$( node: |expr: &str| match expr {
+		$( node: |ctx: &DynatosWebCtx, expr: &str| match expr {
 			$( stringify!($node) => Ok(or_else!($node $( , $node_output)?)().into()), )*
 			_ => Err(Error::eval_node(expr)),
 		},)?
 
-		$( attr: |attr: &str, value: Option<&str>| match value.unwrap_or(attr) {
+		$( attr: |ctx: &DynatosWebCtx, attr: &str, value: Option<&str>| match value.unwrap_or(attr) {
 			$( stringify!($attr) => Ok(or_else!($attr $( , $attr_output)?).into()), )*
 			_ => Err(Error::eval_attr(attr, value)),
 		},)?
 
 		// TODO: Should we give access to the event type?
-		$( ev: |element: &web_sys::Element, event_type: &str, value: &str| match value {
+		$( ev: |ctx: &DynatosWebCtx, element: &Element, event_type: &str, value: &str| match value {
 			$( stringify!($ev) => {
-				element.add_event_listener_untyped(event_type, or_else!($ev $( , $ev_output)?));
+				element.add_event_listener_untyped(ctx, event_type, or_else!($ev $( , $ev_output)?));
 				Ok(())
 			},)*
 			_ => Err(Error::eval_ev(event_type, value)),
 		},)?
 
-		$( text: |expr: &str| match expr {
+		$( text: |ctx: &DynatosWebCtx, expr: &str| match expr {
 			$( stringify!($text) => Ok(or_else!($text $( , $text_output)?).into()), )*
 			_ => Err(Error::eval_text(expr)),
 		},)?

@@ -28,7 +28,7 @@ use {
 		Trigger,
 	},
 	core::fmt,
-	dynatos_sync_types::{SyncBounds, IMutRw},
+	dynatos_sync_types::{IMutRw, SyncBounds},
 };
 
 /// Enum split signal

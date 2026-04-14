@@ -18,7 +18,7 @@ use {
 		marker::{PhantomData, Unsize},
 		ops::{CoerceUnsized, Deref},
 	},
-	dynatos_sync_types::{SyncBounds, IMutRwRef, IMutRw},
+	dynatos_sync_types::{IMutRw, IMutRwRef, SyncBounds},
 };
 
 /// Memo signal.

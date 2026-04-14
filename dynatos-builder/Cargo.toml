@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 
 # Workspace
-dynatos-builder-macros = { path = "../dynatos-builder-macros" }
+dynatos-builder-macros = { default-features = false, path = "../dynatos-builder-macros" }
 
 [lints]
 workspace = true

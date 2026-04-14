@@ -7,12 +7,12 @@ use {
 	dynatos_reactive::{Derived, Memo, Signal, SignalWith, WithDefault, derived::DerivedRun},
 	dynatos_sync_types::SyncBounds,
 	dynatos_web::DynatosWebCtx,
-	wasm_bindgen::JsCast,
+	dynatos_web::types::{Element, HtmlElement, Node},
 };
 
 /// Extension trait to add a reactive child to an node
 #[extend::ext(name = NodeDynChild)]
-pub impl web_sys::Node {
+pub impl Node {
 	/// Adds a dynamic child to this node
 	#[track_caller]
 	fn add_dyn_child<C>(&self, ctx: &DynatosWebCtx, child: C)
@@ -22,7 +22,7 @@ pub impl web_sys::Node {
 		// Delegate to `add_dyn_children`
 		struct Wrapper<C>(C);
 		impl<C: WithDynNode> WithDynNodes for Wrapper<C> {
-			fn with_nodes(&self, f: impl FnMut(web_sys::Node)) {
+			fn with_nodes(&self, f: impl FnMut(Node)) {
 				self.0.with_node(f);
 			}
 		}
@@ -35,7 +35,7 @@ pub impl web_sys::Node {
 #[extend::ext(name = NodeWithDynChild)]
 pub impl<N> N
 where
-	N: AsRef<web_sys::Node>,
+	N: AsRef<Node>,
 {
 	/// Adds dynamic a child to this node.
 	///
@@ -54,7 +54,7 @@ where
 ///
 /// This allows it to work with the following types:
 /// - `impl Fn() -> N`
-/// - `web_sys::{Node, Element, HtmlElement}`
+/// - `{Node, Element, HtmlElement}`
 /// - `Option<N>`
 /// - `Vec<N>`, `[N; _]`, `[N]`
 /// - [`Signal`], [`Derived`], [`Memo`], [`WithDefault`]
@@ -64,7 +64,7 @@ where
 /// Where `N` is any of the types above.
 pub trait WithDynNode: SyncBounds {
 	/// Calls `f` with all nodes.
-	fn with_node(&self, f: impl FnMut(web_sys::Node));
+	fn with_node(&self, f: impl FnMut(Node));
 }
 
 impl<F, N> WithDynNode for F
@@ -72,24 +72,25 @@ where
 	F: SyncBounds + Fn() -> N,
 	N: WithDynNode,
 {
-	fn with_node(&self, f: impl FnMut(web_sys::Node)) {
+	fn with_node(&self, f: impl FnMut(Node)) {
 		self().with_node(f);
 	}
 }
 
-// TODO: Impl for `impl AsRef<web_sys::Node>` if we can get rid of
+// TODO: Impl for `impl AsRef<Node>` if we can get rid of
 //       the conflict with the function impl
 #[allow(clippy::allow_attributes, reason = "This only applies in some branches")]
-#[allow(clippy::use_self, reason = "We always want to use `web_sys::Node`, not `Ty`")]
+#[allow(clippy::use_self, reason = "We always want to use `Node`, not `Ty`")]
 #[duplicate::duplicate_item(
 	Ty;
-	[web_sys::Node];
-	[web_sys::Element];
-	[web_sys::HtmlElement];
+	[Node];
+	[Element];
+	[HtmlElement];
 )]
 impl WithDynNode for Ty {
-	fn with_node(&self, mut f: impl FnMut(web_sys::Node)) {
-		let node = self.dyn_ref::<web_sys::Node>().expect("Unable to cast to element");
+	fn with_node(&self, mut f: impl FnMut(Node)) {
+		let node = <Self as AsRef<Node>>::as_ref(self);
+
 		f(node.clone());
 	}
 }
@@ -98,7 +99,7 @@ impl<N> WithDynNode for Option<N>
 where
 	N: WithDynNode,
 {
-	fn with_node(&self, f: impl FnMut(web_sys::Node)) {
+	fn with_node(&self, f: impl FnMut(Node)) {
 		if let Some(children) = self {
 			children.with_node(f);
 		}
@@ -114,7 +115,7 @@ where
 	[S, T] [WithDefault<S, T> where S: SyncBounds, T: SyncBounds, Self: for<'a> SignalWith<Value<'a>: Deref<Target: WithDynNode>>];
 )]
 impl<Generics> WithDynNode for Ty {
-	fn with_node(&self, f: impl FnMut(web_sys::Node)) {
+	fn with_node(&self, f: impl FnMut(Node)) {
 		#[allow(
 			clippy::allow_attributes,
 			clippy::redundant_closure_for_method_calls,
@@ -131,7 +132,7 @@ where
 	F: FnOnce() -> N,
 	Self: SyncBounds,
 {
-	fn with_node(&self, f: impl FnMut(web_sys::Node)) {
+	fn with_node(&self, f: impl FnMut(Node)) {
 		(**self).with_node(f);
 	}
 }
@@ -143,11 +144,11 @@ where
 	F: FnOnce() -> N,
 	Self: SyncBounds,
 {
-	fn with_node(&self, f: impl FnMut(web_sys::Node)) {
+	fn with_node(&self, f: impl FnMut(Node)) {
 		(**self).with_node(f);
 	}
 }
 
 impl WithDynNode for ! {
-	fn with_node(&self, _f: impl FnMut(web_sys::Node)) {}
+	fn with_node(&self, _f: impl FnMut(Node)) {}
 }

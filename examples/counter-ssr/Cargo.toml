@@ -1,0 +1,23 @@
+[package]
+name    = "examples-counter-ssr"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+
+dynatos-reactive     = { default-features = false, path = "../../dynatos-reactive" }
+dynatos-web          = { default-features = false, path = "../../dynatos-web" }
+dynatos-web-reactive = { default-features = false, path = "../../dynatos-web-reactive" }
+
+zutil-cloned = { workspace = true }
+
+[features]
+default = ["csr", "wasm-js-promise"]
+
+csr             = ["dynatos-web-reactive/csr", "dynatos-web/csr"]
+ssr             = ["dynatos-web-reactive/ssr", "dynatos-web/ssr"]
+tokio           = ["dynatos-reactive/tokio"]
+wasm-js-promise = ["dynatos-reactive/wasm-js-promise"]
+
+[lints]
+workspace = true

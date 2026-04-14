@@ -59,7 +59,7 @@ fn page(ctx: &DynatosWebCtx, location: Location) -> web_sys::HtmlElement {
 		html::br(ctx),
 		#[cloned(query)]
 		html::button(ctx)
-			.with_event_listener::<ev!(click)>(move |_ev| {
+			.with_event_listener::<ev!(click)>(ctx, move |_ev| {
 				if let Loadable::Loaded(value) = &mut *query.borrow_mut() {
 					*value += 1;
 				}
@@ -67,7 +67,7 @@ fn page(ctx: &DynatosWebCtx, location: Location) -> web_sys::HtmlElement {
 			.with_text("Add"),
 		html::br(ctx),
 		html::button(ctx)
-			.with_event_listener::<ev!(click)>(move |_ev| {
+			.with_event_listener::<ev!(click)>(ctx, move |_ev| {
 				query.set(6);
 			})
 			.with_text("6"),

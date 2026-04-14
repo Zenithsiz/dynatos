@@ -1,0 +1,22 @@
+cargo-features = ["per-package-target"]
+
+[package]
+name    = "examples-counter-ssr-frontend"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+
+# Workspace
+counter-ssr = { features = ["csr"], package = "examples-counter-ssr", path = "../counter-ssr" }
+
+dynatos-web = { path = "../../dynatos-web" }
+
+app-error                = { workspace = true }
+console_error_panic_hook = { workspace = true }
+tracing                  = { workspace = true }
+tracing-subscriber       = { workspace = true }
+tracing-web              = { workspace = true }
+
+[lints]
+workspace = true

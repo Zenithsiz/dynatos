@@ -1,16 +1,17 @@
 //! Dynamic properties
 
+// Imports
 use {
 	core::ops::Deref,
 	dynatos_reactive::{Derived, Memo, Signal, SignalWith, WithDefault, derived::DerivedRun},
 	dynatos_sync_types::SyncBounds,
-	wasm_bindgen::JsValue,
+	dynatos_web::types::JsValue,
 };
 
 /// Values that may be used as possible dynamic properties.
 ///
 /// This allows it to work with the following types:
-/// - `i*`, `u*`, `bool`, `String`
+/// - `i*` (up to 64 bits), `u*` (up to 64 bits), `bool`, `String`
 /// - `&str`, `&String`
 /// - `JsValue`
 /// - `impl Fn() -> N`
@@ -50,13 +51,11 @@ where
 	[bool];
 	[f32];
 	[f64];
-	[i128];
 	[i16];
 	[i32];
 	[i64];
 	[i8];
 	[isize];
-	[u128];
 	[u16];
 	[u32];
 	[u64];

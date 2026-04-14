@@ -9,7 +9,7 @@ proc-macro = true
 [dependencies]
 
 # Workspace
-dynatos-web-parser = { path = "../dynatos-web-parser" }
+dynatos-web-parser = { default-features = false, path = "../dynatos-web-parser" }
 
 proc-macro2 = { workspace = true }
 quote       = { workspace = true }

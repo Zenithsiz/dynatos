@@ -22,6 +22,7 @@ use {
 		effect,
 		loc::Loc,
 		trigger::TriggerExec,
+		util,
 		world::{WorldTag, WorldTagGuard},
 	},
 	core::{
@@ -91,7 +92,6 @@ impl<F: Loader> Inner<F> {
 		let caller_loc = Loc::caller();
 
 		// Then spawn the future
-		// TODO: Allow using something other than `wasm_bindgen_futures`?
 		let (fut, effect_fn) = match parent {
 			InnerParentRef::Signal(signal) => {
 				let fut = signal.load.gather_deps(|| self.loader.load());
@@ -104,7 +104,7 @@ impl<F: Loader> Inner<F> {
 		};
 		let (fut, handle) = future::abortable(fut);
 		#[cloned(inner = effect_fn.inner, trigger = effect_fn.trigger)]
-		wasm_bindgen_futures::spawn_local(async move {
+		util::spawn_task(async move {
 			// Load the value
 			// Note: If we get aborted, just remove the handle
 			let Ok(value) = fut.await else {
@@ -460,7 +460,7 @@ impl<F: Loader> !SignalUpdateDefaultImpl for AsyncSignal<F> {}
 
 /// Loader
 pub trait Loader: SyncBounds + 'static {
-	type Fut: Future<Output = Self::Output> + 'static;
+	type Fut: SyncBounds + Future<Output = Self::Output> + 'static;
 	type Output: SyncBounds;
 
 	fn load(&mut self) -> Self::Fut;
@@ -469,7 +469,7 @@ pub trait Loader: SyncBounds + 'static {
 impl<F> Loader for F
 where
 	F: SyncBounds + FnMut<()> + 'static,
-	F::Output: Future + 'static,
+	F::Output: SyncBounds + Future + 'static,
 	<F::Output as Future>::Output: SyncBounds,
 {
 	type Fut = F::Output;

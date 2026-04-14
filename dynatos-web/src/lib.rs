@@ -1,7 +1,8 @@
 //! Html wrappers for `dynatos`
 
 // Features
-#![feature(decl_macro, macro_metavar_expr)]
+#![feature(decl_macro, macro_metavar_expr, trivial_bounds)]
+#![cfg_attr(feature = "ssr", feature(nonpoison_mutex, sync_nonpoison))]
 
 // Modules
 mod ctx;
@@ -18,11 +19,21 @@ pub use self::{
 	parse::{parse, parse_html_element},
 };
 
+/// Types for the dynatos web interface.
+///
+/// With the `csr` feature, this will be an export of
+/// types within `wasm_bindgen`, `js_sys` and `web_sys`.
+///
+/// With the `ssr` feature, this will be an export of
+/// types within `dynatos_web_ssr`.
+pub mod types {
+	pub use dynatos_web_types::*;
+}
+
 // Imports
 use {
 	itertools::Itertools,
-	js_sys::Reflect,
-	wasm_bindgen::{JsCast, JsValue},
+	types::{Comment, Element, HtmlElement, JsCast, JsValue, Node, Object, Text, WebError, cfg_ssr_expr},
 };
 
 /// Parses an html string into an array.
@@ -46,13 +57,13 @@ pub use dynatos_web_macros::html_file;
 
 /// Creates a text node
 #[must_use]
-pub fn text(ctx: &DynatosWebCtx, data: &str) -> web_sys::Text {
+pub fn text(ctx: &DynatosWebCtx, data: &str) -> Text {
 	ctx.document().create_text_node(data)
 }
 
 /// Creates a comment node
 #[must_use]
-pub fn comment(ctx: &DynatosWebCtx, data: &str) -> web_sys::Comment {
+pub fn comment(ctx: &DynatosWebCtx, data: &str) -> Comment {
 	ctx.document().create_comment(data)
 }
 
@@ -60,7 +71,7 @@ pub fn comment(ctx: &DynatosWebCtx, data: &str) -> web_sys::Comment {
 #[extend::ext_sized(name = NodeWithText)]
 pub impl<T> T
 where
-	T: AsRef<web_sys::Node>,
+	T: AsRef<Node>,
 {
 	fn with_text<C>(self, text: C) -> Self
 	where
@@ -75,7 +86,7 @@ where
 #[extend::ext_sized(name = ElementWithInnerHtml)]
 pub impl<T> T
 where
-	T: AsRef<web_sys::Element>,
+	T: AsRef<Element>,
 {
 	fn with_inner_html<C>(self, html: C) -> Self
 	where
@@ -110,7 +121,7 @@ impl AsTextContent for Ty {
 
 /// Extension trait to add children to an node
 #[extend::ext_sized(name = NodeAddChildren)]
-pub impl web_sys::Node {
+pub impl Node {
 	fn add_child<C>(&self, child: C)
 	where
 		C: Child,
@@ -122,15 +133,15 @@ pub impl web_sys::Node {
 	where
 		C: Children,
 	{
-		self.try_with_children(children)
+		self.try_add_children(children)
 			.unwrap_or_else(|err| panic!("Unable to add node children: {err:?}"));
 	}
 
-	fn try_add_children<C>(&self, children: C) -> Result<(), JsValue>
+	fn try_add_children<C>(&self, children: C) -> Result<(), WebError>
 	where
 		C: Children,
 	{
-		children.append_all(self.as_ref())
+		children.append_all(self)
 	}
 }
 
@@ -138,7 +149,7 @@ pub impl web_sys::Node {
 #[extend::ext_sized(name = NodeWithChildren)]
 pub impl<T> T
 where
-	T: AsRef<web_sys::Node>,
+	T: AsRef<Node>,
 {
 	fn with_child<C>(self, child: C) -> Self
 	where
@@ -155,7 +166,7 @@ where
 			.unwrap_or_else(|err| panic!("Unable to add node children: {err:?}"))
 	}
 
-	fn try_with_children<C>(self, children: C) -> Result<Self, JsValue>
+	fn try_with_children<C>(self, children: C) -> Result<Self, WebError>
 	where
 		C: Children,
 	{
@@ -166,26 +177,27 @@ where
 /// Types that may be used for [`NodeWithChildren`]'s single child methods
 pub trait Child {
 	/// Appends this child to `node`
-	fn append(&self, node: &web_sys::Node) -> Result<(), JsValue>;
+	fn append(&self, node: &Node) -> Result<(), WebError>;
 }
 
-// TODO: Impl for `impl AsRef<web_sys::Element>` if we can get rid of
+// TODO: Impl for `impl AsRef<Element>` if we can get rid of
 //       the conflict due to the blanket impl of `Children`
 #[allow(clippy::allow_attributes, reason = "This only applies in some branches")]
 #[allow(
 	clippy::use_self,
 	clippy::useless_asref,
-	reason = "We always want to use `web_sys::Element`, not `Ty`"
+	reason = "We always want to use `Element`, not `Ty`"
 )]
 #[duplicate::duplicate_item(
 	Ty;
-	[web_sys::Node];
-	[web_sys::Text];
-	[web_sys::Element];
-	[web_sys::HtmlElement];
+	[Node];
+	[Text];
+	[Comment];
+	[Element];
+	[HtmlElement];
 )]
 impl Child for Ty {
-	fn append(&self, node: &web_sys::Node) -> Result<(), JsValue> {
+	fn append(&self, node: &Node) -> Result<(), WebError> {
 		// If the node already contains us, warn and refuse to add it.
 		let child = self.as_ref();
 		if node.contains(Some(child)) {
@@ -203,17 +215,17 @@ impl Child for Ty {
 /// Types that may be used for [`NodeWithChildren`]'s multiple children method
 pub trait Children {
 	/// Appends all children in this type
-	fn append_all(self, node: &web_sys::Node) -> Result<(), JsValue>;
+	fn append_all(self, node: &Node) -> Result<(), WebError>;
 }
 
 impl<C: Child> Children for C {
-	fn append_all(self, node: &web_sys::Node) -> Result<(), JsValue> {
+	fn append_all(self, node: &Node) -> Result<(), WebError> {
 		self.append(node)
 	}
 }
 
 impl Children for () {
-	fn append_all(self, _node: &web_sys::Node) -> Result<(), JsValue> {
+	fn append_all(self, _node: &Node) -> Result<(), WebError> {
 		Ok(())
 	}
 }
@@ -222,7 +234,7 @@ impl<C> Children for &'_ [C]
 where
 	C: Child,
 {
-	fn append_all(self, node: &web_sys::Node) -> Result<(), JsValue> {
+	fn append_all(self, node: &Node) -> Result<(), WebError> {
 		for child in self {
 			child.append(node)?;
 		}
@@ -235,7 +247,7 @@ impl<C, const N: usize> Children for [C; N]
 where
 	C: Child,
 {
-	fn append_all(self, node: &web_sys::Node) -> Result<(), JsValue> {
+	fn append_all(self, node: &Node) -> Result<(), WebError> {
 		self.as_slice().append_all(node)
 	}
 }
@@ -244,7 +256,7 @@ impl<C> Children for Vec<C>
 where
 	C: Child,
 {
-	fn append_all(self, node: &web_sys::Node) -> Result<(), JsValue> {
+	fn append_all(self, node: &Node) -> Result<(), WebError> {
 		self.as_slice().append_all(node)
 	}
 }
@@ -258,7 +270,7 @@ macro impl_children_tuple( $( $( $C:ident($idx:tt) ),*; )* ) {
 				$C: Child,
 			)*
 		{
-			fn append_all(self, node: &web_sys::Node) -> Result<(), JsValue> {
+			fn append_all(self, node: &Node) -> Result<(), WebError> {
 				$(
 					self.$idx.append(node)?;
 				)*
@@ -284,7 +296,7 @@ impl_children_tuple! {
 
 /// Extension trait to add an attribute
 #[extend::ext_sized(name = ElementAddAttr)]
-pub impl web_sys::Element {
+pub impl Element {
 	fn add_attr<A, V>(&self, attr: A, value: V)
 	where
 		A: AsRef<str>,
@@ -296,12 +308,13 @@ pub impl web_sys::Element {
 			.unwrap_or_else(|err| panic!("Unable to set element attribute {attr:?} to {value:?}: {err:?}"));
 	}
 
-	fn try_add_attr<A, V>(&self, attr: A, value: V) -> Result<(), JsValue>
+	fn try_add_attr<A, V>(&self, attr: A, value: V) -> Result<(), WebError>
 	where
 		A: AsRef<str>,
 		V: AsRef<str>,
 	{
-		self.set_attribute(attr.as_ref(), value.as_ref())
+		self.set_attribute(attr.as_ref(), value.as_ref())?;
+		Ok(())
 	}
 }
 
@@ -309,7 +322,7 @@ pub impl web_sys::Element {
 #[extend::ext_sized(name = ElementWithAttr)]
 pub impl<T> T
 where
-	T: AsRef<web_sys::Element>,
+	T: AsRef<Element>,
 {
 	fn with_attr<A, V>(self, attr: A, value: V) -> Self
 	where
@@ -322,14 +335,13 @@ where
 			.unwrap_or_else(|err| panic!("Unable to set element attribute {attr:?} to {value:?}: {err:?}"))
 	}
 
-	fn try_with_attr<A, V>(self, attr: A, value: V) -> Result<Self, JsValue>
+	fn try_with_attr<A, V>(self, attr: A, value: V) -> Result<Self, WebError>
 	where
 		A: AsRef<str>,
 		V: AsRef<str>,
 	{
-		self.as_ref()
-			.set_attribute(attr.as_ref(), value.as_ref())
-			.map(|()| self)
+		self.as_ref().set_attribute(attr.as_ref(), value.as_ref())?;
+		Ok(self)
 	}
 }
 
@@ -337,7 +349,7 @@ where
 #[extend::ext_sized(name = HtmlElementWithCssProp)]
 pub impl<T> T
 where
-	T: AsRef<web_sys::HtmlElement>,
+	T: AsRef<HtmlElement>,
 {
 	fn with_css_prop<A, V>(self, attr: A, value: Option<V>) -> Self
 	where
@@ -350,7 +362,7 @@ where
 			.unwrap_or_else(|err| panic!("Unable to set element css property {attr:?} to {value:?}: {err:?}"))
 	}
 
-	fn try_with_css_prop<A, V>(self, attr: A, value: Option<V>) -> Result<Self, JsValue>
+	fn try_with_css_prop<A, V>(self, attr: A, value: Option<V>) -> Result<Self, WebError>
 	where
 		A: AsRef<str>,
 		V: AsRef<str>,
@@ -366,7 +378,7 @@ where
 
 /// Extension trait to *append* a class
 #[extend::ext_sized(name = ElementAddClass)]
-pub impl web_sys::Element {
+pub impl Element {
 	fn add_class<C>(&self, class: C)
 	where
 		C: AsRef<str>,
@@ -396,7 +408,7 @@ pub impl web_sys::Element {
 #[extend::ext_sized(name = ElementWithClass)]
 pub impl<T> T
 where
-	T: AsRef<web_sys::Element>,
+	T: AsRef<Element>,
 {
 	fn with_class<C>(self, class: C) -> Self
 	where
@@ -417,25 +429,33 @@ where
 }
 
 /// Extension trait to be able to use [`.context`](app_error::AppError::context)
-/// on a `Result<T, JsValue>`.
+/// on a `Result<T, WebError>`.
 #[extend::ext(name = JsResultContext)]
-pub impl<T> Result<T, JsValue> {
+pub impl<T> Result<T, WebError> {
 	fn context(self, context: &'static str) -> Result<T, app_error::AppError> {
-		self.map_err(|err| app_error::AppError::fmt(format!("{err:?}")).context(context))
+		cfg_ssr_expr!(
+			ssr = self.map_err(|err| err.0.context(context)),
+			csr = self.map_err(|err| app_error::AppError::fmt(format!("{err:?}")).context(context)),
+		)
 	}
 }
 
 /// Extension trait to set a property on an object
 #[extend::ext(name = ObjectSetProp)]
-pub impl js_sys::Object {
+pub impl Object {
 	/// Sets the `prop` property of this object to `value`.
 	fn set_prop<T>(&self, prop: &str, value: T)
 	where
 		T: Into<JsValue>,
 	{
-		let value = value.into();
-		Reflect::set(self, &prop.into(), &value)
-			.unwrap_or_else(|err| panic!("Unable to set object property {prop:?} to {value:?}: {err:?}"));
+		cfg_ssr_expr!(
+			ssr = Object::set_prop_inner(self, prop, value),
+			csr = {
+				let value = value.into();
+				js_sys::Reflect::set(self, &prop.into(), &value)
+					.unwrap_or_else(|err| panic!("Unable to set object property {prop:?} to {value:?}: {err:?}"));
+			}
+		);
 	}
 }
 
@@ -443,7 +463,7 @@ pub impl js_sys::Object {
 #[extend::ext(name = ObjectWithProp)]
 pub impl<O> O
 where
-	O: AsRef<js_sys::Object>,
+	O: AsRef<Object>,
 {
 	/// Sets the `prop` property of this object to `value`.
 	///
@@ -459,12 +479,15 @@ where
 
 /// Extension trait to remove a property on an object
 #[extend::ext(name = ObjectRemoveProp)]
-pub impl js_sys::Object {
+pub impl Object {
 	/// Removes the `property` from this object.
 	///
 	/// Returns if the property existed
-	fn remove_prop(&self, property: &str) -> bool {
-		Reflect::delete_property(self, &property.into()).expect("Unable to remove object property")
+	fn remove_prop(&self, prop: &str) -> bool {
+		cfg_ssr_expr!(
+			ssr = Object::remove_prop_inner(self, prop).is_some(),
+			csr = js_sys::Reflect::delete_property(self, &prop.into()).expect("Unable to remove object property")
+		)
 	}
 }
 
@@ -480,20 +503,28 @@ pub enum GetError {
 
 /// Extension trait to get a property of an object
 #[extend::ext(name = ObjectGet)]
-pub impl js_sys::Object {
-	// TODO: Differentiate between missing value and wrong type?
-	fn get<T>(&self, property: &str) -> Result<T, GetError>
+pub impl Object {
+	fn get<T>(&self, prop: &str) -> Result<T, GetError>
 	where
 		T: JsCast,
 	{
-		// Note: This returning `Err` should only happen if `self` isn't an object,
-		//       which we guarantee, so no errors can occur.
-		let value = Reflect::get(self, &property.into()).expect("Unable to get object property");
-		if value.is_undefined() {
-			return Err(GetError::Missing);
-		}
+		cfg_ssr_expr!(
+			ssr = self.get_prop_inner(prop).map_err(|err| match err {
+				dynatos_web_ssr::object::GetError::Missing => GetError::Missing,
+				dynatos_web_ssr::object::GetError::WrongType(ty) => GetError::WrongType(ty),
+			}),
+			csr = {
+				// Note: This returning `Err` should only happen if `self` isn't an object,
+				//       which we guarantee, so no errors can occur.
+				let value = js_sys::Reflect::get(self, &prop.into()).expect("Unable to get object property");
 
-		value.dyn_into().map_err(GetError::WrongType)
+				if value.is_undefined() {
+					return Err(GetError::Missing);
+				}
+
+				value.dyn_into().map_err(GetError::WrongType)
+			}
+		)
 	}
 }
 

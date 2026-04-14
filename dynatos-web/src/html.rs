@@ -1,51 +1,76 @@
 //! HTML elements
 
 // Imports
-use {
-	crate::{DynatosWebCtx, HTML_NAMESPACE},
-	wasm_bindgen::{JsCast, JsValue},
+use crate::{
+	DynatosWebCtx,
+	types::{
+		Element,
+		HtmlCanvasElement,
+		HtmlElement,
+		HtmlImageElement,
+		HtmlInputElement,
+		HtmlTextAreaElement,
+		WebError,
+		cfg_ssr_expr,
+	},
 };
 
-/// Expands to `stringify!($el_name)`, if present, otherwise to `$fn_name`
-macro el_name {
-	($fn_name:ident, $el_name:literal) => {
-		$el_name
+/// Expands to `$value` if `$value` exists, else expands to `$default`
+macro or_default {
+	($default:tt, $e:tt $(,)?) => {
+		$e
 	},
-	($fn_name:ident) => {
-		stringify!($fn_name)
-	},
-}
-
-/// Expands to `$ElTy`, if present, otherwise to `HtmlElement`
-macro el_ty {
-	($ElTy:ty) => {
-		$ElTy
-	},
-	() => {
-		web_sys::HtmlElement
+	($default:tt $(,)?) => {
+		$default
 	},
 }
 
 /// Declares all elements
 macro decl_elements(
-	$( $fn_name:ident $( : $ElTy:ty )? $( = $el_name:literal )? ),* $(,)?
+	$( $fn_name:ident $( : $ElTy:ty )? ),* $(,)?
 ) {
 	$(
 		#[must_use]
-		pub fn $fn_name(ctx: &DynatosWebCtx) -> el_ty![$( $ElTy )?] {
-			let el_name = el_name!($fn_name $(, $el_name)?);
-			ctx.document()
-				.create_element_ns(Some(HTML_NAMESPACE), el_name)
-				.unwrap_or_else(|err| self::on_create_fail(&err, el_name))
-				.dyn_into()
-				.expect("Element was of the incorrect type")
+		pub fn $fn_name(ctx: &DynatosWebCtx) -> or_default![HtmlElement, $( $ElTy )?] {
+			or_default! {
+				{
+					let el_name = stringify!($fn_name);
+					let element = ctx.document().create_element_ns(Some(crate::HTML_NAMESPACE), el_name)
+						.unwrap_or_else(|err| self::on_create_fail(&err, el_name));
+
+					cfg_ssr_expr!(
+						ssr = {
+							use dynatos_inheritance::Downcast;
+							element.downcast()
+						},
+						csr = {
+							use wasm_bindgen::JsCast;
+							element.dyn_into()
+						},
+					).unwrap_or_else(|err| self::on_cast_fail(&err, el_name))
+				},
+				//$( { Ok(<$ElTy>::new()) } )?
+			}
 		}
 	)*
 }
 
 /// Function called when creating an element fails
-fn on_create_fail(err: &JsValue, el_name: &str) -> ! {
-	panic!("Unable to create element {el_name:?} on namespace {HTML_NAMESPACE:?}: {err:?}");
+#[cold]
+fn on_create_fail(err: &WebError, el_name: &str) -> ! {
+	panic!(
+		"Unable to create element {el_name:?} on namespace {:?}: {err:?}",
+		crate::HTML_NAMESPACE
+	);
+}
+
+/// Function called when casting an element fails
+#[cold]
+fn on_cast_fail(element: &Element, el_name: &str) -> ! {
+	panic!(
+		"Created element {el_name:?} on namespace {:?} was of the wrong type: {element:?}",
+		crate::HTML_NAMESPACE
+	);
 }
 
 decl_elements! {
@@ -66,7 +91,7 @@ decl_elements! {
 	body,
 	br,
 	button,
-	canvas: web_sys::HtmlCanvasElement,
+	canvas: HtmlCanvasElement,
 	caption,
 	center,
 	cite,
@@ -109,8 +134,8 @@ decl_elements! {
 	i,
 	iframe,
 	image,
-	img: web_sys::HtmlImageElement,
-	input: web_sys::HtmlInputElement,
+	img: HtmlImageElement,
+	input: HtmlInputElement,
 	ins,
 	kbd,
 	label,
@@ -169,7 +194,7 @@ decl_elements! {
 	tbody,
 	td,
 	template,
-	textarea: web_sys::HtmlTextAreaElement,
+	textarea: HtmlTextAreaElement,
 	tfoot,
 	th,
 	thead,

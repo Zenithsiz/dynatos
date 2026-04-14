@@ -1,4 +1,16 @@
 absolute-paths-allowed-crates = [
 	# `tracing_subscriber::fmt` would be easily confused with `std::fmt`
 	"tracing_subscriber",
+
+	# `tokio::{fs, net, ...}` would be easily confused with `std`
+	"tokio",
+
+	# `dynatos_web_ssr_server` exposes backends as modules named the same as crates.
+	"dynatos_web_ssr_server",
+
+	# Due to CSR/SSR, we might want to use absolute paths inside of cfg'd blocks
+	"web_sys",
+	"js_sys",
+	"wasm_bindgen",
+	"dynatos_web_ssr",
 ]

@@ -1,0 +1,24 @@
+[package]
+name    = "dynatos-web-ssr-server"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+
+# Workspace
+dynatos-web     = { default-features = false, features = ["ssr", "sync"], path = "../dynatos-web" }
+dynatos-web-ssr = { default-features = false, path = "../dynatos-web-ssr" }
+
+app-error    = { workspace = true }
+axum         = { features = ["macros"], optional = true, workspace = true }
+axum-cookie  = { optional = true, workspace = true }
+serde        = { features = ["derive"], optional = true, workspace = true }
+tracing      = { optional = true, workspace = true }
+uuid         = { features = ["serde", "v4"], workspace = true }
+zutil-cloned = { optional = true, workspace = true }
+
+[features]
+axum = ["dep:axum", "dep:axum-cookie", "dep:serde", "dep:tracing", "dep:zutil-cloned"]
+
+[lints]
+workspace = true

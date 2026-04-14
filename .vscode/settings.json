@@ -18,10 +18,17 @@
 		"zutil"
 	],
 	"rust-analyzer.cargo.features": "all",
+	"rust-analyzer.diagnostics.disabled": ["macro-error", "unlinked-file", "E0308", "E0107"],
 	"rust-analyzer.check.overrideCommand": [
 		"cargo",
 		"hack",
 		"--feature-powerset",
+		"--at-least-one-of=csr,ssr",
+		"--at-least-one-of=wasm-js-promise,tokio",
+		"--mutually-exclusive-features=csr,ssr",
+		"--mutually-exclusive-features=wasm-js-promise,tokio",
+		"--mutually-exclusive-features=csr,tokio",
+		"--mutually-exclusive-features=ssr,wasm-js-promise",
 		"clippy",
 		"--all-targets",
 		"--message-format=json"

@@ -6,12 +6,12 @@ use {
 	dynatos_reactive::Effect,
 	dynatos_sync_types::SyncBounds,
 	dynatos_util::TryOrReturnExt,
-	js_sys::WeakRef,
+	dynatos_web::types::{HtmlElement, WeakRef},
 };
 
 /// Extension trait to add reactive css properties to an html element
 #[extend::ext(name = HtmlElementDynCssProp)]
-pub impl web_sys::HtmlElement {
+pub impl HtmlElement {
 	/// Adds a dynamic css property to this element
 	#[track_caller]
 	fn set_dyn_css_prop<K, V>(&self, key: K, value: V)
@@ -63,7 +63,7 @@ pub impl web_sys::HtmlElement {
 #[extend::ext(name = HtmlElementWithDynCssProp)]
 pub impl<E> E
 where
-	E: AsRef<web_sys::HtmlElement>,
+	E: AsRef<HtmlElement>,
 {
 	/// Adds a dynamic css property to this element, where only the value is dynamic.
 	///

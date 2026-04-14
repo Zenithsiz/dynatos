@@ -10,8 +10,11 @@
 use {
 	dynatos_sync_types::{IMut, thread_local_or_global},
 	dynatos_util::HoleyStack,
-	dynatos_web::{DynatosWebCtx, ObjectSetProp},
-	wasm_bindgen::prelude::wasm_bindgen,
+	dynatos_web::{
+		DynatosWebCtx,
+		ObjectSetProp,
+		types::{Object, cfg_ssr_expr},
+	},
 };
 
 /// Title stack.
@@ -25,8 +28,7 @@ static TITLE_STACK: IMut<HoleyStack<String>> = IMut::new(HoleyStack::new());
 pub struct Title {
 	/// Title index
 	title_idx: usize,
-
-	ctx: DynatosWebCtx,
+	ctx:       DynatosWebCtx,
 }
 
 impl Title {
@@ -68,12 +70,28 @@ impl Drop for Title {
 
 /// Extension trait to attach a title to an object.
 #[extend::ext(name = ObjectAttachTitle)]
-pub impl js_sys::Object {
+pub impl Object {
 	/// Attaches a title to this object
 	fn attach_title(&self, ctx: &DynatosWebCtx, title: &str) {
 		let prop_name = "__dynatos_web_title";
 		let title = Title::new(ctx, title);
-		self.set_prop(prop_name, WasmTitle(title));
+
+		let title = cfg_ssr_expr!(
+			ssr = {
+				use dynatos_web::types::JsValue;
+				JsValue::from_any(title)
+			},
+			csr = {
+				/// A wasm `Title` type.
+				#[wasm_bindgen::prelude::wasm_bindgen]
+				#[expect(dead_code, reason = "We just want to keep the field alive, not use it")]
+				struct WasmTitle(Title);
+
+				WasmTitle(title)
+			}
+		);
+
+		self.set_prop(prop_name, title);
 	}
 }
 
@@ -81,7 +99,7 @@ pub impl js_sys::Object {
 #[extend::ext(name = ObjectWithTitle)]
 pub impl<T> T
 where
-	T: AsRef<js_sys::Object>,
+	T: AsRef<Object>,
 {
 	/// Attaches a title to this object.
 	///
@@ -91,9 +109,3 @@ where
 		self
 	}
 }
-
-
-/// A wasm `Title` type.
-#[wasm_bindgen]
-#[expect(dead_code, reason = "We just want to keep the field alive, not use it")]
-struct WasmTitle(Title);

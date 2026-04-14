@@ -7,12 +7,12 @@ use {
 	dynatos_sync_types::SyncBounds,
 	dynatos_util::TryOrReturnExt,
 	dynatos_web::{ObjectRemoveProp, ObjectSetProp},
-	js_sys::WeakRef,
+	dynatos_web::types::{Object, WeakRef},
 };
 
 /// Extension trait to add reactive prop to an object
 #[extend::ext(name = ObjectDynProp)]
-pub impl js_sys::Object {
+pub impl Object {
 	/// Adds a dynamic property to this object, where only the value is dynamic.
 	#[track_caller]
 	fn add_dyn_prop_value<K, V>(&self, key: K, value: V)
@@ -56,7 +56,7 @@ pub impl js_sys::Object {
 #[extend::ext(name = ObjectWithDynProp)]
 pub impl<O> O
 where
-	O: AsRef<js_sys::Object>,
+	O: AsRef<Object>,
 {
 	/// Adds a dynamic property to this object, where only the value is dynamic.
 	///

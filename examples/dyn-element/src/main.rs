@@ -52,7 +52,7 @@ fn parent(ctx: &DynatosWebCtx) -> web_sys::HtmlElement {
 						#[cloned(outer_el)]
 						html::button(ctx)
 							.with_text(format!("{el:?}"))
-							.with_event_listener::<ev!(click)>(move |_| outer_el.set(el))
+							.with_event_listener::<ev!(click)>(ctx, move |_| outer_el.set(el))
 					})
 					.collect::<Vec<_>>(),
 			),
@@ -86,7 +86,7 @@ fn inner(ctx: &DynatosWebCtx) -> DynElement {
 
 		#[cloned(counter)]
 		el.with_text(cur_counter.to_string())
-			.with_event_listener::<ev!(click)>(move |_| counter.update(|counter| *counter += 1))
+			.with_event_listener::<ev!(click)>(&ctx, move |_| counter.update(|counter| *counter += 1))
 	};
 
 	DynElement::new(ctx, f)

@@ -1,0 +1,22 @@
+[package]
+name    = "examples-counter-ssr-backend"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+
+# Workspace
+counter-ssr = { default-features = false, features = [
+	"ssr",
+	"tokio",
+], package = "examples-counter-ssr", path = "../counter-ssr" }
+
+dynatos-web-ssr-server = { default-features = false, features = ["axum"], path = "../../dynatos-web-ssr-server" }
+
+app-error          = { workspace = true }
+axum               = { features = ["macros"], workspace = true }
+tokio              = { features = ["full"], workspace = true }
+tracing-subscriber = { features = ["env-filter"], workspace = true }
+
+[lints]
+workspace = true

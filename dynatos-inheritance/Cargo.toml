@@ -6,7 +6,7 @@ edition = "2024"
 [dependencies]
 
 # Workspace
-dynatos-inheritance-macros = { path = "../dynatos-inheritance-macros" }
+dynatos-inheritance-macros = { default-features = false, path = "../dynatos-inheritance-macros" }
 
 [lints]
 workspace = true
