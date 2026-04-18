@@ -345,7 +345,35 @@ where
 	}
 }
 
-/// Extension trait to add a css property in a builder-style.
+/// Extension trait to set a css property
+#[extend::ext_sized(name = HtmlElementSetCssProp)]
+pub impl HtmlElement {
+	fn set_css_prop<A, V>(&self, attr: A, value: Option<V>)
+	where
+		A: AsRef<str>,
+		V: AsRef<str>,
+	{
+		let attr = attr.as_ref();
+		let value = value.as_ref().map(V::as_ref);
+		self.try_set_css_prop(attr, value)
+			.unwrap_or_else(|err| panic!("Unable to set element css property {attr:?} to {value:?}: {err:?}"));
+	}
+
+	fn try_set_css_prop<A, V>(&self, attr: A, value: Option<V>) -> Result<(), WebError>
+	where
+		A: AsRef<str>,
+		V: AsRef<str>,
+	{
+		match value {
+			Some(value) => self.style().set_property(attr.as_ref(), value.as_ref())?,
+			None => _ = self.style().remove_property(attr.as_ref())?,
+		}
+
+		Ok(())
+	}
+}
+
+/// Extension trait to set a css property in a builder-style.
 #[extend::ext_sized(name = HtmlElementWithCssProp)]
 pub impl<T> T
 where
@@ -356,10 +384,8 @@ where
 		A: AsRef<str>,
 		V: AsRef<str>,
 	{
-		let attr = attr.as_ref();
-		let value = value.as_ref().map(V::as_ref);
-		self.try_with_css_prop(attr, value)
-			.unwrap_or_else(|err| panic!("Unable to set element css property {attr:?} to {value:?}: {err:?}"))
+		self.as_ref().set_css_prop(attr, value);
+		self
 	}
 
 	fn try_with_css_prop<A, V>(self, attr: A, value: Option<V>) -> Result<Self, WebError>
@@ -367,11 +393,7 @@ where
 		A: AsRef<str>,
 		V: AsRef<str>,
 	{
-		match value {
-			Some(value) => self.as_ref().style().set_property(attr.as_ref(), value.as_ref())?,
-			None => _ = self.as_ref().style().remove_property(attr.as_ref())?,
-		}
-
+		self.as_ref().try_set_css_prop(attr, value)?;
 		Ok(self)
 	}
 }
