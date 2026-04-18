@@ -355,7 +355,9 @@ dependencies = [
  "dynatos-web-ssr",
  "extend",
  "js-sys",
+ "tracing",
  "wasm-bindgen",
+ "web-sys",
 ]
 
 [[package]]

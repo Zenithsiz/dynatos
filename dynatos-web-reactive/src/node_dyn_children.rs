@@ -3,14 +3,14 @@
 // Imports
 use {
 	crate::ObjectAttachEffect,
-	core::ops::Deref,
+	core::{mem, ops::Deref},
 	dynatos_reactive::{Derived, Effect, Memo, Signal, SignalWith, WithDefault, derived::DerivedRun},
 	dynatos_sync_types::{IMut, SyncBounds},
 	dynatos_util::TryOrReturnExt,
 	dynatos_web::{
 		DynatosWebCtx,
 		html,
-		types::{Element, HtmlElement, Node, WeakRef},
+		types::{Element, HtmlElement, Node, WeakRef, cfg_ssr_expr},
 	},
 };
 
@@ -37,45 +37,61 @@ pub impl Node {
 			// Try to get the node
 			let node = node.deref().or_return()?;
 
-			// Replaces a previous child with anew child at an index.
-			// If no previous child existed at this position, adds it.
-			let replace_prev_child = |prev_children: &mut Vec<_>, idx: usize, new_node| match prev_children.get_mut(idx)
-			{
-				Some(prev_node) => {
-					node.replace_child(&new_node, prev_node)
-						.expect("Unable to replace reactive child");
-
-					*prev_node = new_node;
-				},
-				None => {
-					let after_last_existing = prev_children.last().and_then(Node::next_sibling);
-
-					node.insert_before(&new_node, after_last_existing.as_ref())
-						.expect("Unable to add reactive child");
-
-					prev_children.push(new_node);
-				},
-			};
-
 			// Add/replace all new children
-			let mut idx = 0;
-			let mut prev_children = prev_children.lock();
-			children.with_nodes(|new_node| {
-				replace_prev_child(&mut prev_children, idx, new_node);
-				idx += 1;
-			});
+			// TODO: Not collect all children here?
+			let mut new_children = vec![];
+			children.with_nodes(|new_node| new_children.push(new_node));
 
-			// Then remove any leftovers (except for the very first node, if we're non-empty)
-			if !prev_children.is_empty() {
-				for prev_node in prev_children.drain(idx.max(1)..) {
-					node.remove_child(&prev_node).expect("Unable to remove reactive child");
+			let mut prev_children = prev_children.lock();
+
+			// If we hadn't initialized yet (no previous children) and we have no new children,
+			// add our empty child to keep our position
+			if prev_children.is_empty() && new_children.is_empty() {
+				node.append_child(&empty_child).expect("Unable to add reactive child");
+				new_children.push(empty_child.clone());
+			}
+
+			// Take all previous nodes we have and start trying to match them against the new ones
+			let mut new_nodes = new_children.into_iter();
+			for cur_prev_node in mem::take(&mut *prev_children) {
+				// Try to find the current previous node we had in the remaining new nodes
+				match new_nodes
+					.as_slice()
+					.iter()
+					.position(|new_node| *new_node == cur_prev_node)
+				{
+					// If we did find it, we know that `new_nodes[..offset]` are new nodes,
+					// and `new_nodes[offset]` is an existing node that we can skip.
+					Some(offset) => {
+						for new_node in (&mut new_nodes).take(offset) {
+							node.insert_before(&new_node, Some(&cur_prev_node))
+								.expect("Unable to add reactive child");
+							self::trace_add_node(&new_node, Some(&cur_prev_node));
+							prev_children.push(new_node);
+						}
+
+						self::trace_keep_node(&cur_prev_node);
+						_ = new_nodes.next();
+						prev_children.push(cur_prev_node);
+					},
+
+					// If it didn't exist, we can safely remove it.
+					None => {
+						self::trace_remove_node(&cur_prev_node);
+						_ = node
+							.remove_child(&cur_prev_node)
+							.expect("Unable to remove reactive child");
+					},
 				}
 			}
 
-			// If we were going to end up empty, replace/add the first child
-			// with an empty child to keep our position instead.
-			if idx == 0 {
-				replace_prev_child(&mut prev_children, 0, empty_child.clone());
+			for new_node in new_nodes {
+				let last_prev_child = prev_children.last();
+
+				node.insert_before(&new_node, last_prev_child)
+					.expect("Unable to add reactive child");
+				self::trace_add_node(&new_node, last_prev_child);
+				prev_children.push(new_node);
 			}
 		})
 		.or_return()?;
@@ -234,4 +250,46 @@ where
 
 impl WithDynNodes for ! {
 	fn with_nodes(&self, _f: impl FnMut(Node)) {}
+}
+
+/// Traces the addition of a dynamic node
+fn trace_add_node(node: &Node, after: Option<&Node>) {
+	cfg_ssr_expr!(
+		ssr = tracing::trace!(?node, ?after, "Added new reactive child"),
+		csr = match after {
+			Some(after) => web_sys::console::debug_3(
+				&wasm_bindgen::JsValue::from(
+					"dynatos_web_reactive::node_dyn_children: Added new reactive child %o after %o"
+				),
+				node,
+				after,
+			),
+			None => web_sys::console::debug_2(
+				&wasm_bindgen::JsValue::from("dynatos_web_reactive::node_dyn_children: Adding new reactive child %o"),
+				node
+			),
+		}
+	);
+}
+
+/// Traces the removal of a dynamic node
+fn trace_remove_node(node: &Node) {
+	cfg_ssr_expr!(
+		ssr = tracing::trace!(?node, "Removing reactive child"),
+		csr = web_sys::console::debug_2(
+			&wasm_bindgen::JsValue::from("dynatos_web_reactive::node_dyn_children: Removing reactive child %o"),
+			node
+		)
+	);
+}
+
+/// Traces the keeping of a dynamic node
+fn trace_keep_node(node: &Node) {
+	cfg_ssr_expr!(
+		ssr = tracing::trace!(?node, "Keeping reactive child"),
+		csr = web_sys::console::debug_2(
+			&wasm_bindgen::JsValue::from("dynatos_web_reactive::node_dyn_children: Keeping reactive child %o"),
+			node
+		)
+	);
 }

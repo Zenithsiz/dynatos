@@ -176,3 +176,7 @@ clippy.std_instead_of_alloc = "allow"
 
 # TODO: This has too many false positives, but it can be useful, check manually occasionally
 clippy.significant_drop_tightening = "allow"
+
+# TODO: When running clippy against examples this triggers in some library code, despite it
+#       not triggered when running clippy against that library, so we can't do much about it
+clippy.cognitive_complexity = "allow"

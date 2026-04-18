@@ -18,15 +18,24 @@ dynatos-web-ssr             = { default-features = false, features = ["reactive"
 duplicate    = { workspace = true }
 extend       = { workspace = true }
 js-sys       = { optional = true, workspace = true }
+tracing      = { optional = true, workspace = true }
 wasm-bindgen = { optional = true, workspace = true }
+web-sys      = { features = ["console"], optional = true, workspace = true }
 
 [features]
 default = ["csr", "wasm-js-promise"]
 
-csr             = ["dep:js-sys", "dep:wasm-bindgen", "dynatos-web-router/csr", "dynatos-web/csr"]
-ssr             = ["dep:dynatos-inheritance", "dep:dynatos-web-ssr", "dynatos-web-router/ssr", "dynatos-web/ssr", "sync"]
-sync            = ["dynatos-reactive/sync", "dynatos-sync-types/sync", "dynatos-web-router/sync", "dynatos-web/sync"]
-tokio           = ["dynatos-reactive/tokio"]
+csr = ["dep:js-sys", "dep:wasm-bindgen", "dep:web-sys", "dynatos-web-router/csr", "dynatos-web/csr"]
+ssr = [
+	"dep:dynatos-inheritance",
+	"dep:dynatos-web-ssr",
+	"dep:tracing",
+	"dynatos-web-router/ssr",
+	"dynatos-web/ssr",
+	"sync",
+]
+sync = ["dynatos-reactive/sync", "dynatos-sync-types/sync", "dynatos-web-router/sync", "dynatos-web/sync"]
+tokio = ["dynatos-reactive/tokio"]
 wasm-js-promise = ["dynatos-reactive/wasm-js-promise"]
 
 [lints]
