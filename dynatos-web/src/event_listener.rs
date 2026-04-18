@@ -77,10 +77,9 @@ where
 	ET: SyncBounds + ErasableGenericJsValue + AsRef<EventTarget> + 'static,
 {
 	/// Adds an event listener to this target
-	fn add_event_listener_el<E, F>(&self, ctx: &DynatosWebCtx, f: F)
+	fn add_event_listener_el<E>(&self, ctx: &DynatosWebCtx, f: impl SyncBounds + Fn(ET, E::Event) + 'static)
 	where
 		E: EventListener,
-		F: SyncBounds + Fn(ET, E::Event) + 'static,
 	{
 		// Build the closure
 		// Note: Important that `el` is a weak reference here, else we
@@ -95,12 +94,11 @@ where
 	/// Adds an event listener to this target
 	///
 	/// Returns the type, for chaining
-	fn with_event_listener_el<E, F>(self, ctx: &DynatosWebCtx, f: F) -> Self
+	fn with_event_listener_el<E>(self, ctx: &DynatosWebCtx, f: impl SyncBounds + Fn(ET, E::Event) + 'static) -> Self
 	where
 		E: EventListener,
-		F: SyncBounds + Fn(ET, E::Event) + 'static,
 	{
-		self.add_event_listener_el::<E, _>(ctx, f);
+		self.add_event_listener_el::<E>(ctx, f);
 		self
 	}
 }
