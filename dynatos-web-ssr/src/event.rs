@@ -26,6 +26,7 @@ decl_events! {
 	PointerEvent,
 	PopStateEvent,
 	SubmitEvent,
+	TransitionEvent,
 	WheelEvent,
 }
 

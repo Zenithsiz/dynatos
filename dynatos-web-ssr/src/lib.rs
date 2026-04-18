@@ -42,6 +42,7 @@ pub use self::{
 		PointerEvent,
 		PopStateEvent,
 		SubmitEvent,
+		TransitionEvent,
 		WheelEvent,
 	},
 	event_target::EventTarget,

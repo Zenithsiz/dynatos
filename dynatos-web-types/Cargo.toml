@@ -33,6 +33,7 @@ web-sys = { features = [
 	"PopStateEvent",
 	"SubmitEvent",
 	"Text",
+	"TransitionEvent",
 	"WheelEvent",
 	"Window",
 ], optional = true, workspace = true }

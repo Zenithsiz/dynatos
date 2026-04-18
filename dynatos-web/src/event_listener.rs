@@ -136,6 +136,7 @@ mod ev {
 			PointerEvent,
 			PopStateEvent,
 			SubmitEvent,
+			TransitionEvent,
 			WheelEvent,
 		},
 	};
@@ -177,5 +178,6 @@ mod ev {
 		pointerup: PointerEvent;
 		pointerout: PointerEvent;
 		animationend: AnimationEvent;
+		transitionend: TransitionEvent;
 	}
 }
