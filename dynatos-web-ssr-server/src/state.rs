@@ -15,6 +15,7 @@ use {
 		thread,
 		time::Instant,
 	},
+	url::Url,
 	uuid::Uuid,
 };
 
@@ -34,8 +35,9 @@ pub struct ClientStates {
 
 #[derive(Debug)]
 pub struct Inner {
-	pub clients: ClientStates,
-	pub attach:  fn(&DynatosWebCtx),
+	pub clients:  ClientStates,
+	pub attach:   fn(&DynatosWebCtx),
+	pub location: Url,
 }
 
 #[derive(Clone, Debug)]
@@ -43,16 +45,24 @@ pub struct State(pub Arc<Inner>);
 
 impl State {
 	/// Creates a new server state
-	pub fn new(attach: fn(&DynatosWebCtx)) -> Self {
+	pub fn new(attach: fn(&DynatosWebCtx), location: Url) -> Self {
 		let inner = Inner {
 			clients: ClientStates {
 				states:           Mutex::new(HashMap::new()),
 				wait_while_empty: Condvar::new(),
 			},
 			attach,
+			location,
 		};
 
 		Self(Arc::new(inner))
+	}
+
+	/// Gets the location of a path as a string
+	pub fn location(&self, path: &str) -> Result<String, AppError> {
+		let location = self.0.location.join(path).context("Unable to join path to location")?;
+
+		Ok(location.into())
 	}
 
 	/// Gets a client's context

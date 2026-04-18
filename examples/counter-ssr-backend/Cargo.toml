@@ -17,6 +17,7 @@ app-error          = { workspace = true }
 axum               = { features = ["macros"], workspace = true }
 tokio              = { features = ["full"], workspace = true }
 tracing-subscriber = { features = ["env-filter"], workspace = true }
+url                = { workspace = true }
 
 [lints]
 workspace = true

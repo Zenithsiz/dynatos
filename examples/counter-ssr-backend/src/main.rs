@@ -11,6 +11,7 @@ use {
 		time::Duration,
 	},
 	tracing_subscriber::EnvFilter,
+	url::Url,
 };
 
 #[tokio::main]
@@ -20,9 +21,12 @@ async fn main() -> Result<(), AppError> {
 		.init();
 
 	// Then build the app
+	let location = "https://localhost:8081"
+		.parse::<Url>()
+		.context("Location was an invalid url")?;
 	let app = axum::Router::new().nest(
 		"/ssr/",
-		dynatos_web_ssr_server::axum::router(counter_ssr::attach, Duration::from_secs(30)),
+		dynatos_web_ssr_server::axum::router(counter_ssr::attach, location, Duration::from_secs(30)),
 	);
 
 	let addr = SocketAddr::new(IpAddr::V4(Ipv4Addr::UNSPECIFIED), 8081);

@@ -403,6 +403,7 @@ dependencies = [
  "dynatos-web-ssr",
  "serde",
  "tracing",
+ "url",
  "uuid",
  "zutil-cloned",
 ]
@@ -502,6 +503,7 @@ dependencies = [
  "examples-counter-ssr",
  "tokio",
  "tracing-subscriber",
+ "url",
 ]
 
 [[package]]

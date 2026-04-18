@@ -18,12 +18,13 @@ use {
 		types::{EventTarget, PointerEvent},
 	},
 	std::thread,
+	url::Url,
 	uuid::Uuid,
 	zutil_cloned::cloned,
 };
 
-pub fn router(attach: fn(&DynatosWebCtx), max_alive: Duration) -> axum::Router {
-	let state = State::new(attach);
+pub fn router(attach: fn(&DynatosWebCtx), location: Url, max_alive: Duration) -> axum::Router {
+	let state = State::new(attach, location);
 
 	#[cloned(state;)]
 	thread::spawn(move || state::garbage_collect_clients(&state.0.clients, max_alive));
@@ -61,7 +62,7 @@ async fn session(
 	};
 
 	// Either create the new client, or navigate to the new location
-	let location = format!("http://localhost:8081/{path}");
+	let location = state.location(&path).context("Unable to get location")?;
 	let ctx = state
 		.create_or_navigate_client(client_id, location)
 		.context("Unable to get client")?;

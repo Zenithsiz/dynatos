@@ -14,6 +14,7 @@ axum         = { features = ["macros"], optional = true, workspace = true }
 axum-cookie  = { optional = true, workspace = true }
 serde        = { features = ["derive"], optional = true, workspace = true }
 tracing      = { optional = true, workspace = true }
+url          = { workspace = true }
 uuid         = { features = ["serde", "v4"], workspace = true }
 zutil-cloned = { optional = true, workspace = true }
 
