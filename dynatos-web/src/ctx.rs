@@ -113,9 +113,31 @@ impl DynatosWebCtx {
 		cfg_ssr_expr!(ssr = self.0.state.location(), csr = &self.0.location)
 	}
 
+	/// Returns a wait guard.
+	///
+	/// With SSR, while this guard exists, the runtime will wait for
+	/// it to be dropped asynchronously before returning a response.
+	///
+	/// With CSR, this does nothing and returns `()`.
+	#[cfg_attr(
+		feature = "csr",
+		expect(
+			clippy::missing_const_for_fn,
+			clippy::must_use_candidate,
+			reason = "`csr`-only issues"
+		)
+	)]
+	pub fn wait_guard(&self) -> WaitGuard {
+		#[cfg(feature = "ssr")]
+		self.ssr_state().wait_guard()
+	}
+
 	#[cfg(feature = "ssr")]
 	#[must_use]
 	pub fn ssr_state(&self) -> &dynatos_web_ssr::State {
 		&self.0.state
 	}
 }
+
+/// Wait guard
+type WaitGuard = cfg_ssr!(ssr = { dynatos_web_ssr::state::WaitGuard }, csr = { () },);

@@ -73,7 +73,6 @@ impl State {
 		self.document().location_ref()
 	}
 
-	#[must_use]
 	pub fn wait_guard(&self) -> WaitGuard {
 		WaitGuard::new(self.clone())
 	}
@@ -94,12 +93,12 @@ impl State {
 	}
 }
 
+#[must_use = "You must keep the wait guard alive if you want to wait"]
 pub struct WaitGuard {
 	state: State,
 }
 
 impl WaitGuard {
-	#[must_use]
 	pub fn new(state: State) -> Self {
 		*state.0.wait_guards.lock() += 1;
 		Self { state }
