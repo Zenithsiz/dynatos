@@ -3,7 +3,7 @@
 // Exports
 pub use {
 	js_sys::{self, Object, WeakRef},
-	wasm_bindgen::{self, JsCast, JsValue, closure::Closure, convert::FromWasmAbi},
+	wasm_bindgen::{self, JsCast, JsValue, convert::FromWasmAbi},
 	web_sys::{
 		self,
 		AnimationEvent,

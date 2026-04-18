@@ -3,6 +3,7 @@
 // Features
 #![feature(decl_macro, macro_metavar_expr, trivial_bounds)]
 #![cfg_attr(feature = "ssr", feature(nonpoison_mutex, sync_nonpoison))]
+#![cfg_attr(feature = "csr", feature(unsize))]
 
 // Modules
 mod ctx;
@@ -10,6 +11,7 @@ mod event_listener;
 pub mod html;
 mod object_attach_value;
 pub mod parse;
+mod util;
 
 // Exports
 pub use self::{

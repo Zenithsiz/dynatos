@@ -33,19 +33,13 @@ pub impl EventTarget {
 				.add_event_listener_with_callback(ctx.ssr_state(), event_type, f)
 				.expect("Unable to add event listener"),
 			csr = {
-				use wasm_bindgen::JsCast;
+				use crate::util;
 
 				let _: &DynatosWebCtx = ctx;
 
-				// Build the closure
-				let closure = wasm_bindgen::closure::Closure::<dyn Fn(Ev)>::new(f)
-					.into_js_value()
-					.dyn_into::<js_sys::Function>()
-					.expect("Should be a valid function");
-
 				// Then add it
 				// TODO: Can this fail? On MDN, nothing seems to mention it can throw.
-				self.add_event_listener_with_callback(event_type, &closure)
+				self.add_event_listener_with_callback(event_type, &util::csr::js_fn::<dyn Fn(Ev)>(f))
 					.expect("Unable to add event listener");
 			}
 		);
