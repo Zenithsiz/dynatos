@@ -17,6 +17,7 @@ impl Event {
 decl_events! {
 	new;
 
+	AnimationEvent,
 	ClipboardEvent,
 	DragEvent,
 	FocusEvent,

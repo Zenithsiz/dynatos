@@ -11,6 +11,7 @@ dynatos-web-ssr     = { default-features = false, optional = true, path = "../dy
 js-sys = { optional = true, workspace = true }
 wasm-bindgen = { optional = true, workspace = true }
 web-sys = { features = [
+	"AnimationEvent",
 	"ClipboardEvent",
 	"Comment",
 	"CssStyleDeclaration",

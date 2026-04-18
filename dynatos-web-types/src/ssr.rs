@@ -2,6 +2,7 @@
 
 // Exports
 pub use dynatos_web_ssr::{
+	AnimationEvent,
 	ClipboardEvent,
 	Comment,
 	Document,

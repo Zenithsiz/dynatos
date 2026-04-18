@@ -32,6 +32,7 @@ pub use self::{
 	document::Document,
 	element::Element,
 	event::{
+		AnimationEvent,
 		ClipboardEvent,
 		DragEvent,
 		Event,

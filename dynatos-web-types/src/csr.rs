@@ -6,6 +6,7 @@ pub use {
 	wasm_bindgen::{self, JsCast, JsValue, closure::Closure, convert::FromWasmAbi},
 	web_sys::{
 		self,
+		AnimationEvent,
 		ClipboardEvent,
 		Comment,
 		Document,

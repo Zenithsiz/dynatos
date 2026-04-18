@@ -128,6 +128,7 @@ mod ev {
 	use {
 		super::EventListener,
 		crate::types::{
+			AnimationEvent,
 			ClipboardEvent,
 			DragEvent,
 			Event,
@@ -177,5 +178,6 @@ mod ev {
 		pointerdown: PointerEvent;
 		pointerup: PointerEvent;
 		pointerout: PointerEvent;
+		animationend: AnimationEvent;
 	}
 }
