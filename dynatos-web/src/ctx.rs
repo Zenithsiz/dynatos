@@ -118,7 +118,7 @@ impl DynatosWebCtx {
 	/// With SSR, while this guard exists, the runtime will wait for
 	/// it to be dropped asynchronously before returning a response.
 	///
-	/// With CSR, this does nothing and returns `()`.
+	/// With CSR, this does nothing.
 	#[cfg_attr(
 		feature = "csr",
 		expect(
@@ -128,8 +128,7 @@ impl DynatosWebCtx {
 		)
 	)]
 	pub fn wait_guard(&self) -> WaitGuard {
-		#[cfg(feature = "ssr")]
-		self.ssr_state().wait_guard()
+		cfg_ssr_expr!(ssr = self.ssr_state().wait_guard(), csr = WaitGuard(()))
 	}
 
 	#[cfg(feature = "ssr")]
@@ -139,5 +138,13 @@ impl DynatosWebCtx {
 	}
 }
 
-/// Wait guard
-type WaitGuard = cfg_ssr!(ssr = { dynatos_web_ssr::state::WaitGuard }, csr = { () },);
+cfg_ssr! {
+	ssr = {
+		/// Wait guard
+		pub type WaitGuard = dynatos_web_ssr::state::WaitGuard;
+	},
+	csr = {
+		/// Wait guard
+		pub struct WaitGuard(());
+	},
+}
