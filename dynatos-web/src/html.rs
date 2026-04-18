@@ -32,25 +32,20 @@ macro decl_elements(
 	$(
 		#[must_use]
 		pub fn $fn_name(ctx: &DynatosWebCtx) -> or_default![HtmlElement, $( $ElTy )?] {
-			or_default! {
-				{
-					let el_name = stringify!($fn_name);
-					let element = ctx.document().create_element_ns(Some(crate::HTML_NAMESPACE), el_name)
-						.unwrap_or_else(|err| self::on_create_fail(&err, el_name));
+			let el_name = stringify!($fn_name);
+			let element = ctx.document().create_element_ns(Some(crate::HTML_NAMESPACE), el_name)
+				.unwrap_or_else(|err| self::on_create_fail(&err, el_name));
 
-					cfg_ssr_expr!(
-						ssr = {
-							use dynatos_inheritance::Downcast;
-							element.downcast()
-						},
-						csr = {
-							use wasm_bindgen::JsCast;
-							element.dyn_into()
-						},
-					).unwrap_or_else(|err| self::on_cast_fail(&err, el_name))
+			cfg_ssr_expr!(
+				ssr = {
+					use dynatos_inheritance::Downcast;
+					element.downcast()
 				},
-				//$( { Ok(<$ElTy>::new()) } )?
-			}
+				csr = {
+					use wasm_bindgen::JsCast;
+					element.dyn_into()
+				},
+			).unwrap_or_else(|err| self::on_cast_fail(&err, el_name))
 		}
 	)*
 }
