@@ -19,9 +19,9 @@ checksum = "7f202df86484c868dbad7eaa557ef785d5c66295e41b460ef922eca0723b842c"
 
 [[package]]
 name = "app-error"
-version = "0.1.0"
+version = "0.1.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "32a03f14a783259cead5d653e52213b378718e63d61662e6e883de1d50e9e39d"
+checksum = "a10e1511bc72bb12433d6715e4d19fe715438f6ef7d18e4b744a2632f4915180"
 dependencies = [
  "itertools",
 ]
