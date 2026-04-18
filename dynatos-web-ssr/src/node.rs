@@ -98,15 +98,14 @@ impl Node {
 		Ok(())
 	}
 
-	pub fn remove_child(&self, child: &Self) -> Result<(), WebError> {
+	pub fn remove_child(&self, child: &Self) -> Result<Self, WebError> {
 		let mut children = self.fields().children.lock();
 		let idx = children
 			.iter()
 			.position(|cur_child| cur_child == child)
 			.context("Child didn't exist")?;
-		children.remove(idx);
 
-		Ok(())
+		Ok(children.remove(idx))
 	}
 
 	pub fn replace_child(&self, new_child: &Self, old_child: &Self) -> Result<(), WebError> {
