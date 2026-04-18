@@ -6,8 +6,10 @@ use {
 	core::ops::Deref,
 	dynatos_reactive::{Derived, Memo, Signal, SignalWith, WithDefault, derived::DerivedRun},
 	dynatos_sync_types::SyncBounds,
-	dynatos_web::DynatosWebCtx,
-	dynatos_web::types::{Element, HtmlElement, Node},
+	dynatos_web::{
+		DynatosWebCtx,
+		types::{Element, HtmlElement, Node},
+	},
 };
 
 /// Extension trait to add a reactive child to an node

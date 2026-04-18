@@ -6,8 +6,11 @@ use {
 	dynatos_reactive::Effect,
 	dynatos_sync_types::SyncBounds,
 	dynatos_util::TryOrReturnExt,
-	dynatos_web::{ObjectRemoveProp, ObjectSetProp},
-	dynatos_web::types::{Object, WeakRef},
+	dynatos_web::{
+		ObjectRemoveProp,
+		ObjectSetProp,
+		types::{Object, WeakRef},
+	},
 };
 
 /// Extension trait to add reactive prop to an object

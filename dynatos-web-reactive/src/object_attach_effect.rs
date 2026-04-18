@@ -3,8 +3,11 @@
 // Imports
 use {
 	dynatos_reactive::{Effect, EffectRun},
-	dynatos_web::{ObjectGet, ObjectSetProp},
-	dynatos_web::types::{Object, cfg_ssr_expr},
+	dynatos_web::{
+		ObjectGet,
+		ObjectSetProp,
+		types::{Object, cfg_ssr_expr},
+	},
 };
 
 /// Extension trait to add an effect to an object

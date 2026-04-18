@@ -4,8 +4,12 @@
 use {
 	crate::Location,
 	dynatos_sync_types::SyncBounds,
-	dynatos_web::{DynatosWebCtx, ElementWithAttr, html},
-	dynatos_web::types::{HtmlElement, cfg_ssr_expr},
+	dynatos_web::{
+		DynatosWebCtx,
+		ElementWithAttr,
+		html,
+		types::{HtmlElement, cfg_ssr_expr},
+	},
 };
 
 /// Creates a reactive anchor element.

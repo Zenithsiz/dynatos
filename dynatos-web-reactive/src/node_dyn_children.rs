@@ -7,8 +7,11 @@ use {
 	dynatos_reactive::{Derived, Effect, Memo, Signal, SignalWith, WithDefault, derived::DerivedRun},
 	dynatos_sync_types::{IMut, SyncBounds},
 	dynatos_util::TryOrReturnExt,
-	dynatos_web::{DynatosWebCtx, html},
-	dynatos_web::types::{Element, HtmlElement, Node, WeakRef},
+	dynatos_web::{
+		DynatosWebCtx,
+		html,
+		types::{Element, HtmlElement, Node, WeakRef},
+	},
 };
 
 /// Extension trait to add reactive children to an node

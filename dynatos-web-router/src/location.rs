@@ -4,8 +4,7 @@
 use {
 	core::ops::{Deref, DerefMut},
 	dynatos_reactive::{Signal, SignalBorrow, SignalBorrowMut, signal},
-	dynatos_web::{DynatosWebCtx, EventTargetAddListener, ev},
-	dynatos_web::types::JsValue,
+	dynatos_web::{DynatosWebCtx, EventTargetAddListener, ev, types::JsValue},
 	url::Url,
 	zutil_cloned::cloned,
 };
