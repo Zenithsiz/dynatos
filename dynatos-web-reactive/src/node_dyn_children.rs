@@ -86,11 +86,11 @@ pub impl Node {
 			}
 
 			for new_node in new_nodes {
-				let last_prev_child = prev_children.last();
+				let last_prev_child = prev_children.last().and_then(Node::next_sibling);
 
-				node.insert_before(&new_node, last_prev_child)
+				node.insert_before(&new_node, last_prev_child.as_ref())
 					.expect("Unable to add reactive child");
-				self::trace_add_node(&new_node, last_prev_child);
+				self::trace_add_node(&new_node, last_prev_child.as_ref());
 				prev_children.push(new_node);
 			}
 		})
