@@ -552,5 +552,19 @@ pub impl Object {
 	}
 }
 
+#[extend::ext(name = WindowAnimationFrame)]
+#[cfg(feature = "csr")]
+pub impl web_sys::Window {
+	/// Requests an animation frame with `f` as the callback
+	fn request_anim_frame(&self, f: impl FnOnce(f64) + 'static) -> i32 {
+		let mut f = Some(f);
+		// TODO: Nothing in MDN says this can fail, can it?
+		self.request_animation_frame(&util::csr::js_fn(move |time| {
+			f.take().expect("Animation frame called twice")(time);
+		}))
+		.expect("Unable to request animation frame")
+	}
+}
+
 /// Html namespace
 const HTML_NAMESPACE: &str = "http://www.w3.org/1999/xhtml";
