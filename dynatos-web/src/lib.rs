@@ -564,6 +564,24 @@ pub impl web_sys::Window {
 		}))
 		.expect("Unable to request animation frame")
 	}
+
+	/// Requests several animation frames with `f` as the callback after `len` frames.
+	///
+	/// # Length
+	/// Calling this with `len == 0` will have the same effect as [`request_anim_frame`](WindowAnimationFrame::request_anim_frame).
+	fn request_anim_frame_after(&self, len: usize, f: impl FnOnce() + 'static) {
+		fn inner(window: &web_sys::Window, cur_frame: usize, len: usize, f: impl FnOnce() + 'static) {
+			let f = {
+				let window = window.clone();
+				move |_| match cur_frame == len {
+					true => f(),
+					false => inner(&window, cur_frame + 1, len, f),
+				}
+			};
+			window.request_anim_frame(f);
+		}
+		inner(self, 0, len, f);
+	}
 }
 
 /// Html namespace
