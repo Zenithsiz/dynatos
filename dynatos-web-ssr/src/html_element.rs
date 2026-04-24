@@ -46,12 +46,13 @@ impl HtmlElement {
 decl_html_elements! {
 	new;
 
-	HtmlCanvasElement = "canvas",
-	HtmlInputElement = "input",
-	HtmlImageElement = "image",
-	HtmlTextAreaElement = "textarea",
 	HtmlBodyElement = "body",
+	HtmlCanvasElement = "canvas",
+	HtmlDialogElement = "dialog",
 	HtmlHeadElement = "head",
+	HtmlImageElement = "image",
+	HtmlInputElement = "input",
+	HtmlTextAreaElement = "textarea",
 }
 
 macro decl_html_elements($new:ident; $($Name:ident = $tag:literal),* $(,)?) {

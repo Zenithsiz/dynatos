@@ -6,6 +6,7 @@ use crate::{
 	types::{
 		Element,
 		HtmlCanvasElement,
+		HtmlDialogElement,
 		HtmlElement,
 		HtmlImageElement,
 		HtmlInputElement,
@@ -100,7 +101,7 @@ decl_elements! {
 	del,
 	details,
 	dfn,
-	dialog,
+	dialog: HtmlDialogElement,
 	dir,
 	div,
 	dl,

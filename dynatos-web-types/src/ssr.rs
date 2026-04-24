@@ -14,6 +14,7 @@ pub use dynatos_web_ssr::{
 	History,
 	HtmlBodyElement,
 	HtmlCanvasElement,
+	HtmlDialogElement,
 	HtmlElement,
 	HtmlHeadElement,
 	HtmlImageElement,

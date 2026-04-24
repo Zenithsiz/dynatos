@@ -18,6 +18,7 @@ pub use {
 		History,
 		HtmlBodyElement,
 		HtmlCanvasElement,
+		HtmlDialogElement,
 		HtmlElement,
 		HtmlHeadElement,
 		HtmlImageElement,
