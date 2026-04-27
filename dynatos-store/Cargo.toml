@@ -1,0 +1,15 @@
+[package]
+name    = "dynatos-store"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+
+dynatos-sync-types = { path = "../dynatos-sync-types" }
+dynatos-util       = { path = "../dynatos-util" }
+
+[features]
+sync = ["dynatos-sync-types/sync"]
+
+[lints]
+workspace = true

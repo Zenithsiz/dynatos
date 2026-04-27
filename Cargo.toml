@@ -7,6 +7,7 @@ members = [
 	"dynatos-inheritance-macros",
 	"dynatos-loadable",
 	"dynatos-reactive",
+	"dynatos-store",
 	"dynatos-sync-types",
 	"dynatos-util",
 	"dynatos-web",

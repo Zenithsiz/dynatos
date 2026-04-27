@@ -285,6 +285,14 @@ dependencies = [
 ]
 
 [[package]]
+name = "dynatos-store"
+version = "0.1.0"
+dependencies = [
+ "dynatos-sync-types",
+ "dynatos-util",
+]
+
+[[package]]
 name = "dynatos-sync-types"
 version = "0.1.0"
 dependencies = [
