@@ -40,9 +40,9 @@ impl<'a, T: 'static> Handle<'a, T> {
 	#[must_use]
 	pub fn get(&self) -> T
 	where
-		T: Copy,
+		T: Clone,
 	{
-		self.with(|value| *value)
+		self.with(T::clone)
 	}
 
 	/// Uses the value from this handle
