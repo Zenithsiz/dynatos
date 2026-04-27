@@ -37,7 +37,7 @@ fn run() -> Result<(), AppError> {
 	let ctx = DynatosWebCtx::new().expect("Unable to create dynatos web context");
 
 	let location = LocationSignal::new(&ctx);
-	let _location = ctx.store().provide(location);
+	let _location = ctx.store().push(location);
 
 	ctx.body().with_child(self::page(&ctx));
 

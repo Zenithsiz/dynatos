@@ -30,8 +30,8 @@ impl ValueStore {
 		}
 	}
 
-	/// Provides a value of `T` to this store.
-	pub fn provide<T>(&self, value: T) -> Handle<'_, T>
+	/// Pushes a value of `T` to this store
+	pub fn push<T>(&self, value: T) -> Handle<'_, T>
 	where
 		T: Any + SyncBounds,
 	{

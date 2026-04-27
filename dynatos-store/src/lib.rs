@@ -21,7 +21,7 @@ mod tests {
 	fn simple() {
 		let store = ValueStore::new();
 
-		let handle = store.provide::<usize>(5);
+		let handle = store.push::<usize>(5);
 
 		assert_eq!(store.get::<usize>(), Some(5));
 		assert_eq!(handle.take(), 5);
@@ -32,8 +32,8 @@ mod tests {
 	fn stacked() {
 		let store = ValueStore::new();
 
-		let handle1 = store.provide::<usize>(5);
-		let handle2 = store.provide::<usize>(4);
+		let handle1 = store.push::<usize>(5);
+		let handle2 = store.push::<usize>(4);
 
 		assert_eq!(store.get::<usize>(), Some(4));
 		assert_eq!(handle2.take(), 4);
@@ -46,8 +46,8 @@ mod tests {
 	fn stacked_swapped() {
 		let store = ValueStore::new();
 
-		let handle1 = store.provide::<usize>(5);
-		let handle2 = store.provide::<usize>(4);
+		let handle1 = store.push::<usize>(5);
+		let handle2 = store.push::<usize>(4);
 
 		assert_eq!(store.get::<usize>(), Some(4));
 		assert_eq!(handle1.take(), 5);
@@ -60,9 +60,9 @@ mod tests {
 	fn stacked_triple() {
 		let store = ValueStore::new();
 
-		let handle1 = store.provide::<usize>(5);
-		let handle2 = store.provide::<usize>(4);
-		let handle3 = store.provide::<usize>(3);
+		let handle1 = store.push::<usize>(5);
+		let handle2 = store.push::<usize>(4);
+		let handle3 = store.push::<usize>(3);
 
 		assert_eq!(store.get::<usize>(), Some(3));
 		assert_eq!(handle2.take(), 4);
@@ -76,8 +76,8 @@ mod tests {
 	fn opaque() {
 		let store = ValueStore::new();
 
-		let handle1 = store.provide::<usize>(5).into_opaque();
-		let handle2 = store.provide::<usize>(4).into_opaque();
+		let handle1 = store.push::<usize>(5).into_opaque();
+		let handle2 = store.push::<usize>(4).into_opaque();
 
 		assert_eq!(store.get::<usize>(), Some(4));
 		assert_eq!(*handle2.take().downcast::<usize>().expect("Handle had wrong type"), 4);
@@ -91,7 +91,7 @@ mod tests {
 		let store = ValueStore::new();
 
 		let handles_len = 100;
-		let mut handles = (0..handles_len).map(|idx| store.provide(idx)).collect::<Vec<_>>();
+		let mut handles = (0..handles_len).map(|idx| store.push(idx)).collect::<Vec<_>>();
 
 		for value in (0..handles_len).rev() {
 			assert_eq!(store.get::<usize>(), Some(value));
@@ -126,7 +126,7 @@ mod tests {
 	fn access_get(bencher: &mut Bencher) {
 		let store = ValueStore::new();
 
-		let _handle = store.provide::<AccessTy>(ACCESS_TY_DEFAULT);
+		let _handle = store.push::<AccessTy>(ACCESS_TY_DEFAULT);
 
 		bencher.iter(|| {
 			for _ in 0..test::black_box(REPEAT_COUNT) {
@@ -140,7 +140,7 @@ mod tests {
 	fn access_expect(bencher: &mut Bencher) {
 		let store = ValueStore::new();
 
-		let _handle = store.provide::<AccessTy>(ACCESS_TY_DEFAULT);
+		let _handle = store.push::<AccessTy>(ACCESS_TY_DEFAULT);
 
 		bencher.iter(|| {
 			for _ in 0..test::black_box(REPEAT_COUNT) {
@@ -154,7 +154,7 @@ mod tests {
 	fn access_with(bencher: &mut Bencher) {
 		let store = ValueStore::new();
 
-		let _handle = store.provide::<AccessTy>(ACCESS_TY_DEFAULT);
+		let _handle = store.push::<AccessTy>(ACCESS_TY_DEFAULT);
 
 		bencher.iter(|| {
 			for _ in 0..test::black_box(REPEAT_COUNT) {
@@ -167,7 +167,7 @@ mod tests {
 	fn access_with_expect(bencher: &mut Bencher) {
 		let store = ValueStore::new();
 
-		let _handle = store.provide::<AccessTy>(ACCESS_TY_DEFAULT);
+		let _handle = store.push::<AccessTy>(ACCESS_TY_DEFAULT);
 
 		bencher.iter(|| {
 			for _ in 0..test::black_box(REPEAT_COUNT) {
@@ -186,7 +186,7 @@ mod tests {
 				#[derive(Clone, Copy)]
 				#[expect(dead_code, reason = "Used only for benchmarking")]
 				struct $T(usize);
-				let _handle = store.provide::<$T>( $T(0) );
+				let _handle = store.push::<$T>( $T(0) );
 			)*
 		}
 
