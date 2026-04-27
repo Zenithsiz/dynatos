@@ -37,7 +37,7 @@ fn run() -> Result<(), AppError> {
 	let ctx = DynatosWebCtx::new().expect("Unable to create dynatos web context");
 
 	let location = Location::new(&ctx);
-	let _location = ctx.store().provide(location.clone());
+	let _location = ctx.store().provide(location);
 
 	ctx.body().with_child(
 		html::div(&ctx)
@@ -49,11 +49,11 @@ fn run() -> Result<(), AppError> {
 			)
 			.with_children([
 				html::hr(&ctx),
-				dynatos_web_router::anchor(&ctx, location.clone(), "/test").with_text("Test"),
+				dynatos_web_router::anchor(&ctx, "/test").with_text("Test"),
 				html::br(&ctx),
-				dynatos_web_router::anchor(&ctx, location.clone(), "/cached").with_text("Cached"),
+				dynatos_web_router::anchor(&ctx, "/cached").with_text("Cached"),
 				html::br(&ctx),
-				dynatos_web_router::anchor(&ctx, location, "/empty").with_text("Empty"),
+				dynatos_web_router::anchor(&ctx, "/empty").with_text("Empty"),
 			]),
 	);
 

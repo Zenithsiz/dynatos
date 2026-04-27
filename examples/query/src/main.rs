@@ -49,17 +49,17 @@ fn page(ctx: &DynatosWebCtx) -> web_sys::HtmlElement {
 
 	// TODO: If we add `.with_loadable_default()`, use it again in this example.
 	let query = SingleQuery::<i32>::new(location.clone(), "a");
-	let query = QuerySignal::new(location.clone(), query);
+	let query = QuerySignal::new(location, query);
 
 	html::div(ctx).with_children([
 		#[cloned(query)]
 		html::p(ctx).with_dyn_text(move || format!("{:?}", query.get_cloned())),
 		html::hr(ctx),
-		dynatos_web_router::anchor(ctx, location.clone(), "/?a=5").with_text("5"),
+		dynatos_web_router::anchor(ctx, "/?a=5").with_text("5"),
 		html::br(ctx),
-		dynatos_web_router::anchor(ctx, location.clone(), "/?a=7").with_text("7"),
+		dynatos_web_router::anchor(ctx, "/?a=7").with_text("7"),
 		html::br(ctx),
-		dynatos_web_router::anchor(ctx, location, "/?a=abc").with_text("abc"),
+		dynatos_web_router::anchor(ctx, "/?a=abc").with_text("abc"),
 		html::br(ctx),
 		#[cloned(query)]
 		html::button(ctx)

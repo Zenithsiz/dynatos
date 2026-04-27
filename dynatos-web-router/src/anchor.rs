@@ -2,7 +2,6 @@
 
 // Imports
 use {
-	crate::Location,
 	dynatos_sync_types::SyncBounds,
 	dynatos_web::{
 		DynatosWebCtx,
@@ -14,12 +13,8 @@ use {
 
 /// Creates a reactive anchor element.
 ///
-/// Expects a context of type [`Location`](crate::Location).
-#[cfg_attr(
-	feature = "ssr",
-	expect(clippy::needless_pass_by_value, reason = "Necessary for `csr`")
-)]
-pub fn anchor<U>(ctx: &DynatosWebCtx, location: Location, new_location: U) -> HtmlElement
+/// Expects a value of type [`Location`](crate::Location) in the context store.
+pub fn anchor<U>(ctx: &DynatosWebCtx, new_location: U) -> HtmlElement
 where
 	U: SyncBounds + AsRef<str> + 'static,
 {
@@ -28,15 +23,17 @@ where
 	cfg_ssr_expr!(
 		ssr = {
 			let _: &DynatosWebCtx = ctx;
-			let _: Location = location;
 
 			link
 		},
 		csr = {
 			use {
+				crate::Location,
 				dynatos_reactive::{SignalBorrow, SignalSet},
 				dynatos_web::{EventTargetWithListener, ev},
 			};
+
+			let location = ctx.store().expect_cloned::<Location>();
 
 			link.with_event_listener::<ev!(click)>(ctx, move |ev| {
 				ev.prevent_default();
