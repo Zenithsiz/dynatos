@@ -30,6 +30,16 @@ impl ValueStore {
 		}
 	}
 
+	/// Sets a value of `T` on this store.
+	///
+	/// This is equivalent to `push(value).forget()`
+	pub fn set<T>(&self, value: T)
+	where
+		T: Any + SyncBounds,
+	{
+		self.push(value).forget();
+	}
+
 	/// Pushes a value of `T` to this store
 	pub fn push<T>(&self, value: T) -> Handle<'_, T>
 	where
