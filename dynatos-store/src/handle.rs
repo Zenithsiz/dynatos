@@ -56,6 +56,11 @@ impl<'a, T: 'static> Handle<'a, T> {
 		})
 	}
 
+	/// Forgets the value in this handle
+	pub const fn forget(self) {
+		mem::forget(self);
+	}
+
 	/// Takes the value in this handle
 	#[must_use = "If you only wish to drop the value, consider dropping the handle"]
 	pub fn take(self) -> T {
