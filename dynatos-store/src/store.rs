@@ -48,7 +48,7 @@ impl ValueStore {
 
 	/// Gets a value of `T` from this store
 	#[must_use]
-	pub fn get<T>(&self) -> Option<T>
+	pub fn try_get<T>(&self) -> Option<T>
 	where
 		T: Clone + 'static,
 	{
@@ -59,14 +59,17 @@ impl ValueStore {
 		self.with::<T, _, _>(|value| value.clone())
 	}
 
-	/// Expects a value of `T` from this store
+	/// Gets a value of `T` from this store.
+	///
+	/// # Panics
+	/// Panics if the value does not exist
 	#[must_use]
 	#[track_caller]
-	pub fn expect<T>(&self) -> T
+	pub fn get<T>(&self) -> T
 	where
 		T: Clone + 'static,
 	{
-		self.get::<T>().unwrap_or_else(self::on_missing_value::<T, _>)
+		self.try_get::<T>().unwrap_or_else(self::on_missing_value::<T, _>)
 	}
 
 	/// Uses a value of `T` from this store

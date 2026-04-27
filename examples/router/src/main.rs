@@ -65,7 +65,7 @@ static ROUTE_CACHED: OnceCell<web_sys::HtmlElement> = OnceCell::new();
 
 
 fn render_route(ctx: &DynatosWebCtx) -> Option<web_sys::HtmlElement> {
-	let location = ctx.store().expect::<LocationSignal>().get_cloned();
+	let location = ctx.store().get::<LocationSignal>().get_cloned();
 
 	tracing::info!(%location, "Rendering route");
 	match location.path().trim_end_matches('/') {

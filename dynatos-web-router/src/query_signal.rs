@@ -69,7 +69,7 @@ impl<T: QueryParse> QuerySignal<T> {
 
 		// Note: This access must skip dependencies to ensure that the query signal itself
 		//       doesn't change whenever the location changes, and only it's value does.
-		let location = ctx.store().expect::<LocationSignal>();
+		let location = ctx.store().get::<LocationSignal>();
 		let location_path = RcPtr::<str>::from(location.borrow_no_dep().path());
 
 		let inner = Signal::new(None);
@@ -311,7 +311,7 @@ type QueriesFn = impl Fn() -> Vec<String>;
 
 #[define_opaque(QueriesFn)]
 fn queries_memo(ctx: &DynatosWebCtx, key: RcPtr<str>) -> Memo<Vec<String>, QueriesFn> {
-	let location = ctx.store().expect::<LocationSignal>();
+	let location = ctx.store().get::<LocationSignal>();
 	Memo::new(move || {
 		location
 			.borrow()

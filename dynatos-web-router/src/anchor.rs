@@ -33,7 +33,7 @@ where
 				dynatos_web::{EventTargetWithListener, ev},
 			};
 
-			let location = ctx.store().expect::<LocationSignal>();
+			let location = ctx.store().get::<LocationSignal>();
 
 			link.with_event_listener::<ev!(click)>(ctx, move |ev| {
 				ev.prevent_default();

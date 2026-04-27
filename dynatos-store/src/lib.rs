@@ -23,9 +23,9 @@ mod tests {
 
 		let handle = store.push::<usize>(5);
 
-		assert_eq!(store.get::<usize>(), Some(5));
+		assert_eq!(store.try_get::<usize>(), Some(5));
 		assert_eq!(handle.take(), 5);
-		assert_eq!(store.get::<usize>(), None);
+		assert_eq!(store.try_get::<usize>(), None);
 	}
 
 	#[test]
@@ -35,11 +35,11 @@ mod tests {
 		let handle1 = store.push::<usize>(5);
 		let handle2 = store.push::<usize>(4);
 
-		assert_eq!(store.get::<usize>(), Some(4));
+		assert_eq!(store.try_get::<usize>(), Some(4));
 		assert_eq!(handle2.take(), 4);
-		assert_eq!(store.get::<usize>(), Some(5));
+		assert_eq!(store.try_get::<usize>(), Some(5));
 		assert_eq!(handle1.take(), 5);
-		assert_eq!(store.get::<usize>(), None);
+		assert_eq!(store.try_get::<usize>(), None);
 	}
 
 	#[test]
@@ -49,11 +49,11 @@ mod tests {
 		let handle1 = store.push::<usize>(5);
 		let handle2 = store.push::<usize>(4);
 
-		assert_eq!(store.get::<usize>(), Some(4));
+		assert_eq!(store.try_get::<usize>(), Some(4));
 		assert_eq!(handle1.take(), 5);
-		assert_eq!(store.get::<usize>(), Some(4));
+		assert_eq!(store.try_get::<usize>(), Some(4));
 		assert_eq!(handle2.take(), 4);
-		assert_eq!(store.get::<usize>(), None);
+		assert_eq!(store.try_get::<usize>(), None);
 	}
 
 	#[test]
@@ -64,12 +64,12 @@ mod tests {
 		let handle2 = store.push::<usize>(4);
 		let handle3 = store.push::<usize>(3);
 
-		assert_eq!(store.get::<usize>(), Some(3));
+		assert_eq!(store.try_get::<usize>(), Some(3));
 		assert_eq!(handle2.take(), 4);
 		assert_eq!(handle3.take(), 3);
-		assert_eq!(store.get::<usize>(), Some(5));
+		assert_eq!(store.try_get::<usize>(), Some(5));
 		assert_eq!(handle1.take(), 5);
-		assert_eq!(store.get::<usize>(), None);
+		assert_eq!(store.try_get::<usize>(), None);
 	}
 
 	#[test]
@@ -79,11 +79,11 @@ mod tests {
 		let handle1 = store.push::<usize>(5).into_opaque();
 		let handle2 = store.push::<usize>(4).into_opaque();
 
-		assert_eq!(store.get::<usize>(), Some(4));
+		assert_eq!(store.try_get::<usize>(), Some(4));
 		assert_eq!(*handle2.take().downcast::<usize>().expect("Handle had wrong type"), 4);
-		assert_eq!(store.get::<usize>(), Some(5));
+		assert_eq!(store.try_get::<usize>(), Some(5));
 		assert_eq!(*handle1.take().downcast::<usize>().expect("Handle had wrong type"), 5);
-		assert_eq!(store.get::<usize>(), None);
+		assert_eq!(store.try_get::<usize>(), None);
 	}
 
 	#[test]
@@ -94,13 +94,13 @@ mod tests {
 		let mut handles = (0..handles_len).map(|idx| store.push(idx)).collect::<Vec<_>>();
 
 		for value in (0..handles_len).rev() {
-			assert_eq!(store.get::<usize>(), Some(value));
+			assert_eq!(store.try_get::<usize>(), Some(value));
 
 			let handle = handles.pop().expect("Should have handle");
 			assert_eq!(handle.get(), value);
 			assert_eq!(handle.take(), value);
 		}
-		assert_eq!(store.get::<usize>(), None);
+		assert_eq!(store.try_get::<usize>(), None);
 	}
 
 	// Type and value to test for the accesses
@@ -130,7 +130,7 @@ mod tests {
 
 		bencher.iter(|| {
 			for _ in 0..test::black_box(REPEAT_COUNT) {
-				let value = store.get::<AccessTy>();
+				let value = store.try_get::<AccessTy>();
 				test::black_box(value);
 			}
 		});
@@ -144,7 +144,7 @@ mod tests {
 
 		bencher.iter(|| {
 			for _ in 0..test::black_box(REPEAT_COUNT) {
-				let value = store.expect::<AccessTy>();
+				let value = store.get::<AccessTy>();
 				test::black_box(value);
 			}
 		});
