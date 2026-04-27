@@ -123,7 +123,7 @@ impl<T: FromStr<Err: StdError> + ToString> QueryWrite<Option<&'_ T>> for SingleQ
 			None => self.queries.update_no_run(vec![]),
 		}
 
-		let location = self.ctx.store().expect_cloned::<LocationSignal>();
+		let location = self.ctx.store().expect::<LocationSignal>();
 		let mut location = location.borrow_mut();
 		let mut added_query = false;
 		let mut queries = vec![];

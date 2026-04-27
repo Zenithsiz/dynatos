@@ -103,7 +103,7 @@ impl<T: FromStr<Err: StdError> + ToString> QueryWrite<&[T]> for MultiQuery<T> {
 		let _suppress_queries = self.queries.suppress();
 		self.queries.update_no_run(new_value.iter().map(T::to_string).collect());
 
-		let location = self.ctx.store().expect_cloned::<LocationSignal>();
+		let location = self.ctx.store().expect::<LocationSignal>();
 		let mut location = location.borrow_mut();
 		let mut added_query = false;
 		let mut queries = vec![];
