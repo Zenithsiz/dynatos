@@ -37,14 +37,15 @@ fn run() -> Result<(), AppError> {
 	let ctx = DynatosWebCtx::new().expect("Unable to create dynatos web context");
 
 	let location = Location::new(&ctx);
+	let _location = ctx.store().provide(location.clone());
 
 	ctx.body().with_child(
 		html::div(&ctx)
 			.with_children([html::p(&ctx).with_text("Header"), html::hr(&ctx)])
 			.with_dyn_children(
 				&ctx,
-				#[cloned(ctx, location)]
-				move || self::render_route(&ctx, &location),
+				#[cloned(ctx)]
+				move || self::render_route(&ctx),
 			)
 			.with_children([
 				html::hr(&ctx),
@@ -63,8 +64,8 @@ fn run() -> Result<(), AppError> {
 static ROUTE_CACHED: OnceCell<web_sys::HtmlElement> = OnceCell::new();
 
 
-fn render_route(ctx: &DynatosWebCtx, location: &Location) -> Option<web_sys::HtmlElement> {
-	let location = location.get_cloned();
+fn render_route(ctx: &DynatosWebCtx) -> Option<web_sys::HtmlElement> {
+	let location = ctx.store().expect_cloned::<Location>().get_cloned();
 
 	tracing::info!(%location, "Rendering route");
 	match location.path().trim_end_matches('/') {

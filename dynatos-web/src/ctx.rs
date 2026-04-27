@@ -4,19 +4,27 @@
 use {
 	crate::types::{Document, History, HtmlBodyElement, HtmlHeadElement, Location, Window, cfg_ssr, cfg_ssr_expr},
 	app_error::AppError,
+	dynatos_store::ValueStore,
 	dynatos_sync_types::RcPtr,
 };
 
+#[derive(Debug)]
+struct Shared {
+	store: ValueStore,
+}
+
 cfg_ssr! {
 	ssr = {
-		#[derive(Clone, Debug)]
+		#[derive(Debug)]
 		struct Inner {
+			shared: Shared,
 			state: dynatos_web_ssr::State,
 		}
 	},
 	csr = {
-		#[derive(Clone, Debug)]
+		#[derive(Debug)]
 		struct Inner {
+			shared: Shared,
 			window:   web_sys::Window,
 			document: web_sys::Document,
 			head:     web_sys::HtmlHeadElement,
@@ -40,8 +48,14 @@ pub struct DynatosWebCtx(RcPtr<Inner>);
 impl DynatosWebCtx {
 	/// Creates a new context type
 	pub fn new(#[cfg(feature = "ssr")] ssr_state: dynatos_web_ssr::State) -> Result<Self, AppError> {
+		let shared = Shared {
+			store: ValueStore::new(),
+		};
 		let inner = cfg_ssr_expr!(
-			ssr = Inner { state: ssr_state },
+			ssr = Inner {
+				shared,
+				state: ssr_state
+			},
 			csr = {
 				use {
 					crate::JsResultContext,
@@ -64,6 +78,7 @@ impl DynatosWebCtx {
 				let location = document.location().context("Missing location")?;
 
 				Inner {
+					shared,
 					window,
 					document,
 					head,
@@ -75,6 +90,12 @@ impl DynatosWebCtx {
 		);
 
 		Ok(Self(RcPtr::new(inner)))
+	}
+
+	/// Returns the context's value store
+	#[must_use]
+	pub fn store(&self) -> &ValueStore {
+		&self.0.shared.store
 	}
 
 	/// Returns the window

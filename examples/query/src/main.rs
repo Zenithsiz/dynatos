@@ -37,12 +37,16 @@ fn run() -> Result<(), AppError> {
 	let ctx = DynatosWebCtx::new().expect("Unable to create dynatos web context");
 
 	let location = Location::new(&ctx);
-	ctx.body().with_child(self::page(&ctx, location));
+	let _location = ctx.store().provide(location);
+
+	ctx.body().with_child(self::page(&ctx));
 
 	Ok(())
 }
 
-fn page(ctx: &DynatosWebCtx, location: Location) -> web_sys::HtmlElement {
+fn page(ctx: &DynatosWebCtx) -> web_sys::HtmlElement {
+	let location = ctx.store().expect_cloned::<Location>();
+
 	// TODO: If we add `.with_loadable_default()`, use it again in this example.
 	let query = SingleQuery::<i32>::new(location.clone(), "a");
 	let query = QuerySignal::new(location.clone(), query);

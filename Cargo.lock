@@ -314,6 +314,7 @@ dependencies = [
  "app-error",
  "duplicate",
  "dynatos-inheritance",
+ "dynatos-store",
  "dynatos-sync-types",
  "dynatos-util",
  "dynatos-web-macros",
