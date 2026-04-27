@@ -9,7 +9,7 @@ pub use self::{multi_query::MultiQuery, single_query::SingleQuery};
 
 // Imports
 use {
-	crate::Location,
+	crate::LocationSignal,
 	core::{
 		fmt,
 		mem,
@@ -56,6 +56,8 @@ pub struct QuerySignal<T: QueryParse + 'static> {
 
 impl<T: QueryParse> QuerySignal<T> {
 	/// Creates a new query signal with `query`.
+	///
+	/// Requires a value of type [`LocationSignal`](crate::LocationSignal) in the context store.
 	#[track_caller]
 	#[define_opaque(UpdateEffect)]
 	pub fn new(ctx: &DynatosWebCtx, query: T) -> Self
@@ -67,7 +69,7 @@ impl<T: QueryParse> QuerySignal<T> {
 
 		// Note: This access must skip dependencies to ensure that the query signal itself
 		//       doesn't change whenever the location changes, and only it's value does.
-		let location = ctx.store().expect_cloned::<Location>();
+		let location = ctx.store().expect_cloned::<LocationSignal>();
 		let location_path = RcPtr::<str>::from(location.borrow_no_dep().path());
 
 		let inner = Signal::new(None);
@@ -309,7 +311,7 @@ type QueriesFn = impl Fn() -> Vec<String>;
 
 #[define_opaque(QueriesFn)]
 fn queries_memo(ctx: &DynatosWebCtx, key: RcPtr<str>) -> Memo<Vec<String>, QueriesFn> {
-	let location = ctx.store().expect_cloned::<Location>();
+	let location = ctx.store().expect_cloned::<LocationSignal>();
 	Memo::new(move || {
 		location
 			.borrow()

@@ -13,7 +13,7 @@ use {
 
 /// Creates a reactive anchor element.
 ///
-/// Expects a value of type [`Location`](crate::Location) in the context store.
+/// Expects a value of type [`LocationSignal`](crate::LocationSignal) in the context store.
 pub fn anchor<U>(ctx: &DynatosWebCtx, new_location: U) -> HtmlElement
 where
 	U: SyncBounds + AsRef<str> + 'static,
@@ -28,12 +28,12 @@ where
 		},
 		csr = {
 			use {
-				crate::Location,
+				crate::LocationSignal,
 				dynatos_reactive::{SignalBorrow, SignalSet},
 				dynatos_web::{EventTargetWithListener, ev},
 			};
 
-			let location = ctx.store().expect_cloned::<Location>();
+			let location = ctx.store().expect_cloned::<LocationSignal>();
 
 			link.with_event_listener::<ev!(click)>(ctx, move |ev| {
 				ev.prevent_default();

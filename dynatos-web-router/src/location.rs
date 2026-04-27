@@ -18,12 +18,12 @@ struct Inner {
 	ctx: DynatosWebCtx,
 }
 
-/// Location
+/// Location signal
 // TODO: Rename to avoid confusing with web's `Location`?
 #[derive(Clone, Debug)]
-pub struct Location(Signal<Inner>);
+pub struct LocationSignal(Signal<Inner>);
 
-impl Location {
+impl LocationSignal {
 	/// Creates a new location
 	#[must_use]
 	#[track_caller]
@@ -59,7 +59,7 @@ impl Deref for BorrowRef<'_> {
 	}
 }
 
-impl SignalBorrow for Location {
+impl SignalBorrow for LocationSignal {
 	type Ref<'a>
 		= BorrowRef<'a>
 	where
@@ -106,7 +106,7 @@ impl Drop for BorrowRefMut<'_> {
 	}
 }
 
-impl SignalBorrowMut for Location {
+impl SignalBorrowMut for LocationSignal {
 	type RefMut<'a>
 		= BorrowRefMut<'a>
 	where

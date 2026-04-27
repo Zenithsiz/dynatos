@@ -3,7 +3,7 @@
 // Imports
 use {
 	super::{QueriesFn, QueryIntoValue, QueryParse, QueryWrite},
-	crate::Location,
+	crate::LocationSignal,
 	core::{error::Error as StdError, fmt, marker::PhantomData, str::FromStr},
 	dynatos_reactive::{Memo, SignalBorrow, SignalBorrowMut},
 	dynatos_sync_types::{RcPtr, SyncBounds},
@@ -12,7 +12,7 @@ use {
 
 /// Parses multiple values from the query.
 ///
-/// Requires a value of type [`Location`](crate::Location) in the context store.
+/// Requires a value of type [`LocationSignal`](crate::LocationSignal) in the context store.
 pub struct MultiQuery<T> {
 	/// The key to this query
 	key: RcPtr<str>,
@@ -103,7 +103,7 @@ impl<T: FromStr<Err: StdError> + ToString> QueryWrite<&[T]> for MultiQuery<T> {
 		let _suppress_queries = self.queries.suppress();
 		self.queries.update_no_run(new_value.iter().map(T::to_string).collect());
 
-		let location = self.ctx.store().expect_cloned::<Location>();
+		let location = self.ctx.store().expect_cloned::<LocationSignal>();
 		let mut location = location.borrow_mut();
 		let mut added_query = false;
 		let mut queries = vec![];

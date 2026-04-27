@@ -3,7 +3,7 @@
 // Imports
 use {
 	super::{QueriesFn, QueryIntoValue, QueryParse, QueryWrite},
-	crate::Location,
+	crate::LocationSignal,
 	core::{error::Error as StdError, marker::PhantomData, str::FromStr},
 	dynatos_loadable::Loadable,
 	dynatos_reactive::{Memo, SignalBorrow, SignalBorrowMut},
@@ -13,7 +13,7 @@ use {
 
 /// Parses a singular value from the query.
 ///
-/// Requires a value of type [`Location`](crate::Location) in the context store.
+/// Requires a value of type [`LocationSignal`](crate::LocationSignal) in the context store.
 pub struct SingleQuery<T> {
 	/// The key to this query
 	key: RcPtr<str>,
@@ -123,7 +123,7 @@ impl<T: FromStr<Err: StdError> + ToString> QueryWrite<Option<&'_ T>> for SingleQ
 			None => self.queries.update_no_run(vec![]),
 		}
 
-		let location = self.ctx.store().expect_cloned::<Location>();
+		let location = self.ctx.store().expect_cloned::<LocationSignal>();
 		let mut location = location.borrow_mut();
 		let mut added_query = false;
 		let mut queries = vec![];

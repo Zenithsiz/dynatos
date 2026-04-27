@@ -10,7 +10,7 @@ use {
 	dynatos_reactive::SignalGetCloned,
 	dynatos_web::{DynatosWebCtx, NodeWithChildren, NodeWithText, html},
 	dynatos_web_reactive::NodeWithDynChildren,
-	dynatos_web_router::Location,
+	dynatos_web_router::LocationSignal,
 	tracing_subscriber::prelude::*,
 	zutil_cloned::cloned,
 };
@@ -36,7 +36,7 @@ fn main() {
 fn run() -> Result<(), AppError> {
 	let ctx = DynatosWebCtx::new().expect("Unable to create dynatos web context");
 
-	let location = Location::new(&ctx);
+	let location = LocationSignal::new(&ctx);
 	let _location = ctx.store().provide(location);
 
 	ctx.body().with_child(
@@ -65,7 +65,7 @@ static ROUTE_CACHED: OnceCell<web_sys::HtmlElement> = OnceCell::new();
 
 
 fn render_route(ctx: &DynatosWebCtx) -> Option<web_sys::HtmlElement> {
-	let location = ctx.store().expect_cloned::<Location>().get_cloned();
+	let location = ctx.store().expect_cloned::<LocationSignal>().get_cloned();
 
 	tracing::info!(%location, "Rendering route");
 	match location.path().trim_end_matches('/') {

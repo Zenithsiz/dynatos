@@ -17,6 +17,6 @@ pub mod query_signal;
 // Exports
 pub use self::{
 	anchor::anchor,
-	location::Location,
+	location::LocationSignal,
 	query_signal::{MultiQuery, QuerySignal, SingleQuery},
 };
