@@ -28,6 +28,7 @@ use {
 		signal,
 	},
 	dynatos_sync_types::{RcPtr, SyncBounds},
+	dynatos_web::DynatosWebCtx,
 	zutil_cloned::cloned,
 };
 
@@ -57,7 +58,7 @@ impl<T: QueryParse> QuerySignal<T> {
 	/// Creates a new query signal with `query`.
 	#[track_caller]
 	#[define_opaque(UpdateEffect)]
-	pub fn new(location: Location, query: T) -> Self
+	pub fn new(ctx: &DynatosWebCtx, query: T) -> Self
 	where
 		T: 'static,
 		T::Value: 'static,
@@ -66,6 +67,7 @@ impl<T: QueryParse> QuerySignal<T> {
 
 		// Note: This access must skip dependencies to ensure that the query signal itself
 		//       doesn't change whenever the location changes, and only it's value does.
+		let location = ctx.store().expect_cloned::<Location>();
 		let location_path = RcPtr::<str>::from(location.borrow_no_dep().path());
 
 		let inner = Signal::new(None);
@@ -306,7 +308,8 @@ pub trait QueryWriteValue = QueryParse + for<'a> QueryWrite<&'a <Self as QueryPa
 type QueriesFn = impl Fn() -> Vec<String>;
 
 #[define_opaque(QueriesFn)]
-fn queries_memo(location: Location, key: RcPtr<str>) -> Memo<Vec<String>, QueriesFn> {
+fn queries_memo(ctx: &DynatosWebCtx, key: RcPtr<str>) -> Memo<Vec<String>, QueriesFn> {
+	let location = ctx.store().expect_cloned::<Location>();
 	Memo::new(move || {
 		location
 			.borrow()

@@ -8,9 +8,12 @@ use {
 	dynatos_loadable::Loadable,
 	dynatos_reactive::{Memo, SignalBorrow, SignalBorrowMut},
 	dynatos_sync_types::{RcPtr, SyncBounds},
+	dynatos_web::DynatosWebCtx,
 };
 
-/// Parses a singular value from the query
+/// Parses a singular value from the query.
+///
+/// Requires a value of type [`Location`](crate::Location) in the context store.
 pub struct SingleQuery<T> {
 	/// The key to this query
 	key: RcPtr<str>,
@@ -18,18 +21,18 @@ pub struct SingleQuery<T> {
 	/// Queries with our key
 	queries: Memo<Vec<String>, QueriesFn>,
 
-	location: Location,
+	ctx:      DynatosWebCtx,
 	_phantom: PhantomData<fn() -> T>,
 }
 
 impl<T> SingleQuery<T> {
 	/// Creates a new query
-	pub fn new(location: Location, key: impl Into<RcPtr<str>>) -> Self {
+	pub fn new(ctx: &DynatosWebCtx, key: impl Into<RcPtr<str>>) -> Self {
 		let key = key.into();
 		Self {
-			key: RcPtr::clone(&key),
-			queries: super::queries_memo(location.clone(), key),
-			location,
+			key:      RcPtr::clone(&key),
+			queries:  super::queries_memo(ctx, key),
+			ctx:      ctx.clone(),
 			_phantom: PhantomData,
 		}
 	}
@@ -46,7 +49,7 @@ impl<T> Clone for SingleQuery<T> {
 		Self {
 			key:      RcPtr::clone(&self.key),
 			queries:  self.queries.clone(),
-			location: self.location.clone(),
+			ctx:      self.ctx.clone(),
 			_phantom: PhantomData,
 		}
 	}
@@ -120,7 +123,8 @@ impl<T: FromStr<Err: StdError> + ToString> QueryWrite<Option<&'_ T>> for SingleQ
 			None => self.queries.update_no_run(vec![]),
 		}
 
-		let mut location = self.location.borrow_mut();
+		let location = self.ctx.store().expect_cloned::<Location>();
+		let mut location = location.borrow_mut();
 		let mut added_query = false;
 		let mut queries = vec![];
 		for (key, value) in location.query_pairs().into_owned() {

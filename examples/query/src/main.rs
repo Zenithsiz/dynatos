@@ -45,11 +45,9 @@ fn run() -> Result<(), AppError> {
 }
 
 fn page(ctx: &DynatosWebCtx) -> web_sys::HtmlElement {
-	let location = ctx.store().expect_cloned::<Location>();
-
 	// TODO: If we add `.with_loadable_default()`, use it again in this example.
-	let query = SingleQuery::<i32>::new(location.clone(), "a");
-	let query = QuerySignal::new(location, query);
+	let query = SingleQuery::<i32>::new(ctx, "a");
+	let query = QuerySignal::new(ctx, query);
 
 	html::div(ctx).with_children([
 		#[cloned(query)]
