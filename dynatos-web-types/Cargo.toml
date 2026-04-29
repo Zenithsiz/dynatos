@@ -5,8 +5,7 @@ edition = "2024"
 
 [dependencies]
 
-dynatos-inheritance = { default-features = false, optional = true, path = "../dynatos-inheritance" }
-dynatos-web-ssr     = { default-features = false, optional = true, path = "../dynatos-web-ssr" }
+dynatos-web-ssr = { default-features = false, optional = true, path = "../dynatos-web-ssr" }
 
 js-sys = { optional = true, workspace = true }
 wasm-bindgen = { optional = true, workspace = true }
@@ -38,12 +37,13 @@ web-sys = { features = [
 	"WheelEvent",
 	"Window",
 ], optional = true, workspace = true }
+zutil-inheritance = { optional = true, workspace = true }
 
 [features]
 default = ["csr"]
 
 csr = ["dep:js-sys", "dep:wasm-bindgen", "dep:web-sys"]
-ssr = ["dep:dynatos-inheritance", "dep:dynatos-web-ssr"]
+ssr = ["dep:dynatos-web-ssr", "dep:zutil-inheritance"]
 
 [lints]
 workspace = true

@@ -3,7 +3,7 @@
 // Imports
 use {
 	crate::{JsValue, Location, Object, PopStateEvent, WebError, object::ObjectFields},
-	dynatos_inheritance::{FromFields, Value},
+	zutil_inheritance::{FromFields, Value},
 	std::sync::{Arc, nonpoison::Mutex},
 };
 
@@ -14,7 +14,7 @@ struct LocationCb(Arc<dyn Fn(PopStateEvent) + Send + Sync>);
 #[derive(Clone, Debug)]
 struct LocationCbs(Vec<LocationCb>);
 
-dynatos_inheritance::value! {
+zutil_inheritance::value! {
 	pub struct History(Object): Send + Sync + Debug {
 		location: Location,
 

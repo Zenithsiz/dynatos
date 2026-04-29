@@ -5,7 +5,7 @@ use {
 	crate::{EventTarget, Object, Text, WeakRef, WebError, event_target::EventTargetFields, object::ObjectFields},
 	app_error::Context,
 	core::mem,
-	dynatos_inheritance::{FromFields, Value},
+	zutil_inheritance::{FromFields, Value},
 	std::sync::nonpoison::Mutex,
 };
 
@@ -38,7 +38,7 @@ impl Clone for Parent {
 	}
 }
 
-dynatos_inheritance::value! {
+zutil_inheritance::value! {
 	pub struct Node(EventTarget, Object): Send + Sync + Debug {
 		parent: Mutex<Parent>,
 

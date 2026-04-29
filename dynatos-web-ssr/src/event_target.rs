@@ -5,14 +5,14 @@ use {
 	crate::{Element, Event, HtmlElement, Object, State, WebError},
 	app_error::{AppError, Context, app_error},
 	core::any::type_name,
-	dynatos_inheritance::{Downcast, Value},
+	zutil_inheritance::{Downcast, Value},
 };
 
 #[derive(derive_more::Debug)]
 #[debug("{_0:p}")]
 pub(crate) struct Handler(Box<dyn Fn(Event) -> Result<(), AppError> + Send + Sync>);
 
-dynatos_inheritance::value! {
+zutil_inheritance::value! {
 	pub struct EventTarget(Object): Send + Sync + Debug + Default {}
 	impl Self {}
 }

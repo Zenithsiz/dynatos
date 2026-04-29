@@ -1,7 +1,7 @@
 //! Weak reference
 
 // Imports
-use dynatos_inheritance::{Value, ValueDowngrade, WeakValue};
+use zutil_inheritance::{Value, ValueDowngrade, WeakValue};
 
 #[derive(Debug)]
 pub struct WeakRef<T>(WeakValue<T>);

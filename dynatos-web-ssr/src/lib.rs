@@ -7,7 +7,8 @@
 	more_qualified_paths,
 	trivial_bounds,
 	nonpoison_mutex,
-	sync_nonpoison
+	sync_nonpoison,
+	macro_derive
 )]
 
 // Modules
@@ -73,11 +74,11 @@ use {
 	self::{event_target::EventTargetFields, node::NodeFields, object::ObjectFields},
 	app_error::AppError,
 	core::any::Any,
-	dynatos_inheritance::FromFields,
 	std::sync::nonpoison::Mutex,
+	zutil_inheritance::FromFields,
 };
 
-dynatos_inheritance::value! {
+zutil_inheritance::value! {
 	pub struct Text(Node, EventTarget, Object): Send + Sync + Debug {
 		contents: Option<String>,
 	}
@@ -96,7 +97,7 @@ impl Text {
 	}
 }
 
-dynatos_inheritance::value! {
+zutil_inheritance::value! {
 	pub struct Comment(Node, EventTarget, Object): Send + Sync + Debug {
 		contents: Option<String>,
 	}
@@ -124,7 +125,7 @@ pub struct WebError(pub AppError);
 // TODO: These types need to be defined inside this crate due to a compiler bug
 //       that results in a conflicting implementation due to a wrong projection
 //       of the parent storage/vtable.
-dynatos_inheritance::value! {
+zutil_inheritance::value! {
 	pub struct ObjectAttachValueValues(Object): Send + Sync + Debug {
 		values: Mutex<Vec<Box<dyn Any + Send + Sync>>>,
 	}
@@ -132,7 +133,7 @@ dynatos_inheritance::value! {
 }
 
 #[cfg(feature = "reactive")]
-dynatos_inheritance::value! {
+zutil_inheritance::value! {
 	pub struct ObjectAttachEffectEffects(Object): Send + Sync + Debug {
 		effects: Mutex<HashMap<usize, dynatos_reactive::Effect>>,
 	}

@@ -3,11 +3,11 @@
 // Imports
 use {
 	crate::JsValue,
-	dynatos_inheritance::{Downcast, Value},
+	zutil_inheritance::{Downcast, Value},
 	std::{collections::HashMap, sync::nonpoison::Mutex},
 };
 
-dynatos_inheritance::value! {
+zutil_inheritance::value! {
 	pub struct Object(): Send + Sync + Debug + Default {
 		props: Mutex<HashMap<String, JsValue>>,
 	}

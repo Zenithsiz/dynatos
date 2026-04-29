@@ -24,7 +24,7 @@ pub impl Object {
 		cfg_ssr_expr!(
 			ssr = {
 				use {
-					dynatos_inheritance::{FromFields, Value},
+					zutil_inheritance::{FromFields, Value},
 					dynatos_web_ssr::{ObjectAttachValueValues, ObjectAttachValueValuesFields},
 					std::sync::nonpoison::Mutex,
 				};

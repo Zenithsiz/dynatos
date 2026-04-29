@@ -3,8 +3,6 @@
 members = [
 	"dynatos-builder",
 	"dynatos-builder-macros",
-	"dynatos-inheritance",
-	"dynatos-inheritance-macros",
 	"dynatos-loadable",
 	"dynatos-reactive",
 	"dynatos-store",
@@ -34,7 +32,6 @@ members = [
 	"examples/router",
 
 	# Tests
-	"tests/dynatos-inheritance",
 	"tests/dynatos-reactive",
 ]
 resolver = "2"
@@ -75,6 +72,7 @@ wasm-bindgen             = "0.2.114"
 wasm-bindgen-futures     = "0.4.64"
 web-sys                  = "0.3.91"
 zutil-cloned             = "0.1.0"
+zutil-inheritance        = { git = "https://github.com/Zenithsiz/zutil", rev = "d3eaf286cc55b0c83b3ac144d25c3a96a114507e" }
 
 [workspace.lints]
 

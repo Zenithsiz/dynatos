@@ -18,11 +18,11 @@ use {
 		node::NodeFields,
 		object::ObjectFields,
 	},
-	dynatos_inheritance::{FromFields, Value},
+	zutil_inheritance::{FromFields, Value},
 	std::sync::nonpoison::Mutex,
 };
 
-dynatos_inheritance::value! {
+zutil_inheritance::value! {
 	pub struct Document(Node, EventTarget, Object): Send + Sync + Debug {
 		title: Mutex<String>,
 		head: HtmlHeadElement,

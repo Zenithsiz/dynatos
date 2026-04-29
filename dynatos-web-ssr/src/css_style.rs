@@ -4,12 +4,12 @@
 use {
 	crate::{HtmlElement, Object, WebError, object::ObjectFields},
 	app_error::app_error,
-	dynatos_inheritance::{FromFields, Value},
+	zutil_inheritance::{FromFields, Value},
 	itertools::Itertools,
 	std::collections::HashMap,
 };
 
-dynatos_inheritance::value! {
+zutil_inheritance::value! {
 	pub struct CssStyleDeclaration(Object): Send + Sync + Debug {
 		element: HtmlElement,
 	}
@@ -54,7 +54,7 @@ impl CssStyleDeclaration {
 	}
 }
 
-dynatos_inheritance::value! {
+zutil_inheritance::value! {
 	pub struct CssStyleProperties(CssStyleDeclaration, Object): Send + Sync + Debug {
 
 	}

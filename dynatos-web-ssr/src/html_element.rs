@@ -13,10 +13,10 @@ use {
 		node::NodeFields,
 		object::ObjectFields,
 	},
-	dynatos_inheritance::{FromFields, Value},
+	zutil_inheritance::{FromFields, Value},
 };
 
-dynatos_inheritance::value! {
+zutil_inheritance::value! {
 	pub struct HtmlElement(Element, Node, EventTarget, Object): Send + Sync + Debug + DefaultFields {
 	}
 	impl Self {}
@@ -57,7 +57,7 @@ decl_html_elements! {
 
 macro decl_html_elements($new:ident; $($Name:ident = $tag:literal),* $(,)?) {
 	$(
-		dynatos_inheritance::value! {
+		zutil_inheritance::value! {
 			pub struct $Name(HtmlElement, Element, Node, EventTarget, Object): Send + Sync + Debug + DefaultFields {}
 			impl Self {}
 		}

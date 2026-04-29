@@ -3,11 +3,11 @@
 // Imports
 use {
 	crate::{Object, WebError, object::ObjectFields},
-	dynatos_inheritance::{FromFields, Value},
+	zutil_inheritance::{FromFields, Value},
 	std::sync::nonpoison::Mutex,
 };
 
-dynatos_inheritance::value! {
+zutil_inheritance::value! {
 	pub struct Location(Object): Send + Sync + Debug {
 		href: Mutex<String>,
 	}

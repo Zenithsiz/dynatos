@@ -6,30 +6,30 @@ edition = "2024"
 [dependencies]
 
 # Workspace
-dynatos-inheritance = { default-features = false, optional = true, path = "../dynatos-inheritance" }
-dynatos-store       = { default-features = false, path = "../dynatos-store" }
-dynatos-sync-types  = { default-features = false, path = "../dynatos-sync-types" }
-dynatos-util        = { default-features = false, path = "../dynatos-util" }
-dynatos-web-macros  = { default-features = false, path = "../dynatos-web-macros" }
-dynatos-web-parser  = { default-features = false, path = "../dynatos-web-parser" }
-dynatos-web-ssr     = { default-features = false, optional = true, path = "../dynatos-web-ssr" }
-dynatos-web-types   = { default-features = false, path = "../dynatos-web-types" }
+dynatos-store      = { default-features = false, path = "../dynatos-store" }
+dynatos-sync-types = { default-features = false, path = "../dynatos-sync-types" }
+dynatos-util       = { default-features = false, path = "../dynatos-util" }
+dynatos-web-macros = { default-features = false, path = "../dynatos-web-macros" }
+dynatos-web-parser = { default-features = false, path = "../dynatos-web-parser" }
+dynatos-web-ssr    = { default-features = false, optional = true, path = "../dynatos-web-ssr" }
+dynatos-web-types  = { default-features = false, path = "../dynatos-web-types" }
 
-app-error    = { workspace = true }
-duplicate    = { workspace = true }
-extend       = { workspace = true }
-itertools    = { workspace = true }
-js-sys       = { optional = true, workspace = true }
-thiserror    = { workspace = true }
-tracing      = { workspace = true }
-wasm-bindgen = { optional = true, workspace = true }
-web-sys      = { optional = true, workspace = true }
+app-error         = { workspace = true }
+duplicate         = { workspace = true }
+extend            = { workspace = true }
+itertools         = { workspace = true }
+js-sys            = { optional = true, workspace = true }
+thiserror         = { workspace = true }
+tracing           = { workspace = true }
+wasm-bindgen      = { optional = true, workspace = true }
+web-sys           = { optional = true, workspace = true }
+zutil-inheritance = { optional = true, workspace = true }
 
 [features]
 default = ["csr"]
 
 csr  = ["dep:js-sys", "dep:wasm-bindgen", "dep:web-sys", "dynatos-web-types/csr"]
-ssr  = ["dep:dynatos-inheritance", "dep:dynatos-web-ssr", "dynatos-web-types/ssr", "sync"]
+ssr  = ["dep:dynatos-web-ssr", "dep:zutil-inheritance", "dynatos-web-types/ssr", "sync"]
 sync = ["dynatos-store/sync", "dynatos-sync-types/sync"]
 
 [lints]

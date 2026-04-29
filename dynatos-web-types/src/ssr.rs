@@ -38,7 +38,7 @@ pub use dynatos_web_ssr::{
 };
 
 // Imports
-use dynatos_inheritance::Value;
+use zutil_inheritance::Value;
 
 pub trait JsCast = Value;
 pub trait FromWasmAbi = Value;

@@ -6,17 +6,17 @@ edition = "2024"
 [dependencies]
 
 # Workspace
-dynatos-inheritance = { default-features = false, path = "../dynatos-inheritance" }
 dynatos-reactive = { default-features = false, features = [
 	"sync",
 	"tokio",
 ], optional = true, path = "../dynatos-reactive" }
 
-app-error   = { workspace = true }
-derive_more = { features = ["full"], workspace = true }
-duplicate   = { workspace = true }
-itertools   = { workspace = true }
-tracing     = { workspace = true }
+app-error         = { workspace = true }
+derive_more       = { features = ["full"], workspace = true }
+duplicate         = { workspace = true }
+itertools         = { workspace = true }
+tracing           = { workspace = true }
+zutil-inheritance = { features = ["derive"], workspace = true }
 
 [features]
 reactive = ["dep:dynatos-reactive"]

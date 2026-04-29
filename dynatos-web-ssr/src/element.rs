@@ -14,11 +14,11 @@ use {
 	},
 	app_error::app_error,
 	core::fmt,
-	dynatos_inheritance::{Downcast, FromFields, Value},
+	zutil_inheritance::{Downcast, FromFields, Value},
 	std::{collections::HashMap, sync::nonpoison::Mutex},
 };
 
-dynatos_inheritance::value! {
+zutil_inheritance::value! {
 	pub struct Element(Node, EventTarget, Object): Send + Sync + Debug {
 		tag_name: String,
 		class_name: Mutex<String>,

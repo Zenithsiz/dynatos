@@ -3,7 +3,7 @@
 // Imports
 use crate::Object;
 
-dynatos_inheritance::value! {
+zutil_inheritance::value! {
 	pub struct Event(Object): Send + Sync + Debug + Default {}
 	impl Self {}
 }
@@ -32,7 +32,7 @@ decl_events! {
 
 macro decl_events($new:ident; $($Name:ident),* $(,)?) {
 	$(
-		dynatos_inheritance::value! {
+		zutil_inheritance::value! {
 			pub struct $Name(Event, Object): Send + Sync + Debug + Default {}
 			impl Self {}
 		}

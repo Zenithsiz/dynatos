@@ -3,10 +3,10 @@
 // Imports
 use {
 	crate::{Document, EventTarget, Object, WebError, event_target::EventTargetFields, object::ObjectFields},
-	dynatos_inheritance::{FromFields, Value},
+	zutil_inheritance::{FromFields, Value},
 };
 
-dynatos_inheritance::value! {
+zutil_inheritance::value! {
 	pub struct Window(EventTarget, Object): Send + Sync + Debug {
 		document: Document,
 	}

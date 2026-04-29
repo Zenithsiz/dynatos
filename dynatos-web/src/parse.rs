@@ -43,7 +43,7 @@ pub fn parse_html_element(
 
 	let element = cfg_ssr_expr!(
 		ssr = {
-			use dynatos_inheritance::Downcast;
+			use zutil_inheritance::Downcast;
 			element.downcast().map_err(Error::CastHtmlElement)?
 		},
 		csr = {
