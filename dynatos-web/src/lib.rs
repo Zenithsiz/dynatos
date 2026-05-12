@@ -6,6 +6,7 @@
 #![cfg_attr(feature = "csr", feature(unsize))]
 
 // Modules
+mod as_parent;
 mod ctx;
 mod event_listener;
 pub mod html;
@@ -34,6 +35,7 @@ pub mod types {
 
 // Imports
 use {
+	self::as_parent::AsParent,
 	itertools::Itertools,
 	types::{Comment, Element, HtmlElement, JsCast, JsValue, Node, Object, Text, WebError, cfg_ssr_expr},
 };
@@ -182,26 +184,10 @@ pub trait Child {
 	fn append(&self, node: &Node) -> Result<(), WebError>;
 }
 
-// TODO: Impl for `impl AsRef<Element>` if we can get rid of
-//       the conflict due to the blanket impl of `Children`
-#[allow(clippy::allow_attributes, reason = "This only applies in some branches")]
-#[allow(
-	clippy::use_self,
-	clippy::useless_asref,
-	reason = "We always want to use `Element`, not `Ty`"
-)]
-#[duplicate::duplicate_item(
-	Ty;
-	[Node];
-	[Text];
-	[Comment];
-	[Element];
-	[HtmlElement];
-)]
-impl Child for Ty {
+impl<T: AsParent<Node>> Child for T {
 	fn append(&self, node: &Node) -> Result<(), WebError> {
 		// If the node already contains us, warn and refuse to add it.
-		let child = self.as_ref();
+		let child = self.as_parent();
 		if node.contains(Some(child)) {
 			tracing::warn!(?child, "Attempted to add a duplicate child");
 			return Ok(());

@@ -9,6 +9,7 @@ pub use {
 		AnimationEvent,
 		ClipboardEvent,
 		Comment,
+		CssStyleDeclaration,
 		Document,
 		DragEvent,
 		Element,

@@ -5,6 +5,8 @@ pub use dynatos_web_ssr::{
 	AnimationEvent,
 	ClipboardEvent,
 	Comment,
+	CssStyleDeclaration,
+	CssStyleProperties,
 	Document,
 	DragEvent,
 	Element,
