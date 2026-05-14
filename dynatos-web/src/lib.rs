@@ -439,13 +439,13 @@ where
 }
 
 /// Extension trait to be able to use [`.context`](app_error::AppError::context)
-/// on a `Result<T, WebError>`.
+/// on a `Result<T, impl AsRef<WebError>>`.
 #[extend::ext(name = JsResultContext)]
-pub impl<T> Result<T, WebError> {
+pub impl<T, E: AsRef<WebError>> Result<T, E> {
 	fn context(self, context: &'static str) -> Result<T, app_error::AppError> {
 		cfg_ssr_expr!(
-			ssr = self.map_err(|err| err.0.context(context)),
-			csr = self.map_err(|err| app_error::AppError::fmt(format!("{err:?}")).context(context)),
+			ssr = self.map_err(|err| err.as_ref().0.context(context)),
+			csr = self.map_err(|err| app_error::AppError::fmt(format!("{:?}", err.as_ref())).context(context)),
 		)
 	}
 }

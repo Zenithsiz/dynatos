@@ -122,6 +122,12 @@ impl Comment {
 #[debug("{_0:?}")]
 pub struct WebError(pub AppError);
 
+impl AsRef<Self> for WebError {
+	fn as_ref(&self) -> &Self {
+		self
+	}
+}
+
 // TODO: These types need to be defined inside this crate due to a compiler bug
 //       that results in a conflicting implementation due to a wrong projection
 //       of the parent storage/vtable.
