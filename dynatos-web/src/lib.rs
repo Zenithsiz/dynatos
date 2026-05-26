@@ -403,6 +403,7 @@ pub impl Element {
 	{
 		// Append all classes to the existing class name and set it.
 		// TODO: Not allocate the classes here.
+		// TODO: This resets the `style` tag on the element.
 		let classes = classes.into_iter().collect::<Vec<_>>();
 		let class_name = self
 			.class_name()
