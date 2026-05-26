@@ -142,6 +142,7 @@ impl_as_parent! {
 			PointerEvent {},
 			PopStateEvent {},
 			SubmitEvent {},
+			ToggleEvent {},
 			TransitionEvent {},
 			WheelEvent {},
 		},

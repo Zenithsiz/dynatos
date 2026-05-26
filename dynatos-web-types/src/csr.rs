@@ -34,6 +34,7 @@ pub use {
 		PopStateEvent,
 		SubmitEvent,
 		Text,
+		ToggleEvent,
 		TransitionEvent,
 		WheelEvent,
 		Window,

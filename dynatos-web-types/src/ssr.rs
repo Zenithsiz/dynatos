@@ -33,6 +33,7 @@ pub use dynatos_web_ssr::{
 	PopStateEvent,
 	SubmitEvent,
 	Text,
+	ToggleEvent,
 	TransitionEvent,
 	WeakRef,
 	WebError,

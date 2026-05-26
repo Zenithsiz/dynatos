@@ -43,6 +43,7 @@ pub use self::{
 		PointerEvent,
 		PopStateEvent,
 		SubmitEvent,
+		ToggleEvent,
 		TransitionEvent,
 		WheelEvent,
 	},
