@@ -21,6 +21,7 @@ web-sys = { features = [
 	"History",
 	"HtmlBodyElement",
 	"HtmlCanvasElement",
+	"HtmlDetailsElement",
 	"HtmlDialogElement",
 	"HtmlElement",
 	"HtmlHeadElement",

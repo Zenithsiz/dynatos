@@ -48,6 +48,7 @@ decl_html_elements! {
 
 	HtmlBodyElement = "body",
 	HtmlCanvasElement = "canvas",
+	HtmlDetailsElement = "details",
 	HtmlDialogElement = "dialog",
 	HtmlHeadElement = "head",
 	HtmlImageElement = "image",
@@ -85,4 +86,18 @@ macro decl_html_elements($new:ident; $($Name:ident = $tag:literal),* $(,)?) {
 			}
 		}
 	)*
+}
+
+impl HtmlImageElement {
+	#[must_use]
+	pub fn open(&self) -> bool {
+		self.has_attribute("open")
+	}
+
+	pub fn set_open(&self, open: bool) {
+		match open {
+			true => self.set_attribute("open", "").expect("Unable to set open attribute"),
+			false => _ = self.remove_attribute("open"),
+		}
+	}
 }

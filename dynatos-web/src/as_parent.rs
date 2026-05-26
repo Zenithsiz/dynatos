@@ -118,6 +118,7 @@ impl_as_parent! {
 					HtmlElement {
 						HtmlBodyElement {},
 						HtmlCanvasElement {},
+						HtmlDetailsElement {},
 						HtmlDialogElement {},
 						HtmlHeadElement {},
 						HtmlImageElement {},

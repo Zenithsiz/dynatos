@@ -14,8 +14,8 @@ use {
 	},
 	app_error::app_error,
 	core::fmt,
-	zutil_inheritance::{Downcast, FromFields, Value},
 	std::{collections::HashMap, sync::nonpoison::Mutex},
+	zutil_inheritance::{Downcast, FromFields, Value},
 };
 
 zutil_inheritance::value! {
@@ -73,6 +73,12 @@ impl Element {
 		tracing::warn!("Ignoring `Element::set_inner_html` call");
 	}
 
+	#[must_use]
+	pub fn has_attribute(&self, attr: &str) -> bool {
+		self.fields().attrs.lock().contains_key(attr)
+	}
+
+	// TODO: This should be `Option<String>` to match `web-sys`
 	pub fn get_attribute(&self, attr: &str) -> Result<String, WebError> {
 		match self.fields().attrs.lock().get(attr) {
 			Some(value) => Ok(value.clone()),

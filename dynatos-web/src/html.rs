@@ -6,6 +6,7 @@ use crate::{
 	types::{
 		Element,
 		HtmlCanvasElement,
+		HtmlDetailsElement,
 		HtmlDialogElement,
 		HtmlElement,
 		HtmlImageElement,
@@ -99,7 +100,7 @@ decl_elements! {
 	datalist,
 	dd,
 	del,
-	details,
+	details: HtmlDetailsElement,
 	dfn,
 	dialog: HtmlDialogElement,
 	dir,

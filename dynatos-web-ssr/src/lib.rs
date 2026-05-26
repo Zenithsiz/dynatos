@@ -51,6 +51,7 @@ pub use self::{
 	html_element::{
 		HtmlBodyElement,
 		HtmlCanvasElement,
+		HtmlDetailsElement,
 		HtmlDialogElement,
 		HtmlElement,
 		HtmlHeadElement,
