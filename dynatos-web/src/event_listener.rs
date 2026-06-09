@@ -175,5 +175,6 @@ mod ev {
 		animationend: AnimationEvent;
 		transitionend: TransitionEvent;
 		toggle: ToggleEvent;
+		contextmenu: PointerEvent;
 	}
 }
