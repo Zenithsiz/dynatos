@@ -3,18 +3,13 @@
 // Imports
 use {
 	dynatos_sync_types::SyncBounds,
-	dynatos_web::{
-		DynatosWebCtx,
-		ElementWithAttr,
-		html,
-		types::{HtmlElement, cfg_ssr_expr},
-	},
+	dynatos_web::{DynatosWebCtx, ElementWithAttr, cfg_ssr_expr, html},
 };
 
 /// Creates a reactive anchor element.
 ///
 /// Expects a value of type [`LocationSignal`](crate::LocationSignal) in the context store.
-pub fn anchor<U>(ctx: &DynatosWebCtx, new_location: U) -> HtmlElement
+pub fn anchor<U>(ctx: &DynatosWebCtx, new_location: U) -> web_sys::HtmlElement
 where
 	U: SyncBounds + AsRef<str> + 'static,
 {

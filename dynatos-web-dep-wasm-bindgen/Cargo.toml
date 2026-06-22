@@ -1,0 +1,21 @@
+[package]
+name    = "dynatos-web-dep-wasm-bindgen"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+
+dynatos-util    = { default-features = false, path = "../dynatos-util" }
+dynatos-web-ssr = { default-features = false, optional = true, path = "../dynatos-web-ssr" }
+
+wasm-bindgen      = { optional = true, workspace = true }
+zutil-inheritance = { optional = true, workspace = true }
+
+[features]
+default = ["csr"]
+
+csr = ["wasm-bindgen"]
+ssr = ["dynatos-web-ssr", "zutil-inheritance"]
+
+[lints]
+workspace = true

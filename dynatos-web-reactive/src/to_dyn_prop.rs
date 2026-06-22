@@ -5,7 +5,7 @@ use {
 	core::ops::Deref,
 	dynatos_reactive::{Derived, Memo, Signal, SignalWith, WithDefault, derived::DerivedRun},
 	dynatos_sync_types::SyncBounds,
-	dynatos_web::types::JsValue,
+	wasm_bindgen::JsValue,
 };
 
 /// Values that may be used as possible dynamic properties.

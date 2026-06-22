@@ -10,6 +10,9 @@ dynatos-loadable   = { default-features = false, path = "../dynatos-loadable" }
 dynatos-reactive   = { default-features = false, path = "../dynatos-reactive" }
 dynatos-sync-types = { default-features = false, path = "../dynatos-sync-types" }
 dynatos-web        = { default-features = false, path = "../dynatos-web" }
+js-sys             = { default-features = false, package = "dynatos-web-dep-js-sys", path = "../dynatos-web-dep-js-sys" }
+wasm-bindgen       = { default-features = false, package = "dynatos-web-dep-wasm-bindgen", path = "../dynatos-web-dep-wasm-bindgen" }
+web-sys            = { default-features = false, package = "dynatos-web-dep-web-sys", path = "../dynatos-web-dep-web-sys" }
 
 thiserror    = { workspace = true }
 tracing      = { workspace = true }
@@ -19,8 +22,8 @@ zutil-cloned = { workspace = true }
 [features]
 default = ["csr", "wasm-js-promise"]
 
-csr             = ["dynatos-web/csr"]
-ssr             = ["dynatos-web/ssr", "sync"]
+csr             = ["dynatos-web/csr", "js-sys/csr", "wasm-bindgen/csr", "web-sys/csr"]
+ssr             = ["dynatos-web/ssr", "js-sys/ssr", "sync", "wasm-bindgen/ssr", "web-sys/ssr"]
 sync            = ["dynatos-loadable/sync", "dynatos-reactive/sync", "dynatos-sync-types/sync"]
 tokio           = ["dynatos-reactive/tokio"]
 wasm-js-promise = ["dynatos-reactive/wasm-js-promise"]

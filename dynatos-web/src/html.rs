@@ -1,28 +1,14 @@
 //! HTML elements
 
 // Imports
-use crate::{
-	DynatosWebCtx,
-	types::{
-		Element,
-		HtmlCanvasElement,
-		HtmlDetailsElement,
-		HtmlDialogElement,
-		HtmlElement,
-		HtmlImageElement,
-		HtmlInputElement,
-		HtmlTextAreaElement,
-		WebError,
-		cfg_ssr_expr,
-	},
-};
+use {crate::DynatosWebCtx, dynatos_util::web::cfg_ssr_expr, web_sys::WebError};
 
 /// Expands to `$value` if `$value` exists, else expands to `$default`
-macro or_default {
-	($default:tt, $e:tt $(,)?) => {
+macro or_default_ty {
+	($default:ty, $e:ty $(,)?) => {
 		$e
 	},
-	($default:tt $(,)?) => {
+	($default:ty $(,)?) => {
 		$default
 	},
 }
@@ -33,7 +19,7 @@ macro decl_elements(
 ) {
 	$(
 		#[must_use]
-		pub fn $fn_name(ctx: &DynatosWebCtx) -> or_default![HtmlElement, $( $ElTy )?] {
+		pub fn $fn_name(ctx: &DynatosWebCtx) -> or_default_ty![web_sys::HtmlElement, $( $ElTy )?] {
 			let el_name = stringify!($fn_name);
 			let element = ctx.document().create_element_ns(Some(crate::HTML_NAMESPACE), el_name)
 				.unwrap_or_else(|err| self::on_create_fail(&err, el_name));
@@ -63,7 +49,7 @@ fn on_create_fail(err: &WebError, el_name: &str) -> ! {
 
 /// Function called when casting an element fails
 #[cold]
-fn on_cast_fail(element: &Element, el_name: &str) -> ! {
+fn on_cast_fail(element: &web_sys::Element, el_name: &str) -> ! {
 	panic!(
 		"Created element {el_name:?} on namespace {:?} was of the wrong type: {element:?}",
 		crate::HTML_NAMESPACE
@@ -88,7 +74,7 @@ decl_elements! {
 	body,
 	br,
 	button,
-	canvas: HtmlCanvasElement,
+	canvas: web_sys::HtmlCanvasElement,
 	caption,
 	center,
 	cite,
@@ -100,9 +86,9 @@ decl_elements! {
 	datalist,
 	dd,
 	del,
-	details: HtmlDetailsElement,
+	details: web_sys::HtmlDetailsElement,
 	dfn,
-	dialog: HtmlDialogElement,
+	dialog: web_sys::HtmlDialogElement,
 	dir,
 	div,
 	dl,
@@ -131,8 +117,8 @@ decl_elements! {
 	i,
 	iframe,
 	image,
-	img: HtmlImageElement,
-	input: HtmlInputElement,
+	img: web_sys::HtmlImageElement,
+	input: web_sys::HtmlInputElement,
 	ins,
 	kbd,
 	label,
@@ -191,7 +177,7 @@ decl_elements! {
 	tbody,
 	td,
 	template,
-	textarea: HtmlTextAreaElement,
+	textarea: web_sys::HtmlTextAreaElement,
 	tfoot,
 	th,
 	thead,

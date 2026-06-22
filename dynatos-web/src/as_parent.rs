@@ -1,8 +1,5 @@
 //! Trait to get a type as it's parent
 
-// Imports
-use crate::types;
-
 /// Gets this type as it's parent type `T`
 pub trait AsParent<T> {
 	fn as_parent(&self) -> &T;
@@ -18,13 +15,13 @@ macro impl_as_parent {
 	// `AsParent` impl
 	(
 		@impl_as_parent
-		parent: $Parent:ident,
+		parent: $Parent:ty,
 		child_meta: ( $(#[$child_meta:meta])* ),
-		child: $Child:ident,
+		child: $Child:ty,
 	) => {
 		$( #[$child_meta] )*
-		impl AsParent<types::$Parent> for types::$Child {
-			fn as_parent(&self) -> &types::$Parent {
+		impl AsParent<$Parent> for $Child {
+			fn as_parent(&self) -> &$Parent {
 				self.as_ref()
 			}
 		}
@@ -35,12 +32,12 @@ macro impl_as_parent {
 	// via `@for_each_child`
 	(
 		@impl_child,
-		grandparents: [ $($GrandParent:ident,)* ],
-		parent: $Parent:ident,
+		grandparents: [ $($GrandParent:ty,)* ],
+		parent: $Parent:ty,
 		child_meta: $child_meta:tt,
-		child: $Child:ident { $(
+		child: $Child:ty: { $(
 			$( #[$grandchild_meta:meta] )*
-			$GrandChild:ident $grandchild_inner:tt
+			$GrandChild:ty: $grandchild_inner:tt
 		),* $(,)? },
 	) => {
 		$(
@@ -73,10 +70,10 @@ macro impl_as_parent {
 	(
 		@for_each_child,
 		grandparents: $grandparents:tt,
-		parent: $Parent:ident,
+		parent: $Parent:ty,
 		$( child: {
 			meta: $child_meta:tt,
-			name: $Child:ident,
+			name: $Child:ty,
 			inner: $child_inner:tt,
 		}, )*
 	) => {
@@ -85,16 +82,16 @@ macro impl_as_parent {
 				grandparents: $grandparents,
 				parent: $Parent,
 				child_meta: $child_meta,
-				child: $Child $child_inner,
+				child: $Child: $child_inner,
 			}
 		)*
 	},
 
 	// Main entry point
 	(
-		$Parent:ident { $(
+		$Parent:ty: { $(
 			$( #[$child_meta:meta] )*
-			$Child:ident $child_inner:tt
+			$Child:ty: $child_inner:tt
 		),* $(,)? }
 	) => {
 		impl_as_parent! { @for_each_child,
@@ -111,46 +108,46 @@ macro impl_as_parent {
 
 // TODO: Keep this up to date with all the web types we expose.
 impl_as_parent! {
-	Object {
-		EventTarget {
-			Node {
-				Element {
-					HtmlElement {
-						HtmlBodyElement {},
-						HtmlCanvasElement {},
-						HtmlDetailsElement {},
-						HtmlDialogElement {},
-						HtmlHeadElement {},
-						HtmlImageElement {},
-						HtmlInputElement {},
-						HtmlTextAreaElement {},
+	js_sys::Object: {
+		web_sys::EventTarget: {
+			web_sys::Node: {
+				web_sys::Element: {
+					web_sys::HtmlElement: {
+						web_sys::HtmlBodyElement: {},
+						web_sys::HtmlCanvasElement: {},
+						web_sys::HtmlDetailsElement: {},
+						web_sys::HtmlDialogElement: {},
+						web_sys::HtmlHeadElement: {},
+						web_sys::HtmlImageElement: {},
+						web_sys::HtmlInputElement: {},
+						web_sys::HtmlTextAreaElement: {},
 					}
 				},
-				Text {},
-				Comment {},
-				Document {}
+				web_sys::Text: {},
+				web_sys::Comment: {},
+				web_sys::Document: {}
 			},
-			Window {}
+			web_sys::Window: {}
 		},
-		Event {
-			AnimationEvent {},
-			ClipboardEvent {},
-			DragEvent {},
-			FocusEvent {},
-			InputEvent {},
-			MouseEvent {},
-			PointerEvent {},
-			PopStateEvent {},
-			SubmitEvent {},
-			ToggleEvent {},
-			TransitionEvent {},
-			WheelEvent {},
+		web_sys::Event: {
+			web_sys::AnimationEvent: {},
+			web_sys::ClipboardEvent: {},
+			web_sys::DragEvent: {},
+			web_sys::FocusEvent: {},
+			web_sys::InputEvent: {},
+			web_sys::MouseEvent: {},
+			web_sys::PointerEvent: {},
+			web_sys::PopStateEvent: {},
+			web_sys::SubmitEvent: {},
+			web_sys::ToggleEvent: {},
+			web_sys::TransitionEvent: {},
+			web_sys::WheelEvent: {},
 		},
-		CssStyleDeclaration {
+		web_sys::CssStyleDeclaration: {
 			#[cfg(feature = "ssr")]
-			CssStyleProperties {},
+			web_sys::CssStyleProperties: {},
 		},
-		Location {},
-		History {},
+		web_sys::Location: {},
+		web_sys::History: {},
 	}
 }

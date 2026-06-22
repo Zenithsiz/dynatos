@@ -4,13 +4,10 @@
 #[expect(unused_imports, reason = "Used by macros")]
 use {crate::EventTargetAddListener, core::marker::PhantomData};
 use {
-	crate::{
-		DynatosWebCtx,
-		ElementAddAttr,
-		NodeAddChildren,
-		types::{Element, HtmlElement, Node, WebError, cfg_ssr_expr},
-	},
+	crate::{DynatosWebCtx, ElementAddAttr, NodeAddChildren, WebError},
+	dynatos_util::web::cfg_ssr_expr,
 	dynatos_web_parser::{XHtml, XHtmlElement, XHtmlNode},
+	web_sys::{Element, HtmlElement, Node},
 };
 
 /// Parses html as a single html element

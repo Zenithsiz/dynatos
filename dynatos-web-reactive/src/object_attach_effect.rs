@@ -3,11 +3,8 @@
 // Imports
 use {
 	dynatos_reactive::{Effect, EffectRun},
-	dynatos_web::{
-		ObjectGet,
-		ObjectSetProp,
-		types::{Object, cfg_ssr_expr},
-	},
+	dynatos_web::{ObjectGet, ObjectSetProp, cfg_ssr_expr},
+	js_sys::Object,
 };
 
 /// Extension trait to add an effect to an object
@@ -25,9 +22,9 @@ pub impl Object {
 		cfg_ssr_expr!(
 			ssr = {
 				use {
-					zutil_inheritance::{FromFields, Value},
 					dynatos_web_ssr::{ObjectAttachEffectEffects, ObjectAttachEffectEffectsFields},
 					std::{collections::HashMap, sync::nonpoison::Mutex},
+					zutil_inheritance::{FromFields, Value},
 				};
 
 				let effects = match self.get::<ObjectAttachEffectEffects>(prop_name) {

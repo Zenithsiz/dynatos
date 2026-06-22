@@ -15,30 +15,20 @@ pub mod parse;
 mod util;
 
 // Exports
-pub use self::{
-	ctx::DynatosWebCtx,
-	event_listener::{ElementAddListener, EventListener, EventTargetAddListener, EventTargetWithListener, ev},
-	object_attach_value::{ObjectAttachValue, ObjectWithValue},
-	parse::{parse, parse_html_element},
+pub use {
+	self::{
+		ctx::DynatosWebCtx,
+		event_listener::{ElementAddListener, EventListener, EventTargetAddListener, EventTargetWithListener, ev},
+		object_attach_value::{ObjectAttachValue, ObjectWithValue},
+		parse::{parse, parse_html_element},
+	},
+	dynatos_util::web::*,
+	js_sys::Object,
+	wasm_bindgen::{JsCast, JsValue},
 };
-
-/// Types for the dynatos web interface.
-///
-/// With the `csr` feature, this will be an export of
-/// types within `wasm_bindgen`, `js_sys` and `web_sys`.
-///
-/// With the `ssr` feature, this will be an export of
-/// types within `dynatos_web_ssr`.
-pub mod types {
-	pub use dynatos_web_types::*;
-}
 
 // Imports
-use {
-	self::as_parent::AsParent,
-	itertools::Itertools,
-	types::{Comment, Element, HtmlElement, JsCast, JsValue, Node, Object, Text, WebError, cfg_ssr_expr},
-};
+use {self::as_parent::AsParent, itertools::Itertools, web_sys::WebError};
 
 /// Parses an html string into an array.
 ///
@@ -61,13 +51,13 @@ pub use dynatos_web_macros::html_file;
 
 /// Creates a text node
 #[must_use]
-pub fn text(ctx: &DynatosWebCtx, data: &str) -> Text {
+pub fn text(ctx: &DynatosWebCtx, data: &str) -> web_sys::Text {
 	ctx.document().create_text_node(data)
 }
 
 /// Creates a comment node
 #[must_use]
-pub fn comment(ctx: &DynatosWebCtx, data: &str) -> Comment {
+pub fn comment(ctx: &DynatosWebCtx, data: &str) -> web_sys::Comment {
 	ctx.document().create_comment(data)
 }
 
@@ -75,7 +65,7 @@ pub fn comment(ctx: &DynatosWebCtx, data: &str) -> Comment {
 #[extend::ext_sized(name = NodeWithText)]
 pub impl<T> T
 where
-	T: AsRef<Node>,
+	T: AsRef<web_sys::Node>,
 {
 	fn with_text<C>(self, text: C) -> Self
 	where
@@ -90,7 +80,7 @@ where
 #[extend::ext_sized(name = ElementWithInnerHtml)]
 pub impl<T> T
 where
-	T: AsRef<Element>,
+	T: AsRef<web_sys::Element>,
 {
 	fn with_inner_html<C>(self, html: C) -> Self
 	where
@@ -125,7 +115,7 @@ impl AsTextContent for Ty {
 
 /// Extension trait to add children to an node
 #[extend::ext_sized(name = NodeAddChildren)]
-pub impl Node {
+pub impl web_sys::Node {
 	fn add_child<C>(&self, child: C)
 	where
 		C: Child,
@@ -153,7 +143,7 @@ pub impl Node {
 #[extend::ext_sized(name = NodeWithChildren)]
 pub impl<T> T
 where
-	T: AsRef<Node>,
+	T: AsRef<web_sys::Node>,
 {
 	fn with_child<C>(self, child: C) -> Self
 	where
@@ -181,11 +171,11 @@ where
 /// Types that may be used for [`NodeWithChildren`]'s single child methods
 pub trait Child {
 	/// Appends this child to `node`
-	fn append(&self, node: &Node) -> Result<(), WebError>;
+	fn append(&self, node: &web_sys::Node) -> Result<(), WebError>;
 }
 
-impl<T: AsParent<Node>> Child for T {
-	fn append(&self, node: &Node) -> Result<(), WebError> {
+impl<T: AsParent<web_sys::Node>> Child for T {
+	fn append(&self, node: &web_sys::Node) -> Result<(), WebError> {
 		// If the node already contains us, warn and refuse to add it.
 		let child = self.as_parent();
 		if node.contains(Some(child)) {
@@ -203,17 +193,17 @@ impl<T: AsParent<Node>> Child for T {
 /// Types that may be used for [`NodeWithChildren`]'s multiple children method
 pub trait Children {
 	/// Appends all children in this type
-	fn append_all(self, node: &Node) -> Result<(), WebError>;
+	fn append_all(self, node: &web_sys::Node) -> Result<(), WebError>;
 }
 
 impl<C: Child> Children for C {
-	fn append_all(self, node: &Node) -> Result<(), WebError> {
+	fn append_all(self, node: &web_sys::Node) -> Result<(), WebError> {
 		self.append(node)
 	}
 }
 
 impl Children for () {
-	fn append_all(self, _node: &Node) -> Result<(), WebError> {
+	fn append_all(self, _node: &web_sys::Node) -> Result<(), WebError> {
 		Ok(())
 	}
 }
@@ -222,7 +212,7 @@ impl<C> Children for &'_ [C]
 where
 	C: Child,
 {
-	fn append_all(self, node: &Node) -> Result<(), WebError> {
+	fn append_all(self, node: &web_sys::Node) -> Result<(), WebError> {
 		for child in self {
 			child.append(node)?;
 		}
@@ -235,7 +225,7 @@ impl<C, const N: usize> Children for [C; N]
 where
 	C: Child,
 {
-	fn append_all(self, node: &Node) -> Result<(), WebError> {
+	fn append_all(self, node: &web_sys::Node) -> Result<(), WebError> {
 		self.as_slice().append_all(node)
 	}
 }
@@ -244,7 +234,7 @@ impl<C> Children for Vec<C>
 where
 	C: Child,
 {
-	fn append_all(self, node: &Node) -> Result<(), WebError> {
+	fn append_all(self, node: &web_sys::Node) -> Result<(), WebError> {
 		self.as_slice().append_all(node)
 	}
 }
@@ -258,7 +248,7 @@ macro impl_children_tuple( $( $( $C:ident($idx:tt) ),*; )* ) {
 				$C: Child,
 			)*
 		{
-			fn append_all(self, node: &Node) -> Result<(), WebError> {
+			fn append_all(self, node: &web_sys::Node) -> Result<(), WebError> {
 				$(
 					self.$idx.append(node)?;
 				)*
@@ -284,7 +274,7 @@ impl_children_tuple! {
 
 /// Extension trait to add an attribute
 #[extend::ext_sized(name = ElementAddAttr)]
-pub impl Element {
+pub impl web_sys::Element {
 	fn add_attr<A, V>(&self, attr: A, value: V)
 	where
 		A: AsRef<str>,
@@ -310,7 +300,7 @@ pub impl Element {
 #[extend::ext_sized(name = ElementWithAttr)]
 pub impl<T> T
 where
-	T: AsRef<Element>,
+	T: AsRef<web_sys::Element>,
 {
 	fn with_attr<A, V>(self, attr: A, value: V) -> Self
 	where
@@ -335,7 +325,7 @@ where
 
 /// Extension trait to set a css property
 #[extend::ext_sized(name = HtmlElementSetCssProp)]
-pub impl HtmlElement {
+pub impl web_sys::HtmlElement {
 	fn set_css_prop<A, V>(&self, attr: A, value: Option<V>)
 	where
 		A: AsRef<str>,
@@ -365,7 +355,7 @@ pub impl HtmlElement {
 #[extend::ext_sized(name = HtmlElementWithCssProp)]
 pub impl<T> T
 where
-	T: AsRef<HtmlElement>,
+	T: AsRef<web_sys::HtmlElement>,
 {
 	fn with_css_prop<A, V>(self, attr: A, value: Option<V>) -> Self
 	where
@@ -388,7 +378,7 @@ where
 
 /// Extension trait to *append* a class
 #[extend::ext_sized(name = ElementAddClass)]
-pub impl Element {
+pub impl web_sys::Element {
 	fn add_class<C>(&self, class: C)
 	where
 		C: AsRef<str>,
@@ -419,7 +409,7 @@ pub impl Element {
 #[extend::ext_sized(name = ElementWithClass)]
 pub impl<T> T
 where
-	T: AsRef<Element>,
+	T: AsRef<web_sys::Element>,
 {
 	fn with_class<C>(self, class: C) -> Self
 	where

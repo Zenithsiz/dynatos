@@ -12,11 +12,8 @@ use {
 	},
 	axum_cookie::{CookieLayer, CookieManager, prelude::Cookie},
 	core::time::Duration,
-	dynatos_web::{
-		DynatosWebCtx,
-		JsResultContext,
-		types::{EventTarget, PointerEvent},
-	},
+	dynatos_web::{DynatosWebCtx, JsResultContext},
+	dynatos_web_ssr::{EventTarget, PointerEvent},
 	std::thread,
 	url::Url,
 	uuid::Uuid,

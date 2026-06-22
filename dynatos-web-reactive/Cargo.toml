@@ -13,26 +13,30 @@ dynatos-web                 = { default-features = false, path = "../dynatos-web
 dynatos-web-reactive-macros = { default-features = false, path = "../dynatos-web-reactive-macros" }
 dynatos-web-router          = { default-features = false, path = "../dynatos-web-router" }
 dynatos-web-ssr             = { default-features = false, features = ["reactive"], optional = true, path = "../dynatos-web-ssr" }
+js-sys                      = { default-features = false, package = "dynatos-web-dep-js-sys", path = "../dynatos-web-dep-js-sys" }
+wasm-bindgen                = { default-features = false, package = "dynatos-web-dep-wasm-bindgen", path = "../dynatos-web-dep-wasm-bindgen" }
+web-sys                     = { default-features = false, package = "dynatos-web-dep-web-sys", path = "../dynatos-web-dep-web-sys" }
+
 
 duplicate         = { workspace = true }
 extend            = { workspace = true }
-js-sys            = { optional = true, workspace = true }
 tracing           = { optional = true, workspace = true }
-wasm-bindgen      = { optional = true, workspace = true }
-web-sys           = { features = ["console"], optional = true, workspace = true }
 zutil-inheritance = { optional = true, workspace = true }
 
 [features]
 default = ["csr", "wasm-js-promise"]
 
-csr = ["dep:js-sys", "dep:wasm-bindgen", "dep:web-sys", "dynatos-web-router/csr", "dynatos-web/csr"]
+csr = ["dynatos-web-router/csr", "dynatos-web/csr", "js-sys/csr", "wasm-bindgen/csr", "web-sys/csr"]
 ssr = [
 	"dep:dynatos-web-ssr",
 	"dep:tracing",
 	"dep:zutil-inheritance",
 	"dynatos-web-router/ssr",
 	"dynatos-web/ssr",
+	"js-sys/ssr",
 	"sync",
+	"wasm-bindgen/ssr",
+	"web-sys/ssr",
 ]
 sync = ["dynatos-reactive/sync", "dynatos-sync-types/sync", "dynatos-web-router/sync", "dynatos-web/sync"]
 tokio = ["dynatos-reactive/tokio"]

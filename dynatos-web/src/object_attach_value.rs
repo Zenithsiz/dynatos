@@ -2,12 +2,10 @@
 
 // Imports
 use {
-	crate::{
-		ObjectGet,
-		ObjectSetProp,
-		types::{Object, cfg_ssr_expr},
-	},
+	crate::{ObjectGet, ObjectSetProp},
 	dynatos_sync_types::SyncBounds,
+	dynatos_util::web::cfg_ssr_expr,
+	js_sys::Object,
 };
 
 /// Extension trait to add a value to an object
@@ -24,9 +22,9 @@ pub impl Object {
 		cfg_ssr_expr!(
 			ssr = {
 				use {
-					zutil_inheritance::{FromFields, Value},
 					dynatos_web_ssr::{ObjectAttachValueValues, ObjectAttachValueValuesFields},
 					std::sync::nonpoison::Mutex,
+					zutil_inheritance::{FromFields, Value},
 				};
 
 				let ctx_handles = match self.get::<ObjectAttachValueValues>(prop_name) {

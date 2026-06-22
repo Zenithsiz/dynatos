@@ -8,14 +8,17 @@ edition = "2024"
 dynatos-reactive     = { default-features = false, path = "../../dynatos-reactive" }
 dynatos-web          = { default-features = false, path = "../../dynatos-web" }
 dynatos-web-reactive = { default-features = false, path = "../../dynatos-web-reactive" }
+js-sys               = { default-features = false, package = "dynatos-web-dep-js-sys", path = "../../dynatos-web-dep-js-sys" }
+wasm-bindgen         = { default-features = false, package = "dynatos-web-dep-wasm-bindgen", path = "../../dynatos-web-dep-wasm-bindgen" }
+web-sys              = { default-features = false, package = "dynatos-web-dep-web-sys", path = "../../dynatos-web-dep-web-sys" }
 
 zutil-cloned = { workspace = true }
 
 [features]
 default = ["csr", "wasm-js-promise"]
 
-csr             = ["dynatos-web-reactive/csr", "dynatos-web/csr"]
-ssr             = ["dynatos-web-reactive/ssr", "dynatos-web/ssr"]
+csr             = ["dynatos-web-reactive/csr", "dynatos-web/csr", "js-sys/csr", "wasm-bindgen/csr", "web-sys/csr"]
+ssr             = ["dynatos-web-reactive/ssr", "dynatos-web/ssr", "js-sys/ssr", "wasm-bindgen/ssr", "web-sys/ssr"]
 tokio           = ["dynatos-reactive/tokio"]
 wasm-js-promise = ["dynatos-reactive/wasm-js-promise"]
 

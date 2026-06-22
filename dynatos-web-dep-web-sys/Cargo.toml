@@ -1,14 +1,13 @@
 [package]
-name    = "dynatos-web-types"
+name    = "dynatos-web-dep-web-sys"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
 
+dynatos-util    = { default-features = false, path = "../dynatos-util" }
 dynatos-web-ssr = { default-features = false, optional = true, path = "../dynatos-web-ssr" }
 
-js-sys = { optional = true, workspace = true }
-wasm-bindgen = { optional = true, workspace = true }
 web-sys = { features = [
 	"AnimationEvent",
 	"ClipboardEvent",
@@ -17,6 +16,8 @@ web-sys = { features = [
 	"Document",
 	"DragEvent",
 	"Element",
+	"Event",
+	"EventTarget",
 	"FocusEvent",
 	"History",
 	"HtmlBodyElement",
@@ -30,6 +31,8 @@ web-sys = { features = [
 	"HtmlTextAreaElement",
 	"InputEvent",
 	"Location",
+	"MouseEvent",
+	"Node",
 	"PointerEvent",
 	"PopStateEvent",
 	"SubmitEvent",
@@ -38,14 +41,14 @@ web-sys = { features = [
 	"TransitionEvent",
 	"WheelEvent",
 	"Window",
+	"console",
 ], optional = true, workspace = true }
-zutil-inheritance = { optional = true, workspace = true }
 
 [features]
 default = ["csr"]
 
-csr = ["dep:js-sys", "dep:wasm-bindgen", "dep:web-sys"]
-ssr = ["dep:dynatos-web-ssr", "dep:zutil-inheritance"]
+csr = ["web-sys"]
+ssr = ["dynatos-web-ssr"]
 
 [lints]
 workspace = true

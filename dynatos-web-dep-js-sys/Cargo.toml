@@ -1,0 +1,20 @@
+[package]
+name    = "dynatos-web-dep-js-sys"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+
+dynatos-util    = { default-features = false, path = "../dynatos-util" }
+dynatos-web-ssr = { default-features = false, optional = true, path = "../dynatos-web-ssr" }
+
+js-sys = { optional = true, workspace = true }
+
+[features]
+default = ["csr"]
+
+csr = ["js-sys"]
+ssr = ["dynatos-web-ssr"]
+
+[lints]
+workspace = true

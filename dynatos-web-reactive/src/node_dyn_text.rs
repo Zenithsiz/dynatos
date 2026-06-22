@@ -5,12 +5,12 @@ use {
 	crate::{ObjectAttachEffect, WithDynText},
 	dynatos_reactive::Effect,
 	dynatos_util::TryOrReturnExt,
-	dynatos_web::types::{Node, WeakRef},
+	js_sys::WeakRef,
 };
 
 /// Extension trait to add reactive text to a node
 #[extend::ext(name = NodeDynText)]
-pub impl Node {
+pub impl web_sys::Node {
 	/// Adds dynamic text to this node
 	#[track_caller]
 	fn set_dyn_text<T>(&self, text: T)
@@ -40,7 +40,7 @@ pub impl Node {
 #[extend::ext(name = NodeWithDynText)]
 pub impl<N> N
 where
-	N: AsRef<Node>,
+	N: AsRef<web_sys::Node>,
 {
 	/// Adds dynamic text to this node.
 	///

@@ -298,18 +298,45 @@ dependencies = [
  "dynatos-store",
  "dynatos-sync-types",
  "dynatos-util",
+ "dynatos-web-dep-js-sys",
+ "dynatos-web-dep-wasm-bindgen",
+ "dynatos-web-dep-web-sys",
  "dynatos-web-macros",
  "dynatos-web-parser",
  "dynatos-web-ssr",
- "dynatos-web-types",
  "extend",
  "itertools",
- "js-sys",
  "thiserror",
  "tracing",
- "wasm-bindgen",
- "web-sys",
  "zutil-inheritance",
+]
+
+[[package]]
+name = "dynatos-web-dep-js-sys"
+version = "0.1.0"
+dependencies = [
+ "dynatos-util",
+ "dynatos-web-ssr",
+ "js-sys",
+]
+
+[[package]]
+name = "dynatos-web-dep-wasm-bindgen"
+version = "0.1.0"
+dependencies = [
+ "dynatos-util",
+ "dynatos-web-ssr",
+ "wasm-bindgen",
+ "zutil-inheritance",
+]
+
+[[package]]
+name = "dynatos-web-dep-web-sys"
+version = "0.1.0"
+dependencies = [
+ "dynatos-util",
+ "dynatos-web-ssr",
+ "web-sys",
 ]
 
 [[package]]
@@ -340,14 +367,14 @@ dependencies = [
  "dynatos-sync-types",
  "dynatos-util",
  "dynatos-web",
+ "dynatos-web-dep-js-sys",
+ "dynatos-web-dep-wasm-bindgen",
+ "dynatos-web-dep-web-sys",
  "dynatos-web-reactive-macros",
  "dynatos-web-router",
  "dynatos-web-ssr",
  "extend",
- "js-sys",
  "tracing",
- "wasm-bindgen",
- "web-sys",
  "zutil-inheritance",
 ]
 
@@ -366,6 +393,9 @@ dependencies = [
  "dynatos-reactive",
  "dynatos-sync-types",
  "dynatos-web",
+ "dynatos-web-dep-js-sys",
+ "dynatos-web-dep-wasm-bindgen",
+ "dynatos-web-dep-web-sys",
  "thiserror",
  "tracing",
  "url",
@@ -408,19 +438,10 @@ dependencies = [
  "dynatos-sync-types",
  "dynatos-util",
  "dynatos-web",
+ "dynatos-web-dep-js-sys",
+ "dynatos-web-dep-wasm-bindgen",
+ "dynatos-web-dep-web-sys",
  "extend",
- "wasm-bindgen",
-]
-
-[[package]]
-name = "dynatos-web-types"
-version = "0.1.0"
-dependencies = [
- "dynatos-web-ssr",
- "js-sys",
- "wasm-bindgen",
- "web-sys",
- "zutil-inheritance",
 ]
 
 [[package]]
@@ -482,6 +503,9 @@ version = "0.1.0"
 dependencies = [
  "dynatos-reactive",
  "dynatos-web",
+ "dynatos-web-dep-js-sys",
+ "dynatos-web-dep-wasm-bindgen",
+ "dynatos-web-dep-web-sys",
  "dynatos-web-reactive",
  "zutil-cloned",
 ]

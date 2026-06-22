@@ -20,3 +20,6 @@ pub use self::{
 	location::LocationSignal,
 	query_signal::{MultiQuery, QuerySignal, SingleQuery},
 };
+
+// Imports
+use js_sys as _;

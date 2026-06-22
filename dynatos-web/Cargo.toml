@@ -12,24 +12,23 @@ dynatos-util       = { default-features = false, path = "../dynatos-util" }
 dynatos-web-macros = { default-features = false, path = "../dynatos-web-macros" }
 dynatos-web-parser = { default-features = false, path = "../dynatos-web-parser" }
 dynatos-web-ssr    = { default-features = false, optional = true, path = "../dynatos-web-ssr" }
-dynatos-web-types  = { default-features = false, path = "../dynatos-web-types" }
+js-sys             = { default-features = false, package = "dynatos-web-dep-js-sys", path = "../dynatos-web-dep-js-sys" }
+wasm-bindgen       = { default-features = false, package = "dynatos-web-dep-wasm-bindgen", path = "../dynatos-web-dep-wasm-bindgen" }
+web-sys            = { default-features = false, package = "dynatos-web-dep-web-sys", path = "../dynatos-web-dep-web-sys" }
 
 app-error         = { workspace = true }
 duplicate         = { workspace = true }
 extend            = { workspace = true }
 itertools         = { workspace = true }
-js-sys            = { optional = true, workspace = true }
 thiserror         = { workspace = true }
 tracing           = { workspace = true }
-wasm-bindgen      = { optional = true, workspace = true }
-web-sys           = { optional = true, workspace = true }
 zutil-inheritance = { optional = true, workspace = true }
 
 [features]
 default = ["csr"]
 
-csr  = ["dep:js-sys", "dep:wasm-bindgen", "dep:web-sys", "dynatos-web-types/csr"]
-ssr  = ["dep:dynatos-web-ssr", "dep:zutil-inheritance", "dynatos-web-types/ssr", "sync"]
+csr  = ["js-sys/csr", "wasm-bindgen/csr", "web-sys/csr"]
+ssr  = ["dep:dynatos-web-ssr", "dep:zutil-inheritance", "js-sys/ssr", "sync", "wasm-bindgen/ssr", "web-sys/ssr"]
 sync = ["dynatos-store/sync", "dynatos-sync-types/sync"]
 
 [lints]

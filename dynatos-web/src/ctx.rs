@@ -2,10 +2,11 @@
 
 // Imports
 use {
-	crate::types::{Document, History, HtmlBodyElement, HtmlHeadElement, Location, Window, cfg_ssr, cfg_ssr_expr},
 	app_error::AppError,
 	dynatos_store::ValueStore,
 	dynatos_sync_types::RcPtr,
+	dynatos_util::web::{cfg_ssr, cfg_ssr_expr},
+	web_sys::{Document, History, HtmlBodyElement, HtmlHeadElement, Location, Window},
 };
 
 #[derive(Debug)]

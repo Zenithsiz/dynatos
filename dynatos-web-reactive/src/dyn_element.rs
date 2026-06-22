@@ -7,16 +7,12 @@ use {
 	dynatos_reactive::{Derived, Effect, Memo, Signal, SignalWith, WithDefault, derived::DerivedRun, effect},
 	dynatos_sync_types::{IMut, RcPtr, SyncBounds},
 	dynatos_util::TryOrReturnExt,
-	dynatos_web::{
-		Child,
-		DynatosWebCtx,
-		html,
-		types::{Element, HtmlElement, Node, WeakRef, WebError},
-	},
+	dynatos_web::{Child, DynatosWebCtx, html},
+	js_sys::WeakRef,
 };
 
 /// A dynamic element
-pub struct DynElement(RcPtr<IMut<Element>>);
+pub struct DynElement(RcPtr<IMut<web_sys::Element>>);
 
 impl DynElement {
 	/// Creates a new dynamic element
@@ -24,8 +20,8 @@ impl DynElement {
 	where
 		T: ToDynElement + 'static,
 	{
-		let default_element = Element::from(html::template(ctx));
-		let element_weak_ref = IMut::new(WeakRef::<Element>::new(&default_element));
+		let default_element = web_sys::Element::from(html::template(ctx));
+		let element_weak_ref = IMut::new(WeakRef::<web_sys::Element>::new(&default_element));
 
 		let element = RcPtr::new(IMut::new(default_element));
 		let element_weak_rc = RcPtr::downgrade(&element);
@@ -56,7 +52,7 @@ impl DynElement {
 }
 
 impl Child for DynElement {
-	fn append(&self, node: &Node) -> Result<(), WebError> {
+	fn append(&self, node: &web_sys::Node) -> Result<(), web_sys::WebError> {
 		self.0.lock().append(node)
 	}
 }
@@ -74,7 +70,7 @@ impl Child for DynElement {
 /// Where `N` is any of the types above.
 pub trait ToDynElement: SyncBounds {
 	/// Gets the element
-	fn to_element(&self) -> Element;
+	fn to_element(&self) -> web_sys::Element;
 }
 
 impl<F, N> ToDynElement for F
@@ -82,7 +78,7 @@ where
 	F: SyncBounds + Fn() -> N,
 	N: ToDynElement,
 {
-	fn to_element(&self) -> Element {
+	fn to_element(&self) -> web_sys::Element {
 		self().to_element()
 	}
 }
@@ -93,12 +89,12 @@ where
 #[allow(clippy::use_self, reason = "We always want to use `Element`, not `Ty`")]
 #[duplicate::duplicate_item(
 	Ty;
-	[Element];
-	[HtmlElement];
+	[web_sys::Element];
+	[web_sys::HtmlElement];
 )]
 impl ToDynElement for Ty {
-	fn to_element(&self) -> Element {
-		<Self as AsRef<Element>>::as_ref(self).clone()
+	fn to_element(&self) -> web_sys::Element {
+		<Self as AsRef<web_sys::Element>>::as_ref(self).clone()
 	}
 }
 
@@ -111,7 +107,7 @@ impl ToDynElement for Ty {
 	[S, T] [WithDefault<S, T> where S: SyncBounds, T: SyncBounds, Self: for<'a> SignalWith<Value<'a>: Deref<Target: ToDynElement>>];
 )]
 impl<Generics> ToDynElement for Ty {
-	fn to_element(&self) -> Element {
+	fn to_element(&self) -> web_sys::Element {
 		#[allow(
 			clippy::allow_attributes,
 			clippy::redundant_closure_for_method_calls,
@@ -128,7 +124,7 @@ where
 	F: FnOnce() -> N,
 	Self: SyncBounds,
 {
-	fn to_element(&self) -> Element {
+	fn to_element(&self) -> web_sys::Element {
 		(**self).to_element()
 	}
 }
@@ -140,13 +136,13 @@ where
 	F: FnOnce() -> N,
 	Self: SyncBounds,
 {
-	fn to_element(&self) -> Element {
+	fn to_element(&self) -> web_sys::Element {
 		(**self).to_element()
 	}
 }
 
 impl ToDynElement for ! {
-	fn to_element(&self) -> Element {
+	fn to_element(&self) -> web_sys::Element {
 		*self
 	}
 }

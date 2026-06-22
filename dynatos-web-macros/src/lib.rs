@@ -66,7 +66,7 @@ fn parse_html(input: &str, span: proc_macro2::Span, dep_file: Option<&Path>) -> 
 		.into_iter()
 		.map(|node| match root_ty_all_eq {
 			true => syn::parse_quote! { #node },
-			false => syn::parse_quote! { dynatos_web::types::Node::from(#node) },
+			false => syn::parse_quote! { web_sys::Node::from(#node) },
 		})
 		.collect::<Vec<syn::Expr>>();
 
@@ -176,7 +176,7 @@ impl Node {
 
 								syn::parse_quote! {
 									dynatos_web::EventTargetAddListener::add_event_listener::<dynatos_web::ev!(#tag)>(
-										AsRef::<dynatos_web::types::EventTarget>::as_ref(&#el),
+										AsRef::<web_sys::EventTarget>::as_ref(&#el),
 										&ctx,
 										#value
 									);
@@ -208,13 +208,13 @@ impl Node {
 						let expr = match child.ty {
 							NodeTy::Element | NodeTy::Text | NodeTy::Comment => syn::parse_quote! {
 								dynatos_web::NodeAddChildren::add_children(
-									AsRef::<dynatos_web::types::Node>::as_ref(&#el),
+									AsRef::<web_sys::Node>::as_ref(&#el),
 									#child
 								);
 							},
 							NodeTy::Expr => syn::parse_quote! {
 								dynatos_web_reactive::NodeDynChildren::add_dyn_children(
-									AsRef::<dynatos_web::types::Node>::as_ref(&#el),
+									AsRef::<web_sys::Node>::as_ref(&#el),
 									&ctx,
 									#child
 								);

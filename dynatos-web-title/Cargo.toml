@@ -9,15 +9,17 @@ edition = "2024"
 dynatos-sync-types = { default-features = false, path = "../dynatos-sync-types" }
 dynatos-util       = { default-features = false, path = "../dynatos-util" }
 dynatos-web        = { default-features = false, path = "../dynatos-web" }
+js-sys             = { default-features = false, package = "dynatos-web-dep-js-sys", path = "../dynatos-web-dep-js-sys" }
+wasm-bindgen       = { default-features = false, package = "dynatos-web-dep-wasm-bindgen", path = "../dynatos-web-dep-wasm-bindgen" }
+web-sys            = { default-features = false, package = "dynatos-web-dep-web-sys", path = "../dynatos-web-dep-web-sys" }
 
-extend       = { workspace = true }
-wasm-bindgen = { optional = true, workspace = true }
+extend = { workspace = true }
 
 [features]
 default = ["csr"]
 
-csr  = ["dep:wasm-bindgen", "dynatos-web/csr"]
-ssr  = ["dynatos-web/ssr", "sync"]
+csr  = ["dynatos-web/csr", "js-sys/csr", "wasm-bindgen/csr", "web-sys/csr"]
+ssr  = ["dynatos-web/ssr", "js-sys/ssr", "sync", "wasm-bindgen/ssr", "web-sys/ssr"]
 sync = ["dynatos-sync-types/sync", "dynatos-web/sync"]
 
 [lints]

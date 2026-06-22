@@ -7,16 +7,13 @@ use {
 	dynatos_reactive::{Derived, Effect, Memo, Signal, SignalWith, WithDefault, derived::DerivedRun},
 	dynatos_sync_types::{IMut, SyncBounds},
 	dynatos_util::TryOrReturnExt,
-	dynatos_web::{
-		DynatosWebCtx,
-		html,
-		types::{Element, HtmlElement, Node, WeakRef, cfg_ssr_expr},
-	},
+	dynatos_web::{DynatosWebCtx, cfg_ssr_expr, html},
+	js_sys::WeakRef,
 };
 
 /// Extension trait to add reactive children to an node
 #[extend::ext(name = NodeDynChildren)]
-pub impl Node {
+pub impl web_sys::Node {
 	/// Adds dynamic children to this node
 	#[track_caller]
 	fn add_dyn_children<C>(&self, ctx: &DynatosWebCtx, children: C)
@@ -32,7 +29,7 @@ pub impl Node {
 		// TODO: Find a better solution than using an empty `<template>` element?
 		let node = WeakRef::new(self);
 		let prev_children = IMut::new(vec![]);
-		let empty_child = Node::from(html::template(ctx));
+		let empty_child = web_sys::Node::from(html::template(ctx));
 		let child_effect = Effect::try_new(move || {
 			// Try to get the node
 			let node = node.deref().or_return()?;
@@ -86,7 +83,7 @@ pub impl Node {
 			}
 
 			for new_node in new_nodes {
-				let last_prev_child = prev_children.last().and_then(Node::next_sibling);
+				let last_prev_child = prev_children.last().and_then(web_sys::Node::next_sibling);
 
 				node.insert_before(&new_node, last_prev_child.as_ref())
 					.expect("Unable to add reactive child");
@@ -105,7 +102,7 @@ pub impl Node {
 #[extend::ext(name = NodeWithDynChildren)]
 pub impl<N> N
 where
-	N: AsRef<Node>,
+	N: AsRef<web_sys::Node>,
 {
 	/// Adds dynamic children to this node.
 	///
@@ -134,7 +131,7 @@ where
 /// Where `N` is any of the types above.
 pub trait WithDynNodes: SyncBounds {
 	/// Calls `f` with all nodes.
-	fn with_nodes(&self, f: impl FnMut(Node));
+	fn with_nodes(&self, f: impl FnMut(web_sys::Node));
 }
 
 impl<F, N> WithDynNodes for F
@@ -142,7 +139,7 @@ where
 	F: SyncBounds + Fn() -> N,
 	N: WithDynNodes,
 {
-	fn with_nodes(&self, f: impl FnMut(Node)) {
+	fn with_nodes(&self, f: impl FnMut(web_sys::Node)) {
 		self().with_nodes(f);
 	}
 }
@@ -153,13 +150,13 @@ where
 #[allow(clippy::use_self, reason = "We always want to use `Node`, not `Ty`")]
 #[duplicate::duplicate_item(
 	Ty;
-	[Node];
-	[Element];
-	[HtmlElement];
+	[web_sys::Node];
+	[web_sys::Element];
+	[web_sys::HtmlElement];
 )]
 impl WithDynNodes for Ty {
-	fn with_nodes(&self, mut f: impl FnMut(Node)) {
-		let node = <Self as AsRef<Node>>::as_ref(self);
+	fn with_nodes(&self, mut f: impl FnMut(web_sys::Node)) {
+		let node = <Self as AsRef<web_sys::Node>>::as_ref(self);
 
 		f(node.clone());
 	}
@@ -169,7 +166,7 @@ impl<N> WithDynNodes for Option<N>
 where
 	N: WithDynNodes,
 {
-	fn with_nodes(&self, f: impl FnMut(Node)) {
+	fn with_nodes(&self, f: impl FnMut(web_sys::Node)) {
 		if let Some(children) = self {
 			children.with_nodes(f);
 		}
@@ -180,7 +177,7 @@ impl<N> WithDynNodes for Vec<N>
 where
 	N: WithDynNodes,
 {
-	fn with_nodes(&self, f: impl FnMut(Node)) {
+	fn with_nodes(&self, f: impl FnMut(web_sys::Node)) {
 		(**self).with_nodes(f);
 	}
 }
@@ -189,7 +186,7 @@ impl<N, const LEN: usize> WithDynNodes for [N; LEN]
 where
 	N: WithDynNodes,
 {
-	fn with_nodes(&self, f: impl FnMut(Node)) {
+	fn with_nodes(&self, f: impl FnMut(web_sys::Node)) {
 		self.as_slice().with_nodes(f);
 	}
 }
@@ -198,7 +195,7 @@ impl<N> WithDynNodes for [N]
 where
 	N: WithDynNodes,
 {
-	fn with_nodes(&self, mut f: impl FnMut(Node)) {
+	fn with_nodes(&self, mut f: impl FnMut(web_sys::Node)) {
 		for children in self {
 			children.with_nodes(&mut f);
 		}
@@ -214,7 +211,7 @@ where
 	[S, T] [WithDefault<S, T> where S: SyncBounds, T: SyncBounds, Self: for<'a> SignalWith<Value<'a>: Deref<Target: WithDynNodes>>];
 )]
 impl<Generics> WithDynNodes for Ty {
-	fn with_nodes(&self, f: impl FnMut(Node)) {
+	fn with_nodes(&self, f: impl FnMut(web_sys::Node)) {
 		#[allow(
 			clippy::allow_attributes,
 			clippy::redundant_closure_for_method_calls,
@@ -231,7 +228,7 @@ where
 	F: FnOnce() -> N,
 	Self: SyncBounds,
 {
-	fn with_nodes(&self, f: impl FnMut(Node)) {
+	fn with_nodes(&self, f: impl FnMut(web_sys::Node)) {
 		(**self).with_nodes(f);
 	}
 }
@@ -243,17 +240,17 @@ where
 	F: FnOnce() -> N,
 	Self: SyncBounds,
 {
-	fn with_nodes(&self, f: impl FnMut(Node)) {
+	fn with_nodes(&self, f: impl FnMut(web_sys::Node)) {
 		(**self).with_nodes(f);
 	}
 }
 
 impl WithDynNodes for ! {
-	fn with_nodes(&self, _f: impl FnMut(Node)) {}
+	fn with_nodes(&self, _f: impl FnMut(web_sys::Node)) {}
 }
 
 /// Traces the addition of a dynamic node
-fn trace_add_node(node: &Node, after: Option<&Node>) {
+fn trace_add_node(node: &web_sys::Node, after: Option<&web_sys::Node>) {
 	cfg_ssr_expr!(
 		ssr = tracing::trace!(?node, ?after, "Added new reactive child"),
 		csr = match after {
@@ -273,7 +270,7 @@ fn trace_add_node(node: &Node, after: Option<&Node>) {
 }
 
 /// Traces the removal of a dynamic node
-fn trace_remove_node(node: &Node) {
+fn trace_remove_node(node: &web_sys::Node) {
 	cfg_ssr_expr!(
 		ssr = tracing::trace!(?node, "Removing reactive child"),
 		csr = web_sys::console::debug_2(
@@ -284,7 +281,7 @@ fn trace_remove_node(node: &Node) {
 }
 
 /// Traces the keeping of a dynamic node
-fn trace_keep_node(node: &Node) {
+fn trace_keep_node(node: &web_sys::Node) {
 	cfg_ssr_expr!(
 		ssr = tracing::trace!(?node, "Keeping reactive child"),
 		csr = web_sys::console::debug_2(

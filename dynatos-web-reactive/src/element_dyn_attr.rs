@@ -6,12 +6,12 @@ use {
 	dynatos_reactive::Effect,
 	dynatos_sync_types::SyncBounds,
 	dynatos_util::TryOrReturnExt,
-	dynatos_web::types::{Element, WeakRef},
+	js_sys::WeakRef,
 };
 
 /// Extension trait to add reactive attribute to an element
 #[extend::ext(name = ElementDynAttr)]
-pub impl Element {
+pub impl web_sys::Element {
 	/// Adds a dynamic attribute to this element
 	#[track_caller]
 	fn set_dyn_attr<K, V>(&self, key: K, value: V)
@@ -60,7 +60,7 @@ pub impl Element {
 #[extend::ext(name = ElementWithDynAttr)]
 pub impl<E> E
 where
-	E: AsRef<Element>,
+	E: AsRef<web_sys::Element>,
 {
 	/// Adds a dynamic attribute to this element, where only the value is dynamic.
 	///

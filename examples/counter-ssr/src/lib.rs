@@ -6,21 +6,15 @@
 // Imports
 use {
 	dynatos_reactive::{Signal, SignalBorrowMut, SignalGet, SignalSet},
-	dynatos_web::{
-		DynatosWebCtx,
-		EventTargetWithListener,
-		NodeWithChildren,
-		NodeWithText,
-		ev,
-		html,
-		types::HtmlElement,
-	},
+	dynatos_web::{DynatosWebCtx, EventTargetWithListener, NodeWithChildren, NodeWithText, ev, html},
 	dynatos_web_reactive::NodeWithDynText,
+	js_sys as _,
+	wasm_bindgen as _,
 	zutil_cloned::cloned,
 };
 
 
-fn counter(ctx: &DynatosWebCtx) -> HtmlElement {
+fn counter(ctx: &DynatosWebCtx) -> web_sys::HtmlElement {
 	let value = Signal::new(0);
 
 	#[cloned(value)]

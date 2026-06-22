@@ -9,6 +9,9 @@ members = [
 	"dynatos-sync-types",
 	"dynatos-util",
 	"dynatos-web",
+	"dynatos-web-dep-js-sys",
+	"dynatos-web-dep-wasm-bindgen",
+	"dynatos-web-dep-web-sys",
 	"dynatos-web-macros",
 	"dynatos-web-parser",
 	"dynatos-web-reactive",
@@ -17,7 +20,6 @@ members = [
 	"dynatos-web-ssr",
 	"dynatos-web-ssr-server",
 	"dynatos-web-title",
-	"dynatos-web-types",
 
 	# Examples
 	"examples/counter",

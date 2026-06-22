@@ -10,11 +10,9 @@
 use {
 	dynatos_sync_types::{IMut, thread_local_or_global},
 	dynatos_util::HoleyStack,
-	dynatos_web::{
-		DynatosWebCtx,
-		ObjectSetProp,
-		types::{Object, cfg_ssr_expr},
-	},
+	dynatos_web::{DynatosWebCtx, ObjectSetProp, cfg_ssr_expr},
+	js_sys::Object,
+	web_sys as _,
 };
 
 /// Title stack.
@@ -78,7 +76,7 @@ pub impl Object {
 
 		let title = cfg_ssr_expr!(
 			ssr = {
-				use dynatos_web::types::JsValue;
+				use wasm_bindgen::JsValue;
 				JsValue::from_any(title)
 			},
 			csr = {
