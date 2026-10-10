@@ -1,6 +1,5 @@
 //! Location
 
-// Imports
 use core::fmt;
 #[cfg(debug_assertions)]
 use core::panic::Location;

@@ -1,6 +1,5 @@
 //! World tags
 
-// Imports
 use {super::THREAD_WORLD, core::cell::RefCell, dynatos_util::HoleyStack};
 
 /// Tag state

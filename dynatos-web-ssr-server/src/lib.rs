@@ -1,18 +1,14 @@
 //! `dynatos` web SSR server
 
-// Features
 #![feature(nonpoison_mutex, nonpoison_condvar, sync_nonpoison)]
 #![cfg_attr(feature = "axum", feature(proc_macro_hygiene, thread_sleep_until))]
 
-// Modules
 #[cfg(feature = "axum")]
 pub mod axum;
 mod state;
 
-// Exports
 pub use self::state::State;
 
-// Imports
 use dynatos_web::DynatosWebCtx;
 
 /// Renders a client's html

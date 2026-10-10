@@ -1,6 +1,5 @@
 //! Multi query
 
-// Imports
 use {
 	super::{QueriesFn, QueryIntoValue, QueryParse, QueryWrite},
 	crate::LocationSignal,

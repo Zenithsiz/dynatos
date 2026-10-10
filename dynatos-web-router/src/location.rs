@@ -1,6 +1,5 @@
 //! Location
 
-// Imports
 use {
 	core::ops::{Deref, DerefMut},
 	dynatos_reactive::{Signal, SignalBorrow, SignalBorrowMut, signal},

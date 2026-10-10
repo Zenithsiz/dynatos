@@ -2,11 +2,9 @@
 
 // TODO: It seems that titles aren't getting dropped for some reason.
 
-// Features
 #![feature(macro_attr)]
 #![cfg_attr(not(feature = "sync"), feature(thread_local))]
 
-// Imports
 use {
 	dynatos_sync_types::{IMut, thread_local_or_global},
 	dynatos_util::HoleyStack,

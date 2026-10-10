@@ -1,6 +1,5 @@
 //! Storage
 
-// Imports
 use crate::{Effect, Signal, SignalSet};
 
 /// Signal storage.

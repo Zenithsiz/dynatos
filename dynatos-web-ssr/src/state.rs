@@ -1,6 +1,5 @@
 //! SSR State
 
-// Imports
 use {
 	crate::{Document, History, HtmlBodyElement, HtmlHeadElement, Location, Window, event_target},
 	core::{

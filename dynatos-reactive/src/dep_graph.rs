@@ -1,6 +1,5 @@
 //! Dependency graph
 
-// Imports
 use {
 	crate::{Effect, EffectRun, Trigger, WeakEffect, WeakTrigger, loc::Loc},
 	core::error::Error as StdError,

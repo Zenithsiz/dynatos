@@ -1,6 +1,5 @@
 //! `Axum` backend
 
-// Imports
 use {
 	crate::state::{self, State},
 	app_error::{AppError, Context},

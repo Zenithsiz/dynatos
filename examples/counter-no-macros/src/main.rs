@@ -1,6 +1,5 @@
 //! Counter example (without any macros)
 
-// Imports
 use {
 	app_error::AppError,
 	dynatos_reactive::{Signal, SignalBorrowMut, SignalGet, SignalSet},

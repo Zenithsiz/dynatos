@@ -1,6 +1,5 @@
 //! HTML elements
 
-// Imports
 use {crate::DynatosWebCtx, dynatos_util::web::cfg_ssr_expr, web_sys::WebError};
 
 /// Expands to `$value` if `$value` exists, else expands to `$default`

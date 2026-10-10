@@ -1,6 +1,5 @@
 //! [`SignalReplace`]
 
-// Imports
 use crate::effect;
 
 /// Signal replace

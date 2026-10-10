@@ -1,6 +1,5 @@
 //! Inner mutability type
 
-// Imports
 use core::ops::{Deref, DerefMut};
 
 type Inner<T> = cfg_select! {

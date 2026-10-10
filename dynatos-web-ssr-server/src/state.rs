@@ -1,6 +1,5 @@
 //! State
 
-// Imports
 use {
 	app_error::{AppError, Context},
 	core::time::Duration,

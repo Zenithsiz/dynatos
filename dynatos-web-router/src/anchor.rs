@@ -1,6 +1,5 @@
 //! Anchor element
 
-// Imports
 use {
 	dynatos_sync_types::SyncBounds,
 	dynatos_web::{DynatosWebCtx, ElementWithAttr, cfg_ssr_expr, html},

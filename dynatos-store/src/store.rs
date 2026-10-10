@@ -1,6 +1,5 @@
 //! Value store
 
-// Imports
 use {
 	crate::handle::Handle,
 	core::{

@@ -3,10 +3,8 @@
 //! A read-write value that automatically updates
 //! any subscribers when changed.
 
-// Modules
 pub mod ops;
 
-// Exports
 pub use ops::{
 	SignalBorrow,
 	SignalBorrowMut,
@@ -26,7 +24,6 @@ pub use ops::{
 	SignalWithDefaultImpl,
 };
 
-// Imports
 use {
 	crate::{Trigger, trigger::TriggerExec},
 	core::{
@@ -199,8 +196,7 @@ impl<T: ?Sized + fmt::Debug> fmt::Debug for Signal<T> {
 
 #[cfg(test)]
 mod tests {
-	// Imports
-	use {super::*, crate::Effect, zutil_cloned::cloned};
+		use {super::*, crate::Effect, zutil_cloned::cloned};
 
 	#[test]
 	fn multiple_mut() {

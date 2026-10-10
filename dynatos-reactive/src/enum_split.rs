@@ -1,18 +1,15 @@
 //! Enum split signal
 
-// Modules
 mod ctx;
 mod either;
 mod storage;
 
-// Exports
 pub use self::{
 	ctx::EnumSplitValueUpdateCtx,
 	either::{All1, All2, All3, Either1, Either2, Either3},
 	storage::SignalStorage,
 };
 
-// Imports
 use {
 	crate::{
 		Effect,

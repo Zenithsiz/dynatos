@@ -1,6 +1,5 @@
 //! `dynatos` web SSR
 
-// Features
 #![feature(
 	decl_macro,
 	const_trait_impl,
@@ -11,7 +10,6 @@
 	macro_derive
 )]
 
-// Modules
 pub mod css_style;
 pub mod document;
 pub mod element;
@@ -27,7 +25,6 @@ pub mod state;
 pub mod weak_ref;
 pub mod window;
 
-// Exports
 pub use self::{
 	css_style::{CssStyleDeclaration, CssStyleProperties},
 	document::Document,
@@ -69,7 +66,6 @@ pub use self::{
 	window::Window,
 };
 
-// Imports
 #[cfg(feature = "reactive")]
 use std::collections::HashMap;
 use {

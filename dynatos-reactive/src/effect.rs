@@ -6,13 +6,11 @@
 // TODO: Downcasting? It isn't trivial due to the usages of `Rc<Inner<dyn EffectRun>>`,
 //       which doesn't allow casting to `Rc<dyn Any>`, required by `Rc::downcast`.
 
-// Modules
 mod deps_gatherer;
 mod run;
 mod suppressed;
 mod weak;
 
-// Exports
 pub use self::{
 	deps_gatherer::EffectDepsGatherer,
 	run::{EffectRun, EffectRunCtx, effect_run_impl_inner},
@@ -20,7 +18,6 @@ pub use self::{
 	weak::WeakEffect,
 };
 
-// Imports
 use {
 	crate::{
 		GLOBAL_WORLD,

@@ -1,9 +1,7 @@
 //! Mapped signal
 
-// Lints
 #![expect(type_alias_bounds, reason = "We can't use `T::Residual` without the bound")]
 
-// Imports
 use {
 	crate::{Effect, Signal, SignalGetCloned, SignalSet, SignalUpdate, SignalWith, Trigger, WeakEffect},
 	core::ops::{ControlFlow, FromResidual, Residual, Try},

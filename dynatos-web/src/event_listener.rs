@@ -1,6 +1,5 @@
 //! Event listener
 
-// Imports
 use {
 	crate::DynatosWebCtx,
 	dynatos_sync_types::SyncBounds,
@@ -116,8 +115,7 @@ pub macro ev($Event:ident) {
 	reason = "Macro-generated code, the types aren't accessed directly and instead go through a macro"
 )]
 mod ev {
-	// Imports
-	use super::EventListener;
+		use super::EventListener;
 
 	macro define_events(
 		$(

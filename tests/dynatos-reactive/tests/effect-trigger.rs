@@ -1,10 +1,8 @@
 //! Effect-trigger tests
 
-// Features
 #![feature(macro_attr, proc_macro_hygiene, stmt_expr_attributes)]
 #![cfg_attr(not(feature = "sync"), feature(thread_local))]
 
-// Imports
 use {
 	dynatos_reactive::{Effect, Trigger, WeakEffect, WeakTrigger, effect},
 	dynatos_sync_types::{OnceCell, thread_local_or_global},

@@ -1,9 +1,7 @@
 //! Router example
 
-// Features
 #![feature(thread_local, stmt_expr_attributes, proc_macro_hygiene)]
 
-// Imports
 use {
 	app_error::AppError,
 	core::cell::OnceCell,

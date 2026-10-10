@@ -1,9 +1,7 @@
 //! Counter (SSR) Shared library
 
-// Features
 #![feature(stmt_expr_attributes, proc_macro_hygiene)]
 
-// Imports
 use {
 	dynatos_reactive::{Signal, SignalBorrowMut, SignalGet, SignalSet},
 	dynatos_web::{DynatosWebCtx, EventTargetWithListener, NodeWithChildren, NodeWithText, ev, html},

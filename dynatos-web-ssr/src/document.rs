@@ -1,6 +1,5 @@
 //! Document
 
-// Imports
 use {
 	crate::{
 		Comment,

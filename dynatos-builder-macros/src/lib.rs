@@ -1,6 +1,5 @@
 //! Macros for [`dynatos-builder`]
 
-// Imports
 use {
 	convert_case::Casing,
 	proc_macro::TokenStream,

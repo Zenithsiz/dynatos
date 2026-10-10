@@ -1,6 +1,5 @@
 //! Strong pointer
 
-// Imports
 use {
 	super::WeakRcPtr,
 	core::{

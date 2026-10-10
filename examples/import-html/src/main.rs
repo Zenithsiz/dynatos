@@ -1,9 +1,7 @@
 //! Import html example
 
-// Features
 #![feature(macro_metavar_expr, unboxed_closures)]
 
-// Imports
 use {
 	app_error::AppError,
 	dynatos_web::{DynatosWebCtx, JsResultContext, NodeWithChildren, NodeWithText, html, html_file},

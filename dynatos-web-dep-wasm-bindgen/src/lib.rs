@@ -1,16 +1,13 @@
 //! `dynatos` web `wasm-bindgen` ssr replacement
 
-// Features
 #![feature(trait_alias)]
 
 
 dynatos_util::web::cfg_ssr! {
 	ssr = {
-		// Imports
-		use zutil_inheritance::Value;
+				use zutil_inheritance::Value;
 
-		// Exports
-		pub use dynatos_web_ssr::JsValue;
+				pub use dynatos_web_ssr::JsValue;
 
 
 		pub trait JsCast = Value;
@@ -23,8 +20,7 @@ dynatos_util::web::cfg_ssr! {
 		}
 
 		pub mod convert {
-			// Imports
-			use zutil_inheritance::Value;
+						use zutil_inheritance::Value;
 
 			pub trait FromWasmAbi = Value;
 		}

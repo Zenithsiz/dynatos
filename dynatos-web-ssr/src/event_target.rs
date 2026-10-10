@@ -1,6 +1,5 @@
 //! Event target
 
-// Imports
 use {
 	crate::{Element, Event, HtmlElement, Object, State, WebError},
 	app_error::{AppError, Context, app_error},

@@ -1,6 +1,5 @@
 //! Node reactive child
 
-// Imports
 use {
 	crate::{NodeDynChildren, WithDynNodes},
 	core::ops::Deref,

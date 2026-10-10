@@ -1,10 +1,8 @@
 //! Dynatos framework
 
-// Features
 #![feature(unboxed_closures)]
 #![cfg_attr(feature = "ssr", feature(nonpoison_mutex, sync_nonpoison))]
 
-// Modules
 mod dyn_element;
 mod element_dyn_attr;
 mod html_element_dyn_css_prop;
@@ -17,7 +15,6 @@ mod to_dyn_prop;
 mod with_dyn_pred;
 mod with_dyn_text;
 
-// Exports
 pub use {
 	self::{
 		dyn_element::DynElement,

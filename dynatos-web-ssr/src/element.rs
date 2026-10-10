@@ -1,6 +1,5 @@
 //! Element
 
-// Imports
 use {
 	crate::{
 		EventTarget,

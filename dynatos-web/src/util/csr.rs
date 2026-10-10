@@ -1,6 +1,5 @@
 //! CSR utilities
 
-// Imports
 use {
 	core::marker::Unsize,
 	wasm_bindgen::{

@@ -1,6 +1,5 @@
 //! Object
 
-// Imports
 use {
 	crate::JsValue,
 	zutil_inheritance::{Downcast, Value},

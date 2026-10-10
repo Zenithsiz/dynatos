@@ -1,6 +1,5 @@
 //! Object reactive property
 
-// Imports
 use {
 	crate::{ObjectAttachEffect, ToDynProp},
 	dynatos_reactive::Effect,

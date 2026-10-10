@@ -1,6 +1,5 @@
 //! Counter (SSR) Backend
 
-// Imports
 use {
 	app_error::{AppError, Context},
 	core::{

@@ -1,6 +1,5 @@
 //! Node reactive text
 
-// Imports
 use {
 	crate::{ObjectAttachEffect, WithDynText},
 	dynatos_reactive::Effect,

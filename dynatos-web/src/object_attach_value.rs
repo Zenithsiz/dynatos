@@ -1,6 +1,5 @@
 //! Object value attaching
 
-// Imports
 use {
 	crate::{ObjectGet, ObjectSetProp},
 	dynatos_sync_types::SyncBounds,

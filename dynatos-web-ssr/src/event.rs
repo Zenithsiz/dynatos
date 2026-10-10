@@ -1,6 +1,5 @@
 //! Events
 
-// Imports
 use crate::Object;
 
 zutil_inheritance::value! {

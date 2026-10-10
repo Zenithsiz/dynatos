@@ -1,6 +1,5 @@
 //! [`SignalSet`]
 
-// Imports
 use crate::{SignalUpdate, Trigger, effect};
 
 /// Types which may be set by [`SignalSet`]

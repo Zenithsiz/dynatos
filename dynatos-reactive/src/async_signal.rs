@@ -1,6 +1,5 @@
 //! Async signal
 
-// Imports
 use {
 	crate::{
 		Effect,

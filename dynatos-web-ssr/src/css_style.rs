@@ -1,6 +1,5 @@
 //! Css style
 
-// Imports
 use {
 	crate::{HtmlElement, Object, WebError, object::ObjectFields},
 	app_error::app_error,

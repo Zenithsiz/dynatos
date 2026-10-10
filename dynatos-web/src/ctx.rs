@@ -1,6 +1,5 @@
 //! Context
 
-// Imports
 use {
 	app_error::AppError,
 	dynatos_store::ValueStore,

@@ -1,6 +1,5 @@
 //! `!Sized` tests.
 
-// Imports
 use {
 	core::any::Any,
 	dynatos_reactive::{Signal, SignalWith},

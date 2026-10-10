@@ -1,6 +1,5 @@
 //! Location
 
-// Imports
 use {
 	crate::{Object, WebError, object::ObjectFields},
 	zutil_inheritance::{FromFields, Value},

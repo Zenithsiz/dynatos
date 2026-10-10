@@ -1,6 +1,5 @@
 //! Effect stack
 
-// Imports
 use {
 	crate::{Effect, EffectRun},
 	core::cell::RefCell,

@@ -1,6 +1,5 @@
 //! Javascript value
 
-// Imports
 use {crate::Object, core::any::Any, std::sync::Arc};
 
 #[derive(Clone, derive_more::Debug)]

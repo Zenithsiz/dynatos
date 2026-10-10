@@ -1,6 +1,5 @@
 //! [`SignalWith`]
 
-// Imports
 use {super::SignalBorrow, crate::effect, core::ops::Deref};
 
 /// Auto trait implemented for all signals that want a default implementation of `SignalWith`

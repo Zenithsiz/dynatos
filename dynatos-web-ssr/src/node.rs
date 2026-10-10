@@ -1,6 +1,5 @@
 //! Node
 
-// Imports
 use {
 	crate::{EventTarget, Object, Text, WeakRef, WebError, event_target::EventTargetFields, object::ObjectFields},
 	app_error::Context,

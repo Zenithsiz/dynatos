@@ -1,9 +1,7 @@
 //! Query example
 
-// Features
 #![feature(stmt_expr_attributes, proc_macro_hygiene)]
 
-// Imports
 use {
 	app_error::AppError,
 	dynatos_loadable::Loadable,

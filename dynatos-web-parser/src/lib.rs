@@ -1,9 +1,7 @@
 //! `XHtml` parser for `dynatos-web`
 
-// Features
 #![feature(pattern, try_blocks, try_trait_v2)]
 
-// Imports
 use {
 	core::{
 		iter,

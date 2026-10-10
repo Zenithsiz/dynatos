@@ -1,6 +1,5 @@
 //! `Try` helpers for returning.
 
-// Imports
 use core::ops::{ControlFlow, FromResidual, Residual, Try};
 
 /// `Try` type to return `()` when `T::branch` is `Break`.

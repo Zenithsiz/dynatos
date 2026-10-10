@@ -1,9 +1,7 @@
 //! Run queue tests
 
-// Features
 #![feature(proc_macro_hygiene, stmt_expr_attributes, nonpoison_mutex, sync_nonpoison)]
 
-// Imports
 use {
 	core::iter,
 	dynatos_reactive::{Derived, Effect, Signal, SignalBorrowMut, SignalGet, Trigger},

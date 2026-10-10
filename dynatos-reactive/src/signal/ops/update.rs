@@ -1,6 +1,5 @@
 //! [`SignalUpdate`]
 
-// Imports
 use {super::SignalBorrowMut, crate::effect, core::ops::DerefMut};
 
 /// Auto trait implemented for all signals that want a default implementation of `SignalUpdate`

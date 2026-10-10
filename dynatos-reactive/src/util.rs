@@ -1,6 +1,5 @@
 //! Utilities
 
-// Imports
 use dynatos_sync_types::SyncBounds;
 
 // TODO: Allow the user to specify this a big better than just wasm_bindgen / tokio?

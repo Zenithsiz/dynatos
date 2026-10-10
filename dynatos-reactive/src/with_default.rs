@@ -1,6 +1,5 @@
 //! `Option<T>` Signal with default value
 
-// Imports
 use {
 	crate::{
 		SignalBorrow,

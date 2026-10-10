@@ -1,6 +1,5 @@
 //! Context
 
-// Imports
 use {
 	super::{EnumSplitValue, SignalStorage},
 	crate::{Effect, Signal, SignalGetCloned, SignalSet, SignalWith, effect},

@@ -1,6 +1,5 @@
 //! Signal operators
 
-// Modules
 mod borrow;
 mod borrow_mut;
 mod get;
@@ -10,7 +9,6 @@ mod set;
 mod update;
 mod with;
 
-// Exports
 pub use self::{
 	borrow::SignalBorrow,
 	borrow_mut::SignalBorrowMut,

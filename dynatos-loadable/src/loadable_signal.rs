@@ -1,6 +1,5 @@
 //! Loadable signal
 
-// Imports
 use {
 	crate::Loadable,
 	core::{

@@ -1,6 +1,5 @@
 //! Html run-time parsing
 
-// Imports
 #[expect(unused_imports, reason = "Used by macros")]
 use {crate::EventTargetAddListener, core::marker::PhantomData};
 use {

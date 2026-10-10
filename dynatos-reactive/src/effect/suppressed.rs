@@ -1,6 +1,5 @@
 //! Suppressed
 
-// Imports
 use {super::Effect, core::sync::atomic};
 
 /// Effect suppression.

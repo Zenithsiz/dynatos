@@ -1,6 +1,5 @@
 //! Html elements
 
-// Imports
 use {
 	crate::{
 		CssStyleProperties,

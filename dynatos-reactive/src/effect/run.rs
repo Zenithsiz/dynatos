@@ -1,6 +1,5 @@
 //! Effect run
 
-// Imports
 use {
 	super::Inner,
 	core::marker::PhantomData,

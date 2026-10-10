@@ -1,6 +1,5 @@
 //! Object effect attaching
 
-// Imports
 use {
 	dynatos_reactive::{Effect, EffectRun},
 	dynatos_web::{ObjectGet, ObjectSetProp, cfg_ssr_expr},

@@ -1,6 +1,5 @@
 //! Atomic counter
 
-// Imports
 use core::sync::atomic::{self, AtomicUsize};
 
 /// Atomic counter

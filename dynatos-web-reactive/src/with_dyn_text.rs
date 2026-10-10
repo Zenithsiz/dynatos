@@ -1,6 +1,5 @@
 //! Dynamic text
 
-// Imports
 use {
 	core::ops::Deref,
 	dynatos_reactive::{Derived, Memo, Signal, SignalWith, WithDefault, derived::DerivedRun},

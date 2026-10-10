@@ -1,6 +1,5 @@
 //! Cell types
 
-// Imports
 use core::sync::atomic;
 
 duplicate::duplicate! {

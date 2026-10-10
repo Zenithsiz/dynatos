@@ -1,12 +1,9 @@
 //! World
 
-// Modules
 mod tags;
 
-// Exports
 pub use self::tags::{WorldTag, WorldTagGuard};
 
-// Imports
 use {
 	self::tags::{WorldTagState, WorldTagsData},
 	crate::{dep_graph::DepGraph, effect_stack::EffectStack, run_queue::RunQueue},

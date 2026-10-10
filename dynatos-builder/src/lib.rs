@@ -1,6 +1,5 @@
 //! Function component builder for `dynatos`
 
-// Exports
 pub use dynatos_builder_macros::builder;
 
 /// Missing prop

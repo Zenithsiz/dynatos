@@ -1,6 +1,5 @@
 //! History
 
-// Imports
 use {
 	crate::{JsValue, Location, Object, PopStateEvent, WebError, object::ObjectFields},
 	zutil_inheritance::{FromFields, Value},

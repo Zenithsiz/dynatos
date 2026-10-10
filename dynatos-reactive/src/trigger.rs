@@ -3,7 +3,6 @@
 //! A reactivity primitive that allows re-running
 //! any subscribers.
 
-// Imports
 use {
 	crate::{GLOBAL_WORLD, THREAD_WORLD, effect, loc::Loc, world::WorldTag},
 	core::{

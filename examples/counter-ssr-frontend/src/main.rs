@@ -1,6 +1,5 @@
 //! Counter (SSR) Frontend
 
-// Imports
 use {
 	app_error::{AppError, Context},
 	dynatos_web::DynatosWebCtx,

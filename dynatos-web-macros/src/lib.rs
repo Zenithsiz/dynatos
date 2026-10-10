@@ -1,6 +1,5 @@
 //! Macros for `dynatos-web`
 
-// Imports
 use {
 	dynatos_web_parser::{XHtml, XHtmlNode},
 	proc_macro::TokenStream,

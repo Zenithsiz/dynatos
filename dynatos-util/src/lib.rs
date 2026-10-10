@@ -1,21 +1,17 @@
 //! Utilities for `dynatos`
 
-// Features
 #![feature(try_trait_v2, try_trait_v2_residual, option_reference_flattening, decl_macro)]
 
-// Modules
 pub mod counter;
 pub mod holey_stack;
 pub mod try_or_return;
 
-// Exports
 pub use self::{
 	counter::Counter,
 	holey_stack::HoleyStack,
 	try_or_return::{TryOrReturn, TryOrReturnExt},
 };
 
-// Imports
 use {
 	core::hash::{self, Hasher},
 	std::hash::DefaultHasher,

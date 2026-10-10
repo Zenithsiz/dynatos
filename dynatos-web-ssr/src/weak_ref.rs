@@ -1,6 +1,5 @@
 //! Weak reference
 
-// Imports
 use zutil_inheritance::{Value, ValueDowngrade, WeakValue};
 
 #[derive(Debug)]

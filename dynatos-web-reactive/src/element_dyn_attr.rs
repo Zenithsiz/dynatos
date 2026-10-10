@@ -1,6 +1,5 @@
 //! Element reactive attribute
 
-// Imports
 use {
 	crate::{ObjectAttachEffect, WithDynPred, WithDynText},
 	dynatos_reactive::Effect,

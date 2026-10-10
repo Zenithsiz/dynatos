@@ -1,6 +1,5 @@
 //! [`SignalGet`]
 
-// Imports
 use {
 	crate::{SignalWith, effect},
 	core::{any::TypeId, mem},

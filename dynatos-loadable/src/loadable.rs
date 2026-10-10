@@ -1,6 +1,5 @@
 //! Loadable value
 
-// Imports
 use {
 	core::{
 		convert::Infallible,

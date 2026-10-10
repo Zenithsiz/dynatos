@@ -1,6 +1,5 @@
 //! # Memo'd signals
 
-// Imports
 use {
 	crate::{
 		Effect,

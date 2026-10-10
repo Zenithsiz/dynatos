@@ -1,6 +1,5 @@
 //! Either
 
-// Imports
 use {
 	super::{EnumSplitValue, EnumSplitValueUpdateCtx, SignalStorage},
 	crate::{Signal, SignalSet},

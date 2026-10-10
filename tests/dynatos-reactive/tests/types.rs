@@ -1,10 +1,8 @@
 //! Type tests
 
-// Features
 #![feature(decl_macro)]
 #![cfg(feature = "sync")]
 
-// Imports
 use {
 	core::future,
 	dynatos_reactive::{

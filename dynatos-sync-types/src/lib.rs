@@ -1,12 +1,10 @@
 //! Types for synchronization
 
-// Features
 #![feature(trait_alias, decl_macro, macro_attr, unsize, coerce_unsized, dispatch_from_dyn)]
 #![cfg_attr(feature = "sync", feature(nonpoison_rwlock, nonpoison_mutex, sync_nonpoison))]
-// Lints
+
 #![expect(clippy::absolute_paths, reason = "It's easier when working with features")]
 
-// Modules
 mod bounds;
 mod cell;
 mod imut;
@@ -16,7 +14,6 @@ mod once;
 mod rc_ptr;
 mod thread_local;
 
-// Exports
 pub use self::{
 	bounds::SyncBounds,
 	cell::*,

@@ -1,6 +1,5 @@
 //! Routing for `dynatos`
 
-// Features
 #![feature(
 	proc_macro_hygiene,
 	stmt_expr_attributes,
@@ -9,17 +8,14 @@
 	trait_alias
 )]
 
-// Modules
 mod anchor;
 pub mod location;
 pub mod query_signal;
 
-// Exports
 pub use self::{
 	anchor::anchor,
 	location::LocationSignal,
 	query_signal::{MultiQuery, QuerySignal, SingleQuery},
 };
 
-// Imports
 use js_sys as _;

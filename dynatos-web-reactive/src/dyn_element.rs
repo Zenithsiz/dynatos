@@ -1,6 +1,5 @@
 //! Dynamic element
 
-// Imports
 use {
 	crate::ObjectAttachEffect,
 	core::ops::Deref,

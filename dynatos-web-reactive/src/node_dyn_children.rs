@@ -1,6 +1,5 @@
 //! Node reactive children
 
-// Imports
 use {
 	crate::ObjectAttachEffect,
 	core::{mem, ops::Deref},

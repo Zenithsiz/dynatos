@@ -1,13 +1,10 @@
 //! Query signal
 
-// Modules
 pub mod multi_query;
 pub mod single_query;
 
-// Exports
 pub use self::{multi_query::MultiQuery, single_query::SingleQuery};
 
-// Imports
 use {
 	crate::LocationSignal,
 	core::{

@@ -1,6 +1,5 @@
 //! Reactivity for `dynatos`
 
-// Features
 #![feature(
 	unsize,
 	coerce_unsized,
@@ -21,7 +20,6 @@
 	macro_attr
 )]
 
-// Modules
 pub mod async_signal;
 pub mod dep_graph;
 pub mod derived;
@@ -38,7 +36,6 @@ mod util;
 pub mod with_default;
 pub mod world;
 
-// Exports
 pub use self::{
 	async_signal::AsyncSignal,
 	derived::Derived,

@@ -1,11 +1,9 @@
 //! Html wrappers for `dynatos`
 
-// Features
 #![feature(decl_macro, macro_metavar_expr, trivial_bounds)]
 #![cfg_attr(feature = "ssr", feature(nonpoison_mutex, sync_nonpoison))]
 #![cfg_attr(feature = "csr", feature(unsize))]
 
-// Modules
 mod as_parent;
 mod ctx;
 mod event_listener;
@@ -14,7 +12,6 @@ mod object_attach_value;
 pub mod parse;
 mod util;
 
-// Exports
 pub use {
 	self::{
 		ctx::DynatosWebCtx,
@@ -27,7 +24,6 @@ pub use {
 	wasm_bindgen::{JsCast, JsValue},
 };
 
-// Imports
 use {self::as_parent::AsParent, itertools::Itertools, web_sys::WebError};
 
 /// Parses an html string into an array.

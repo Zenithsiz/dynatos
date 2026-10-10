@@ -1,6 +1,5 @@
 //! [`SignalBorrow`]
 
-// Imports
 use crate::effect;
 
 /// Signal borrow

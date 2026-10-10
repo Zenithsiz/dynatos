@@ -1,6 +1,5 @@
 //! Html element reactive css property
 
-// Imports
 use {
 	crate::{ObjectAttachEffect, WithDynPred, WithDynText},
 	dynatos_reactive::Effect,

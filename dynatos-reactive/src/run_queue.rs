@@ -1,6 +1,5 @@
 //! Run queue
 
-// Imports
 use {
 	crate::{WeakEffect, dep_graph::EffectDepInfo},
 	core::{

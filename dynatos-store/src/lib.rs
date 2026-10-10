@@ -1,20 +1,16 @@
 //! Value store for `dynatos`
 
-// Features
 #![feature(try_blocks, decl_macro)]
 #![cfg_attr(test, feature(test))]
 
-// Modules
 mod handle;
 mod store;
 
-// Exports
 pub use self::store::ValueStore;
 
 #[cfg(test)]
 mod tests {
-	// Imports
-	extern crate test;
+		extern crate test;
 	use {super::*, test::Bencher};
 
 	#[test]

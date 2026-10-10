@@ -1,6 +1,5 @@
 //! Loadable borrow
 
-// Imports
 use {
 	crate::Loadable,
 	core::{

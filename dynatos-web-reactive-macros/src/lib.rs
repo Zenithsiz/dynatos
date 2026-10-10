@@ -1,6 +1,5 @@
 //! Macros for [`dynatos_web_reactive`]
 
-// Imports
 use {derive_utils::quick_derive, proc_macro::TokenStream};
 
 #[proc_macro_derive(WithDynNodes)]

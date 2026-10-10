@@ -30,7 +30,6 @@
 //! not only store the latest value, it also needs to create an effect that is re-run
 //! each time any dependencies are updated.
 
-// Imports
 use {
 	crate::{
 		Effect,

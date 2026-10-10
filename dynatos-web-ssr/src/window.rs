@@ -1,6 +1,5 @@
 //! Window
 
-// Imports
 use {
 	crate::{Document, EventTarget, Object, WebError, event_target::EventTargetFields, object::ObjectFields},
 	zutil_inheritance::{FromFields, Value},
