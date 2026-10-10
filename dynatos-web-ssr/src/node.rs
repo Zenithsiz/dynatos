@@ -4,8 +4,8 @@ use {
 	crate::{EventTarget, Object, Text, WeakRef, WebError, event_target::EventTargetFields, object::ObjectFields},
 	app_error::Context,
 	core::mem,
-	zutil_inheritance::{FromFields, Value},
 	std::sync::nonpoison::Mutex,
+	zutil_inheritance::{FromFields, Value},
 };
 
 /// Node parent

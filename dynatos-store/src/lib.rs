@@ -10,7 +10,7 @@ pub use self::store::ValueStore;
 
 #[cfg(test)]
 mod tests {
-		extern crate test;
+	extern crate test;
 	use {super::*, test::Bencher};
 
 	#[test]

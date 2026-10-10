@@ -2,8 +2,8 @@
 
 use {
 	crate::{Object, WebError, object::ObjectFields},
-	zutil_inheritance::{FromFields, Value},
 	std::sync::nonpoison::Mutex,
+	zutil_inheritance::{FromFields, Value},
 };
 
 zutil_inheritance::value! {

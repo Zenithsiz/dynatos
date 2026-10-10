@@ -39,14 +39,14 @@ pub mod web {
 		cfg_select! {
 			all(feature = "ssr", feature = "csr") => {
 				compile_error! { "The `ssr` and `csr` features are mutually exclusive" }
-			}
+			},
 
 			feature = "ssr" => $ssr,
 			feature = "csr" => $csr,
 
 			_ => {
 				compile_error! { "At least one of the `ssr` or `csr` features must be enabled" }
-			}
+			},
 		}
 	}
 }

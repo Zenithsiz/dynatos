@@ -115,7 +115,7 @@ pub macro ev($Event:ident) {
 	reason = "Macro-generated code, the types aren't accessed directly and instead go through a macro"
 )]
 mod ev {
-		use super::EventListener;
+	use super::EventListener;
 
 	macro define_events(
 		$(

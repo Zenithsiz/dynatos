@@ -3,9 +3,9 @@
 use {
 	crate::{HtmlElement, Object, WebError, object::ObjectFields},
 	app_error::app_error,
-	zutil_inheritance::{FromFields, Value},
 	itertools::Itertools,
 	std::collections::HashMap,
+	zutil_inheritance::{FromFields, Value},
 };
 
 zutil_inheritance::value! {

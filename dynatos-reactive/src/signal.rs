@@ -196,7 +196,7 @@ impl<T: ?Sized + fmt::Debug> fmt::Debug for Signal<T> {
 
 #[cfg(test)]
 mod tests {
-		use {super::*, crate::Effect, zutil_cloned::cloned};
+	use {super::*, crate::Effect, zutil_cloned::cloned};
 
 	#[test]
 	fn multiple_mut() {

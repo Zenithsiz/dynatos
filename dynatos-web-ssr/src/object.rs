@@ -2,8 +2,8 @@
 
 use {
 	crate::JsValue,
-	zutil_inheritance::{Downcast, Value},
 	std::{collections::HashMap, sync::nonpoison::Mutex},
+	zutil_inheritance::{Downcast, Value},
 };
 
 zutil_inheritance::value! {

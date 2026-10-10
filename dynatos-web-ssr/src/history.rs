@@ -2,8 +2,8 @@
 
 use {
 	crate::{JsValue, Location, Object, PopStateEvent, WebError, object::ObjectFields},
-	zutil_inheritance::{FromFields, Value},
 	std::sync::{Arc, nonpoison::Mutex},
+	zutil_inheritance::{FromFields, Value},
 };
 
 #[derive(Clone, derive_more::Debug)]
