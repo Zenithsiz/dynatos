@@ -15,7 +15,6 @@
 	macro_metavar_expr,
 	try_trait_v2,
 	try_trait_v2_residual,
-	never_type,
 	unwrap_infallible,
 	arbitrary_self_types,
 	coverage_attribute,

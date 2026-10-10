@@ -1,8 +1,5 @@
 //! Counter (SSR) Backend
 
-// Features
-#![feature(proc_macro_hygiene)]
-
 // Imports
 use {
 	app_error::{AppError, Context},

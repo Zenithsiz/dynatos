@@ -14,3 +14,6 @@ zutil-cloned = { workspace = true }
 
 [features]
 sync = ["dynatos-reactive/sync", "dynatos-sync-types/sync"]
+
+[lints]
+workspace = true

@@ -405,6 +405,7 @@ fn ty_default(ty: &syn::Type) -> syn::Expr {
 /// Converts an identifier to a type
 fn ident_to_ty(ident: syn::Ident) -> syn::Type {
 	syn::Type::Path(syn::TypePath {
+		attrs: vec![],
 		qself: None,
 		path:  ident.into(),
 	})
@@ -428,7 +429,6 @@ const fn ident_to_ty_param(ident: syn::Ident) -> syn::TypeParam {
 		ident,
 		colon_token: None,
 		bounds: Punctuated::new(),
-		eq_token: None,
 		default: None,
 	}
 }

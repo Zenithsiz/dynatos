@@ -1,7 +1,7 @@
 //! Dynatos framework
 
 // Features
-#![feature(unboxed_closures, never_type, proc_macro_hygiene)]
+#![feature(unboxed_closures)]
 #![cfg_attr(feature = "ssr", feature(nonpoison_mutex, sync_nonpoison))]
 
 // Modules
