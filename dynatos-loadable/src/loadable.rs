@@ -160,10 +160,21 @@ impl<T, E> Loadable<T, E> {
 		}
 	}
 
-	/// Gets the value in this loadable.
+	/// Gets the value in this loadable as a result.
 	///
 	/// If unloaded, returns `default`
-	pub fn loaded_or(self, default: T) -> Result<T, E> {
+	pub fn result(self) -> Result<Option<T>, E> {
+		match self {
+			Self::Empty => Ok(None),
+			Self::Err(err) => Err(err),
+			Self::Loaded(value) => Ok(Some(value)),
+		}
+	}
+
+	/// Gets the value in this loadable as a result with a default value for empty.
+	///
+	/// If unloaded, returns `default`
+	pub fn result_or(self, default: T) -> Result<T, E> {
 		match self {
 			Self::Empty => Ok(default),
 			Self::Err(err) => Err(err),
