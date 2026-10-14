@@ -371,6 +371,7 @@ dependencies = [
  "dynatos-web-router",
  "dynatos-web-ssr",
  "extend",
+ "itertools 0.15.0",
  "tracing",
  "zutil-inheritance",
 ]

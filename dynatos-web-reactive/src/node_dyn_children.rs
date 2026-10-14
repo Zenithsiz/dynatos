@@ -7,6 +7,7 @@ use {
 	dynatos_sync_types::{IMut, SyncBounds},
 	dynatos_util::TryOrReturnExt,
 	dynatos_web::{DynatosWebCtx, cfg_ssr_expr, html},
+	itertools::Itertools,
 	js_sys::WeakRef,
 };
 
@@ -49,7 +50,8 @@ pub impl web_sys::Node {
 
 			// Take all previous nodes we have and start trying to match them against the new ones
 			let mut new_nodes = new_children.into_iter();
-			for cur_prev_node in mem::take(&mut *prev_children) {
+			let mut last_prev_child_to_remove = None;
+			for (cur_prev_node_pos, cur_prev_node) in mem::take(&mut *prev_children).into_iter().with_position() {
 				// Try to find the current previous node we had in the remaining new nodes
 				match new_nodes
 					.as_slice()
@@ -71,23 +73,39 @@ pub impl web_sys::Node {
 						prev_children.push(cur_prev_node);
 					},
 
-					// If it didn't exist, we can safely remove it.
-					None => {
-						self::trace_remove_node(&cur_prev_node);
-						_ = node
-							.remove_child(&cur_prev_node)
-							.expect("Unable to remove reactive child");
+					// If it didn't exist, we can safely remove it, except if
+					// it's the last previous child. In that case, we'd lose our
+					// position, which we need to add the new children. In that
+					// case, keep it and remove it at the end.
+					None => match cur_prev_node_pos.is_last {
+						true => last_prev_child_to_remove = Some(cur_prev_node),
+						false => {
+							self::trace_remove_node(&cur_prev_node);
+							_ = node
+								.remove_child(&cur_prev_node)
+								.expect("Unable to remove reactive child");
+						},
 					},
 				}
 			}
 
 			for new_node in new_nodes {
-				let last_prev_child = prev_children.last().and_then(web_sys::Node::next_sibling);
+				let child_after = prev_children
+					.last()
+					.or(last_prev_child_to_remove.as_ref())
+					.and_then(web_sys::Node::next_sibling);
 
-				node.insert_before(&new_node, last_prev_child.as_ref())
+				node.insert_before(&new_node, child_after.as_ref())
 					.expect("Unable to add reactive child");
-				self::trace_add_node(&new_node, last_prev_child.as_ref());
+				self::trace_add_node(&new_node, child_after.as_ref());
 				prev_children.push(new_node);
+			}
+
+			if let Some(last_prev_child) = last_prev_child_to_remove {
+				self::trace_remove_node(&last_prev_child);
+				_ = node
+					.remove_child(&last_prev_child)
+					.expect("Unable to remove reactive child");
 			}
 		})
 		.or_return()?;

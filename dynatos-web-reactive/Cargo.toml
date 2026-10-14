@@ -20,6 +20,7 @@ web-sys                     = { default-features = false, package = "dynatos-web
 
 duplicate         = { workspace = true }
 extend            = { workspace = true }
+itertools         = { workspace = true }
 tracing           = { optional = true, workspace = true }
 zutil-inheritance = { optional = true, workspace = true }
 
