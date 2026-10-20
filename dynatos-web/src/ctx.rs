@@ -1,38 +1,29 @@
 //! Context
 
 use {
-	app_error::AppError,
+	crate::JsResultContext,
+	app_error::{AppError, Context, app_error},
 	dynatos_store::ValueStore,
 	dynatos_sync_types::RcPtr,
-	dynatos_util::web::{cfg_ssr, cfg_ssr_expr},
+	wasm_bindgen::JsCast,
 	web_sys::{Document, History, HtmlBodyElement, HtmlHeadElement, Location, Window},
 };
+
 
 #[derive(Debug)]
 struct Shared {
 	store: ValueStore,
 }
 
-cfg_ssr! {
-	ssr = {
-		#[derive(Debug)]
-		struct Inner {
-			shared: Shared,
-			state: dynatos_web_ssr::State,
-		}
-	},
-	csr = {
-		#[derive(Debug)]
-		struct Inner {
-			shared: Shared,
-			window:   web_sys::Window,
-			document: web_sys::Document,
-			head:     web_sys::HtmlHeadElement,
-			body:     web_sys::HtmlBodyElement,
-			history:  web_sys::History,
-			location: web_sys::Location,
-		}
-	}
+#[derive(Debug)]
+struct Inner {
+	shared:   Shared,
+	window:   web_sys::Window,
+	document: web_sys::Document,
+	head:     web_sys::HtmlHeadElement,
+	body:     web_sys::HtmlBodyElement,
+	history:  web_sys::History,
+	location: web_sys::Location,
 }
 
 /// Dynatos web context
@@ -47,47 +38,34 @@ pub struct DynatosWebCtx(RcPtr<Inner>);
 
 impl DynatosWebCtx {
 	/// Creates a new context type
-	pub fn new(#[cfg(feature = "ssr")] ssr_state: dynatos_web_ssr::State) -> Result<Self, AppError> {
+	pub fn new() -> Result<Self, AppError> {
 		let shared = Shared {
 			store: ValueStore::new(),
 		};
-		let inner = cfg_ssr_expr!(
-			ssr = Inner {
-				shared,
-				state: ssr_state
-			},
-			csr = {
-				use {
-					crate::JsResultContext,
-					app_error::{Context, app_error},
-					wasm_bindgen::JsCast,
-				};
 
-				let window = web_sys::window().context("Missing window")?;
-				let document = window.document().context("Missing document")?;
-				let head = document.head().context("Missing head")?;
-				let head = head
-					.dyn_into()
-					.map_err(|head| app_error!("Head was not an `HtmlHeadElement`: {head:?}"))?;
-				let body = document.body().context("Missing body")?;
-				let body = body
-					.dyn_into()
-					.map_err(|body| app_error!("Body was not an `HtmlBodyElement`: {body:?}"))?;
+		let window = web_sys::window().context("Missing window")?;
+		let document = window.document().context("Missing document")?;
+		let head = document.head().context("Missing head")?;
+		let head = head
+			.dyn_into()
+			.map_err(|head| app_error!("Head was not an `HtmlHeadElement`: {head:?}"))?;
+		let body = document.body().context("Missing body")?;
+		let body = body
+			.dyn_into()
+			.map_err(|body| app_error!("Body was not an `HtmlBodyElement`: {body:?}"))?;
 
-				let history = window.history().context("Unable to get history")?;
-				let location = document.location().context("Missing location")?;
+		let history = window.history().context("Unable to get history")?;
+		let location = document.location().context("Missing location")?;
 
-				Inner {
-					shared,
-					window,
-					document,
-					head,
-					body,
-					history,
-					location,
-				}
-			}
-		);
+		let inner = Inner {
+			shared,
+			window,
+			document,
+			head,
+			body,
+			history,
+			location,
+		};
 
 		Ok(Self(RcPtr::new(inner)))
 	}
@@ -101,71 +79,36 @@ impl DynatosWebCtx {
 	/// Returns the window
 	#[must_use]
 	pub fn window(&self) -> &Window {
-		cfg_ssr_expr!(ssr = self.0.state.window(), csr = &self.0.window)
+		&self.0.window
 	}
 
 	/// Returns the document
 	#[must_use]
 	pub fn document(&self) -> &Document {
-		cfg_ssr_expr!(ssr = self.0.state.document(), csr = &self.0.document)
+		&self.0.document
 	}
 
 	/// Returns the head
 	#[must_use]
 	pub fn head(&self) -> &HtmlHeadElement {
-		cfg_ssr_expr!(ssr = self.0.state.head(), csr = &self.0.head)
+		&self.0.head
 	}
 
 	/// Returns the body
 	#[must_use]
 	pub fn body(&self) -> &HtmlBodyElement {
-		cfg_ssr_expr!(ssr = self.0.state.body(), csr = &self.0.body)
+		&self.0.body
 	}
 
 	/// Returns the browser history
 	#[must_use]
 	pub fn history(&self) -> &History {
-		cfg_ssr_expr!(ssr = self.0.state.history(), csr = &self.0.history)
+		&self.0.history
 	}
 
 	/// Returns the browser location
 	#[must_use]
 	pub fn location(&self) -> &Location {
-		cfg_ssr_expr!(ssr = self.0.state.location(), csr = &self.0.location)
+		&self.0.location
 	}
-
-	/// Returns a wait guard.
-	///
-	/// With SSR, while this guard exists, the runtime will wait for
-	/// it to be dropped asynchronously before returning a response.
-	///
-	/// With CSR, this does nothing.
-	#[cfg_attr(
-		feature = "csr",
-		expect(
-			clippy::missing_const_for_fn,
-			clippy::must_use_candidate,
-			reason = "`csr`-only issues"
-		)
-	)]
-	pub fn wait_guard(&self) -> WaitGuard {
-		cfg_ssr_expr!(ssr = self.ssr_state().wait_guard(), csr = WaitGuard(()))
-	}
-
-	#[cfg(feature = "ssr")]
-	#[must_use]
-	pub fn ssr_state(&self) -> &dynatos_web_ssr::State {
-		&self.0.state
-	}
-}
-
-cfg_ssr! {
-	ssr = {
-		/// Wait guard
-		pub type WaitGuard = dynatos_web_ssr::state::WaitGuard;
-	},
-	csr = {
-		/// Wait guard
-		pub struct WaitGuard(());
-	},
 }

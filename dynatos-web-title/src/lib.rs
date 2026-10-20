@@ -8,7 +8,7 @@
 use {
 	dynatos_sync_types::{IMut, thread_local_or_global},
 	dynatos_util::HoleyStack,
-	dynatos_web::{DynatosWebCtx, ObjectSetProp, cfg_ssr_expr},
+	dynatos_web::{DynatosWebCtx, ObjectSetProp},
 	js_sys::Object,
 	web_sys as _,
 };
@@ -72,21 +72,7 @@ pub impl Object {
 		let prop_name = "__dynatos_web_title";
 		let title = Title::new(ctx, title);
 
-		let title = cfg_ssr_expr!(
-			ssr = {
-				use wasm_bindgen::JsValue;
-				JsValue::from_any(title)
-			},
-			csr = {
-				/// A wasm `Title` type.
-				#[wasm_bindgen::prelude::wasm_bindgen]
-				#[expect(dead_code, reason = "We just want to keep the field alive, not use it")]
-				struct WasmTitle(Title);
-
-				WasmTitle(title)
-			}
-		);
-
+		let title = WasmTitle(title);
 		self.set_prop(prop_name, title);
 	}
 }
@@ -105,3 +91,8 @@ where
 		self
 	}
 }
+
+/// A wasm `Title` type.
+#[wasm_bindgen::prelude::wasm_bindgen]
+#[expect(dead_code, reason = "We just want to keep the field alive, not use it")]
+struct WasmTitle(Title);

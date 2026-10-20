@@ -1,7 +1,6 @@
 //! Dynatos framework
 
 #![feature(unboxed_closures)]
-#![cfg_attr(feature = "ssr", feature(nonpoison_mutex, sync_nonpoison))]
 
 mod dyn_element;
 mod element_dyn_attr;

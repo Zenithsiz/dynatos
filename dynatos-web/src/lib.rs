@@ -1,8 +1,6 @@
 //! Html wrappers for `dynatos`
 
-#![feature(decl_macro, macro_metavar_expr, trivial_bounds)]
-#![cfg_attr(feature = "ssr", feature(nonpoison_mutex, sync_nonpoison))]
-#![cfg_attr(feature = "csr", feature(unsize))]
+#![feature(decl_macro, macro_metavar_expr, trivial_bounds, unsize)]
 
 mod as_parent;
 mod ctx;
@@ -19,12 +17,11 @@ pub use {
 		object_attach_value::{ObjectAttachValue, ObjectWithValue},
 		parse::{parse, parse_html_element},
 	},
-	dynatos_util::web::*,
-	js_sys::Object,
+	js_sys::{Object, Reflect},
 	wasm_bindgen::{JsCast, JsValue},
 };
 
-use {self::as_parent::AsParent, itertools::Itertools, web_sys::WebError};
+use {self::as_parent::AsParent, itertools::Itertools};
 
 /// Parses an html string into an array.
 ///
@@ -127,7 +124,7 @@ pub impl web_sys::Node {
 			.unwrap_or_else(|err| panic!("Unable to add node children: {err:?}"));
 	}
 
-	fn try_add_children<C>(&self, children: C) -> Result<(), WebError>
+	fn try_add_children<C>(&self, children: C) -> Result<(), JsValue>
 	where
 		C: Children,
 	{
@@ -156,7 +153,7 @@ where
 			.unwrap_or_else(|err| panic!("Unable to add node children: {err:?}"))
 	}
 
-	fn try_with_children<C>(self, children: C) -> Result<Self, WebError>
+	fn try_with_children<C>(self, children: C) -> Result<Self, JsValue>
 	where
 		C: Children,
 	{
@@ -167,11 +164,11 @@ where
 /// Types that may be used for [`NodeWithChildren`]'s single child methods
 pub trait Child {
 	/// Appends this child to `node`
-	fn append(&self, node: &web_sys::Node) -> Result<(), WebError>;
+	fn append(&self, node: &web_sys::Node) -> Result<(), JsValue>;
 }
 
 impl<T: AsParent<web_sys::Node>> Child for T {
-	fn append(&self, node: &web_sys::Node) -> Result<(), WebError> {
+	fn append(&self, node: &web_sys::Node) -> Result<(), JsValue> {
 		// If the node already contains us, warn and refuse to add it.
 		let child = self.as_parent();
 		if node.contains(Some(child)) {
@@ -189,17 +186,17 @@ impl<T: AsParent<web_sys::Node>> Child for T {
 /// Types that may be used for [`NodeWithChildren`]'s multiple children method
 pub trait Children {
 	/// Appends all children in this type
-	fn append_all(self, node: &web_sys::Node) -> Result<(), WebError>;
+	fn append_all(self, node: &web_sys::Node) -> Result<(), JsValue>;
 }
 
 impl<C: Child> Children for C {
-	fn append_all(self, node: &web_sys::Node) -> Result<(), WebError> {
+	fn append_all(self, node: &web_sys::Node) -> Result<(), JsValue> {
 		self.append(node)
 	}
 }
 
 impl Children for () {
-	fn append_all(self, _node: &web_sys::Node) -> Result<(), WebError> {
+	fn append_all(self, _node: &web_sys::Node) -> Result<(), JsValue> {
 		Ok(())
 	}
 }
@@ -208,7 +205,7 @@ impl<C> Children for &'_ [C]
 where
 	C: Child,
 {
-	fn append_all(self, node: &web_sys::Node) -> Result<(), WebError> {
+	fn append_all(self, node: &web_sys::Node) -> Result<(), JsValue> {
 		for child in self {
 			child.append(node)?;
 		}
@@ -221,7 +218,7 @@ impl<C, const N: usize> Children for [C; N]
 where
 	C: Child,
 {
-	fn append_all(self, node: &web_sys::Node) -> Result<(), WebError> {
+	fn append_all(self, node: &web_sys::Node) -> Result<(), JsValue> {
 		self.as_slice().append_all(node)
 	}
 }
@@ -230,7 +227,7 @@ impl<C> Children for Vec<C>
 where
 	C: Child,
 {
-	fn append_all(self, node: &web_sys::Node) -> Result<(), WebError> {
+	fn append_all(self, node: &web_sys::Node) -> Result<(), JsValue> {
 		self.as_slice().append_all(node)
 	}
 }
@@ -244,7 +241,7 @@ macro impl_children_tuple( $( $( $C:ident($idx:tt) ),*; )* ) {
 				$C: Child,
 			)*
 		{
-			fn append_all(self, node: &web_sys::Node) -> Result<(), WebError> {
+			fn append_all(self, node: &web_sys::Node) -> Result<(), JsValue> {
 				$(
 					self.$idx.append(node)?;
 				)*
@@ -282,7 +279,7 @@ pub impl web_sys::Element {
 			.unwrap_or_else(|err| panic!("Unable to set element attribute {attr:?} to {value:?}: {err:?}"));
 	}
 
-	fn try_add_attr<A, V>(&self, attr: A, value: V) -> Result<(), WebError>
+	fn try_add_attr<A, V>(&self, attr: A, value: V) -> Result<(), JsValue>
 	where
 		A: AsRef<str>,
 		V: AsRef<str>,
@@ -309,7 +306,7 @@ where
 			.unwrap_or_else(|err| panic!("Unable to set element attribute {attr:?} to {value:?}: {err:?}"))
 	}
 
-	fn try_with_attr<A, V>(self, attr: A, value: V) -> Result<Self, WebError>
+	fn try_with_attr<A, V>(self, attr: A, value: V) -> Result<Self, JsValue>
 	where
 		A: AsRef<str>,
 		V: AsRef<str>,
@@ -333,7 +330,7 @@ pub impl web_sys::HtmlElement {
 			.unwrap_or_else(|err| panic!("Unable to set element css property {attr:?} to {value:?}: {err:?}"));
 	}
 
-	fn try_set_css_prop<A, V>(&self, attr: A, value: Option<V>) -> Result<(), WebError>
+	fn try_set_css_prop<A, V>(&self, attr: A, value: Option<V>) -> Result<(), JsValue>
 	where
 		A: AsRef<str>,
 		V: AsRef<str>,
@@ -362,7 +359,7 @@ where
 		self
 	}
 
-	fn try_with_css_prop<A, V>(self, attr: A, value: Option<V>) -> Result<Self, WebError>
+	fn try_with_css_prop<A, V>(self, attr: A, value: Option<V>) -> Result<Self, JsValue>
 	where
 		A: AsRef<str>,
 		V: AsRef<str>,
@@ -426,14 +423,11 @@ where
 }
 
 /// Extension trait to be able to use [`.context`](app_error::AppError::context)
-/// on a `Result<T, impl AsRef<WebError>>`.
+/// on a `Result<T, impl AsRef<JsValue>>`.
 #[extend::ext(name = JsResultContext)]
-pub impl<T, E: AsRef<WebError>> Result<T, E> {
+pub impl<T, E: AsRef<JsValue>> Result<T, E> {
 	fn context(self, context: &'static str) -> Result<T, app_error::AppError> {
-		cfg_ssr_expr!(
-			ssr = self.map_err(|err| err.as_ref().0.context(context)),
-			csr = self.map_err(|err| app_error::AppError::fmt(format!("{:?}", err.as_ref())).context(context)),
-		)
+		self.map_err(|err| app_error::AppError::fmt(format!("{:?}", err.as_ref())).context(context))
 	}
 }
 
@@ -445,14 +439,9 @@ pub impl Object {
 	where
 		T: Into<JsValue>,
 	{
-		cfg_ssr_expr!(
-			ssr = Object::set_prop_inner(self, prop, value),
-			csr = {
-				let value = value.into();
-				js_sys::Reflect::set(self, &prop.into(), &value)
-					.unwrap_or_else(|err| panic!("Unable to set object property {prop:?} to {value:?}: {err:?}"));
-			}
-		);
+		let value = value.into();
+		Reflect::set(self, &prop.into(), &value)
+			.unwrap_or_else(|err| panic!("Unable to set object property {prop:?} to {value:?}: {err:?}"));
 	}
 }
 
@@ -481,10 +470,7 @@ pub impl Object {
 	///
 	/// Returns if the property existed
 	fn remove_prop(&self, prop: &str) -> bool {
-		cfg_ssr_expr!(
-			ssr = Object::remove_prop_inner(self, prop).is_some(),
-			csr = js_sys::Reflect::delete_property(self, &prop.into()).expect("Unable to remove object property")
-		)
+		Reflect::delete_property(self, &prop.into()).expect("Unable to remove object property")
 	}
 }
 
@@ -505,34 +491,25 @@ pub impl Object {
 	where
 		T: JsCast,
 	{
-		cfg_ssr_expr!(
-			ssr = self.get_prop_inner(prop).map_err(|err| match err {
-				dynatos_web_ssr::object::GetError::Missing => GetError::Missing,
-				dynatos_web_ssr::object::GetError::WrongType(ty) => GetError::WrongType(ty),
-			}),
-			csr = {
-				// Note: This returning `Err` should only happen if `self` isn't an object,
-				//       which we guarantee, so no errors can occur.
-				let value = js_sys::Reflect::get(self, &prop.into()).expect("Unable to get object property");
+		// Note: This returning `Err` should only happen if `self` isn't an object,
+		//       which we guarantee, so no errors can occur.
+		let value = Reflect::get(self, &prop.into()).expect("Unable to get object property");
 
-				if value.is_undefined() {
-					return Err(GetError::Missing);
-				}
+		if value.is_undefined() {
+			return Err(GetError::Missing);
+		}
 
-				value.dyn_into().map_err(GetError::WrongType)
-			}
-		)
+		value.dyn_into().map_err(GetError::WrongType)
 	}
 }
 
 #[extend::ext(name = WindowAnimationFrame)]
-#[cfg(feature = "csr")]
 pub impl web_sys::Window {
 	/// Requests an animation frame with `f` as the callback
 	fn request_anim_frame(&self, f: impl FnOnce(f64) + 'static) -> i32 {
 		let mut f = Some(f);
 		// TODO: Nothing in MDN says this can fail, can it?
-		self.request_animation_frame(&util::csr::js_fn(move |time| {
+		self.request_animation_frame(&util::js_fn(move |time| {
 			f.take().expect("Animation frame called twice")(time);
 		}))
 		.expect("Unable to request animation frame")

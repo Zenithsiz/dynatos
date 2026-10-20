@@ -15,17 +15,12 @@ extend               = { workspace = true }
 futures              = { workspace = true }
 itertools            = { workspace = true }
 petgraph             = { workspace = true }
-tokio                = { features = ["rt"], optional = true, workspace = true }
 tracing              = { workspace = true }
-wasm-bindgen-futures = { optional = true, workspace = true }
+wasm-bindgen-futures = { workspace = true }
 zutil-cloned         = { workspace = true }
 
 [features]
-default = ["wasm-js-promise"]
-
-sync            = ["dynatos-sync-types/sync"]
-tokio           = ["dep:tokio", "sync"]
-wasm-js-promise = ["dep:wasm-bindgen-futures"]
+sync = ["dynatos-sync-types/sync"]
 
 [lints]
 workspace = true

@@ -1,6 +1,9 @@
 //! HTML elements
 
-use {crate::DynatosWebCtx, dynatos_util::web::cfg_ssr_expr, web_sys::WebError};
+use {
+	crate::DynatosWebCtx,
+	wasm_bindgen::{JsCast, JsValue},
+};
 
 /// Expands to `$value` if `$value` exists, else expands to `$default`
 macro or_default_ty {
@@ -23,23 +26,14 @@ macro decl_elements(
 			let element = ctx.document().create_element_ns(Some(crate::HTML_NAMESPACE), el_name)
 				.unwrap_or_else(|err| self::on_create_fail(&err, el_name));
 
-			cfg_ssr_expr!(
-				ssr = {
-					use zutil_inheritance::Downcast;
-					element.downcast()
-				},
-				csr = {
-					use wasm_bindgen::JsCast;
-					element.dyn_into()
-				},
-			).unwrap_or_else(|err| self::on_cast_fail(&err, el_name))
+			element.dyn_into().unwrap_or_else(|err| self::on_cast_fail(&err, el_name))
 		}
 	)*
 }
 
 /// Function called when creating an element fails
 #[cold]
-fn on_create_fail(err: &WebError, el_name: &str) -> ! {
+fn on_create_fail(err: &JsValue, el_name: &str) -> ! {
 	panic!(
 		"Unable to create element {el_name:?} on namespace {:?}: {err:?}",
 		crate::HTML_NAMESPACE

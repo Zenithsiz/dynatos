@@ -143,10 +143,7 @@ impl_as_parent! {
 			web_sys::TransitionEvent: {},
 			web_sys::WheelEvent: {},
 		},
-		web_sys::CssStyleDeclaration: {
-			#[cfg(feature = "ssr")]
-			web_sys::CssStyleProperties: {},
-		},
+		web_sys::CssStyleDeclaration: {},
 		web_sys::Location: {},
 		web_sys::History: {},
 	}

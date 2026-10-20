@@ -1,3 +1,0 @@
-[[proxy]]
-rewrite = "/ssr/"
-backend = "http://localhost:8081/ssr/"

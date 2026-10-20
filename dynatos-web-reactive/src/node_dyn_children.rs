@@ -6,9 +6,10 @@ use {
 	dynatos_reactive::{Derived, Effect, Memo, Signal, SignalWith, WithDefault, derived::DerivedRun},
 	dynatos_sync_types::{IMut, SyncBounds},
 	dynatos_util::TryOrReturnExt,
-	dynatos_web::{DynatosWebCtx, cfg_ssr_expr, html},
+	dynatos_web::{DynatosWebCtx, html},
 	itertools::Itertools,
 	js_sys::WeakRef,
+	web_sys::console,
 };
 
 /// Extension trait to add reactive children to an node
@@ -268,42 +269,33 @@ impl WithDynNodes for ! {
 
 /// Traces the addition of a dynamic node
 fn trace_add_node(node: &web_sys::Node, after: Option<&web_sys::Node>) {
-	cfg_ssr_expr!(
-		ssr = tracing::trace!(?node, ?after, "Added new reactive child"),
-		csr = match after {
-			Some(after) => web_sys::console::debug_3(
-				&wasm_bindgen::JsValue::from(
-					"dynatos_web_reactive::node_dyn_children: Added new reactive child %o after %o"
-				),
-				node,
-				after,
+	match after {
+		Some(after) => console::debug_3(
+			&wasm_bindgen::JsValue::from(
+				"dynatos_web_reactive::node_dyn_children: Added new reactive child %o after %o",
 			),
-			None => web_sys::console::debug_2(
-				&wasm_bindgen::JsValue::from("dynatos_web_reactive::node_dyn_children: Adding new reactive child %o"),
-				node
-			),
-		}
-	);
+			node,
+			after,
+		),
+		None => console::debug_2(
+			&wasm_bindgen::JsValue::from("dynatos_web_reactive::node_dyn_children: Adding new reactive child %o"),
+			node,
+		),
+	}
 }
 
 /// Traces the removal of a dynamic node
 fn trace_remove_node(node: &web_sys::Node) {
-	cfg_ssr_expr!(
-		ssr = tracing::trace!(?node, "Removing reactive child"),
-		csr = web_sys::console::debug_2(
-			&wasm_bindgen::JsValue::from("dynatos_web_reactive::node_dyn_children: Removing reactive child %o"),
-			node
-		)
+	console::debug_2(
+		&wasm_bindgen::JsValue::from("dynatos_web_reactive::node_dyn_children: Removing reactive child %o"),
+		node,
 	);
 }
 
 /// Traces the keeping of a dynamic node
 fn trace_keep_node(node: &web_sys::Node) {
-	cfg_ssr_expr!(
-		ssr = tracing::trace!(?node, "Keeping reactive child"),
-		csr = web_sys::console::debug_2(
-			&wasm_bindgen::JsValue::from("dynatos_web_reactive::node_dyn_children: Keeping reactive child %o"),
-			node
-		)
+	console::debug_2(
+		&wasm_bindgen::JsValue::from("dynatos_web_reactive::node_dyn_children: Keeping reactive child %o"),
+		node,
 	);
 }

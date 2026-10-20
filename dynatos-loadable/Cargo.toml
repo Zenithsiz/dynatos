@@ -12,11 +12,7 @@ dynatos-sync-types = { default-features = false, path = "../dynatos-sync-types" 
 extend = { workspace = true }
 
 [features]
-default = ["wasm-js-promise"]
-
-sync            = ["dynatos-reactive/sync", "dynatos-sync-types/sync"]
-tokio           = ["dynatos-reactive/tokio"]
-wasm-js-promise = ["dynatos-reactive/wasm-js-promise"]
+sync = ["dynatos-reactive/sync", "dynatos-sync-types/sync"]
 
 [lints]
 workspace = true

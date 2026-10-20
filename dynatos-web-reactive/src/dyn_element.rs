@@ -8,6 +8,7 @@ use {
 	dynatos_util::TryOrReturnExt,
 	dynatos_web::{Child, DynatosWebCtx, html},
 	js_sys::WeakRef,
+	wasm_bindgen::JsValue,
 };
 
 /// A dynamic element
@@ -51,7 +52,7 @@ impl DynElement {
 }
 
 impl Child for DynElement {
-	fn append(&self, node: &web_sys::Node) -> Result<(), web_sys::WebError> {
+	fn append(&self, node: &web_sys::Node) -> Result<(), JsValue> {
 		self.0.lock().append(node)
 	}
 }

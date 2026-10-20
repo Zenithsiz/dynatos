@@ -1,9 +1,9 @@
 //! Event listener
 
 use {
-	crate::DynatosWebCtx,
+	crate::{DynatosWebCtx, util},
 	dynatos_sync_types::SyncBounds,
-	dynatos_util::{TryOrReturnExt, web::cfg_ssr_expr},
+	dynatos_util::TryOrReturnExt,
 	js_sys::WeakRef,
 	wasm_bindgen::{ErasableGeneric, JsValue, convert::FromWasmAbi},
 	web_sys::EventTarget,
@@ -23,25 +23,13 @@ pub impl EventTarget {
 	/// Adds an untyped event listener to this target
 	fn add_event_listener_untyped<Ev: FromWasmAbi>(
 		&self,
-		ctx: &DynatosWebCtx,
+		_ctx: &DynatosWebCtx,
 		event_type: &str,
 		f: impl SyncBounds + Fn(Ev) + 'static,
 	) {
-		cfg_ssr_expr!(
-			ssr = self
-				.add_event_listener_with_callback(ctx.ssr_state(), event_type, f)
-				.expect("Unable to add event listener"),
-			csr = {
-				use crate::util;
-
-				let _: &DynatosWebCtx = ctx;
-
-				// Then add it
-				// TODO: Can this fail? On MDN, nothing seems to mention it can throw.
-				self.add_event_listener_with_callback(event_type, &util::csr::js_fn::<dyn Fn(Ev)>(f))
-					.expect("Unable to add event listener");
-			}
-		);
+		// TODO: Can this fail? On MDN, nothing seems to mention it can throw.
+		self.add_event_listener_with_callback(event_type, &util::js_fn::<dyn Fn(Ev)>(f))
+			.expect("Unable to add event listener");
 	}
 }
 

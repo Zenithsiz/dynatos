@@ -3,9 +3,9 @@
 #[expect(unused_imports, reason = "Used by macros")]
 use {crate::EventTargetAddListener, core::marker::PhantomData};
 use {
-	crate::{DynatosWebCtx, ElementAddAttr, NodeAddChildren, WebError},
-	dynatos_util::web::cfg_ssr_expr,
+	crate::{DynatosWebCtx, ElementAddAttr, JsValue, NodeAddChildren},
 	dynatos_web_parser::{XHtml, XHtmlElement, XHtmlNode},
+	wasm_bindgen::JsCast,
 	web_sys::{Element, HtmlElement, Node},
 };
 
@@ -37,16 +37,7 @@ pub fn parse_html_element(
 
 	let element = self::parse_xhtml_element(ctx, element, &mut environment)?;
 
-	let element = cfg_ssr_expr!(
-		ssr = {
-			use zutil_inheritance::Downcast;
-			element.downcast().map_err(Error::CastHtmlElement)?
-		},
-		csr = {
-			use wasm_bindgen::JsCast;
-			element.dyn_into().map_err(Error::CastHtmlElement)?
-		}
-	);
+	let element = element.dyn_into().map_err(Error::CastHtmlElement)?;
 
 	Ok(element)
 }
@@ -163,7 +154,7 @@ pub enum Error {
 	TextEscapeEnd,
 
 	#[error("Unable to create element: {0:?}")]
-	CreateElement(WebError),
+	CreateElement(JsValue),
 
 	#[error("Found an event listener attribute without a value")]
 	EventListenerValue,

@@ -21,7 +21,6 @@ use {
 		effect,
 		loc::Loc,
 		trigger::TriggerExec,
-		util,
 		world::{WorldTag, WorldTagGuard},
 	},
 	core::{
@@ -103,7 +102,7 @@ impl<F: Loader> Inner<F> {
 		};
 		let (fut, handle) = future::abortable(fut);
 		#[cloned(inner = effect_fn.inner, trigger = effect_fn.trigger)]
-		util::spawn_task(async move {
+		wasm_bindgen_futures::spawn_local(async move {
 			// Load the value
 			// Note: If we get aborted, just remove the handle
 			let Ok(value) = fut.await else {

@@ -11,24 +11,52 @@ dynatos-sync-types = { default-features = false, path = "../dynatos-sync-types" 
 dynatos-util       = { default-features = false, path = "../dynatos-util" }
 dynatos-web-macros = { default-features = false, path = "../dynatos-web-macros" }
 dynatos-web-parser = { default-features = false, path = "../dynatos-web-parser" }
-dynatos-web-ssr    = { default-features = false, optional = true, path = "../dynatos-web-ssr" }
-js-sys             = { default-features = false, package = "dynatos-web-dep-js-sys", path = "../dynatos-web-dep-js-sys" }
-wasm-bindgen       = { default-features = false, package = "dynatos-web-dep-wasm-bindgen", path = "../dynatos-web-dep-wasm-bindgen" }
-web-sys            = { default-features = false, package = "dynatos-web-dep-web-sys", path = "../dynatos-web-dep-web-sys" }
 
-app-error         = { workspace = true }
-duplicate         = { workspace = true }
-extend            = { workspace = true }
-itertools         = { workspace = true }
-thiserror         = { workspace = true }
-tracing           = { workspace = true }
-zutil-inheritance = { optional = true, workspace = true }
+app-error = { workspace = true }
+duplicate = { workspace = true }
+extend = { workspace = true }
+itertools = { workspace = true }
+js-sys = { workspace = true }
+thiserror = { workspace = true }
+tracing = { workspace = true }
+wasm-bindgen = { workspace = true }
+web-sys = { features = [
+	"AnimationEvent",
+	"ClipboardEvent",
+	"Comment",
+	"CssStyleDeclaration",
+	"Document",
+	"DragEvent",
+	"Element",
+	"Event",
+	"EventTarget",
+	"FocusEvent",
+	"History",
+	"HtmlBodyElement",
+	"HtmlCanvasElement",
+	"HtmlDetailsElement",
+	"HtmlDialogElement",
+	"HtmlElement",
+	"HtmlHeadElement",
+	"HtmlImageElement",
+	"HtmlInputElement",
+	"HtmlTextAreaElement",
+	"InputEvent",
+	"Location",
+	"MouseEvent",
+	"Node",
+	"PointerEvent",
+	"PopStateEvent",
+	"SubmitEvent",
+	"Text",
+	"ToggleEvent",
+	"TransitionEvent",
+	"WheelEvent",
+	"Window",
+	"console",
+], workspace = true }
 
 [features]
-default = ["csr"]
-
-csr  = ["js-sys/csr", "wasm-bindgen/csr", "web-sys/csr"]
-ssr  = ["dep:dynatos-web-ssr", "dep:zutil-inheritance", "js-sys/ssr", "sync", "wasm-bindgen/ssr", "web-sys/ssr"]
 sync = ["dynatos-store/sync", "dynatos-sync-types/sync"]
 
 [lints]

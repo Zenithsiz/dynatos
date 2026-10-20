@@ -2,8 +2,8 @@
 
 use {
 	crate::{ObjectGet, ObjectSetProp},
+	core::any::Any,
 	dynatos_sync_types::SyncBounds,
-	dynatos_util::web::cfg_ssr_expr,
 	js_sys::Object,
 };
 
@@ -18,56 +18,20 @@ pub impl Object {
 		// TODO: Use an static anonymous symbol?
 		let prop_name = "__dynatos_values";
 
-		cfg_ssr_expr!(
-			ssr = {
-				use {
-					dynatos_web_ssr::{ObjectAttachValueValues, ObjectAttachValueValuesFields},
-					std::sync::nonpoison::Mutex,
-					zutil_inheritance::{FromFields, Value},
-				};
-
-				let ctx_handles = match self.get::<ObjectAttachValueValues>(prop_name) {
-					Ok(effects) => effects,
-					Err(crate::GetError::WrongType(err)) => panic!("Effects map was the wrong type: {err:?}"),
-					Err(crate::GetError::Missing) => {
-						let handles = ObjectAttachValueValues::from_fields((
-							ObjectAttachValueValuesFields {
-								values: Mutex::new(vec![]),
-							},
-							<Object as Value>::Fields::default(),
-						));
-						self.set_prop(prop_name, handles.clone());
-
-						handles
-					},
-				};
-
-				ctx_handles.fields().values.lock().push(Box::new(value));
+		// Get the values array, or create it, if it doesn't exist
+		let values = match self.get::<js_sys::Array>(prop_name) {
+			Ok(values) => values,
+			Err(crate::GetError::WrongType(err)) => panic!("Values array was the wrong type: {err:?}"),
+			Err(crate::GetError::Missing) => {
+				let values = js_sys::Array::new();
+				self.set_prop(prop_name, &values);
+				values
 			},
-			csr = {
-				use core::any::Any;
+		};
 
-				/// A wasm value
-				#[wasm_bindgen::prelude::wasm_bindgen]
-				#[expect(dead_code, reason = "We just want to keep the field alive, not use it")]
-				struct WasmValue(Box<dyn Any>);
-
-				// Get the values array, or create it, if it doesn't exist
-				let values = match self.get::<js_sys::Array>(prop_name) {
-					Ok(values) => values,
-					Err(crate::GetError::WrongType(err)) => panic!("Values aray was the wrong type: {err:?}"),
-					Err(crate::GetError::Missing) => {
-						let values = js_sys::Array::new();
-						self.set_prop(prop_name, &values);
-						values
-					},
-				};
-
-				// Then push the values
-				let value = WasmValue(Box::new(value));
-				values.push(&value.into());
-			}
-		)
+		// Then push the values
+		let value = WasmValue(Box::new(value));
+		values.push(&value.into());
 	}
 }
 
@@ -88,3 +52,8 @@ where
 		self
 	}
 }
+
+/// A wasm value
+#[wasm_bindgen::prelude::wasm_bindgen]
+#[expect(dead_code, reason = "We just want to keep the field alive, not use it")]
+struct WasmValue(Box<dyn Any>);
