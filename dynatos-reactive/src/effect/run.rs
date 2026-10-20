@@ -1,17 +1,13 @@
 //! Effect run
 
-use {
-	super::Inner,
-	core::marker::PhantomData,
-	dynatos_sync_types::{RcPtr, SyncBounds},
-};
+use {super::Inner, core::marker::PhantomData, std::rc::Rc};
 
 /// Effect run
 ///
 /// # Implementation
 /// To implement this trait, you must implement the [`run`](EffectRun::run) function,
 /// and then use the macro [`effect_run_impl_inner`] to implement some details.
-pub trait EffectRun: SyncBounds {
+pub trait EffectRun {
 	/// Runs the effect
 	#[track_caller]
 	fn run(&self, ctx: EffectRunCtx<'_>);
@@ -20,7 +16,7 @@ pub trait EffectRun: SyncBounds {
 
 	/// Unsizes the inner field of the effect
 	#[doc(hidden)]
-	fn unsize_inner(self: RcPtr<Inner<Self>>) -> RcPtr<Inner<dyn EffectRun>>;
+	fn unsize_inner(self: Rc<Inner<Self>>) -> Rc<Inner<dyn EffectRun>>;
 }
 
 impl EffectRun for ! {
@@ -34,7 +30,7 @@ impl EffectRun for ! {
 
 impl<F> EffectRun for F
 where
-	F: SyncBounds + Fn() + 'static,
+	F: Fn() + 'static,
 {
 	effect_run_impl_inner! {}
 
@@ -45,7 +41,7 @@ where
 
 /// Implementation detail for the [`EffectRun`] trait
 pub macro effect_run_impl_inner() {
-	fn unsize_inner(self: RcPtr<Inner<Self>>) -> RcPtr<Inner<dyn EffectRun>> {
+	fn unsize_inner(self: Rc<Inner<Self>>) -> Rc<Inner<dyn EffectRun>> {
 		self
 	}
 }

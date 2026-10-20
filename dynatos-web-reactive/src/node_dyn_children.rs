@@ -2,9 +2,12 @@
 
 use {
 	crate::ObjectAttachEffect,
-	core::{mem, ops::Deref},
+	core::{
+		cell::{LazyCell, RefCell},
+		mem,
+		ops::Deref,
+	},
 	dynatos_reactive::{Derived, Effect, Memo, Signal, SignalWith, WithDefault, derived::DerivedRun},
-	dynatos_sync_types::{IMut, SyncBounds},
 	dynatos_util::TryOrReturnExt,
 	dynatos_web::{DynatosWebCtx, html},
 	itertools::Itertools,
@@ -29,7 +32,7 @@ pub impl web_sys::Node {
 		//       of the node, in case of `f` returning `None`.
 		// TODO: Find a better solution than using an empty `<template>` element?
 		let node = WeakRef::new(self);
-		let prev_children = IMut::new(vec![]);
+		let prev_children = RefCell::new(vec![]);
 		let empty_child = web_sys::Node::from(html::template(ctx));
 		let child_effect = Effect::try_new(move || {
 			// Try to get the node
@@ -40,7 +43,7 @@ pub impl web_sys::Node {
 			let mut new_children = vec![];
 			children.with_nodes(|new_node| new_children.push(new_node));
 
-			let mut prev_children = prev_children.lock();
+			let mut prev_children = prev_children.borrow_mut();
 
 			// If we hadn't initialized yet (no previous children) and we have no new children,
 			// add our empty child to keep our position
@@ -147,14 +150,14 @@ where
 /// - `!`
 ///
 /// Where `N` is any of the types above.
-pub trait WithDynNodes: SyncBounds {
+pub trait WithDynNodes {
 	/// Calls `f` with all nodes.
 	fn with_nodes(&self, f: impl FnMut(web_sys::Node));
 }
 
 impl<F, N> WithDynNodes for F
 where
-	F: SyncBounds + Fn() -> N,
+	F: Fn() -> N,
 	N: WithDynNodes,
 {
 	fn with_nodes(&self, f: impl FnMut(web_sys::Node)) {
@@ -225,8 +228,8 @@ where
 	Generics Ty;
 	[T] [Signal<T> where T: WithDynNodes + 'static];
 	[T, F] [Derived<T, F> where T: WithDynNodes + 'static, F: ?Sized + DerivedRun<T> + 'static];
-	[T, F] [Memo<T, F> where T: WithDynNodes + 'static, F: SyncBounds + ?Sized + 'static];
-	[S, T] [WithDefault<S, T> where S: SyncBounds, T: SyncBounds, Self: for<'a> SignalWith<Value<'a>: Deref<Target: WithDynNodes>>];
+	[T, F] [Memo<T, F> where T: WithDynNodes + 'static, F: ?Sized + 'static];
+	[S, T] [WithDefault<S, T> where  Self: for<'a> SignalWith<Value<'a>: Deref<Target: WithDynNodes>>];
 )]
 impl<Generics> WithDynNodes for Ty {
 	fn with_nodes(&self, f: impl FnMut(web_sys::Node)) {
@@ -239,24 +242,10 @@ impl<Generics> WithDynNodes for Ty {
 	}
 }
 
-#[expect(clippy::absolute_paths, reason = "We want to be explicit due to the `sync` feature")]
-impl<N, F> WithDynNodes for core::cell::LazyCell<N, F>
+impl<N, F> WithDynNodes for LazyCell<N, F>
 where
 	N: WithDynNodes,
 	F: FnOnce() -> N,
-	Self: SyncBounds,
-{
-	fn with_nodes(&self, f: impl FnMut(web_sys::Node)) {
-		(**self).with_nodes(f);
-	}
-}
-
-#[expect(clippy::absolute_paths, reason = "We want to be explicit due to the `sync` feature")]
-impl<N, F> WithDynNodes for std::sync::LazyLock<N, F>
-where
-	N: WithDynNodes,
-	F: FnOnce() -> N,
-	Self: SyncBounds,
 {
 	fn with_nodes(&self, f: impl FnMut(web_sys::Node)) {
 		(**self).with_nodes(f);

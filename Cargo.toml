@@ -6,7 +6,6 @@ members = [
 	"dynatos-loadable",
 	"dynatos-reactive",
 	"dynatos-store",
-	"dynatos-sync-types",
 	"dynatos-util",
 	"dynatos-web",
 	"dynatos-web-macros",

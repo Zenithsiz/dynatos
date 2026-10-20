@@ -6,13 +6,9 @@ edition = "2024"
 [dependencies]
 
 # Workspace
-dynatos-reactive   = { default-features = false, path = "../dynatos-reactive" }
-dynatos-sync-types = { default-features = false, path = "../dynatos-sync-types" }
+dynatos-reactive = { default-features = false, path = "../dynatos-reactive" }
 
 extend = { workspace = true }
-
-[features]
-sync = ["dynatos-reactive/sync", "dynatos-sync-types/sync"]
 
 [lints]
 workspace = true

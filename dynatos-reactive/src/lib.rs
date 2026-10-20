@@ -16,8 +16,7 @@
 	try_trait_v2_residual,
 	unwrap_infallible,
 	arbitrary_self_types,
-	coverage_attribute,
-	macro_attr
+	coverage_attribute
 )]
 
 pub mod async_signal;

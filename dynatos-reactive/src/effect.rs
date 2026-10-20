@@ -29,22 +29,22 @@ use {
 		hash::{Hash, Hasher},
 		marker::Unsize,
 		ops::{CoerceUnsized, Deref},
-		sync::atomic,
+		sync::atomic::{self, AtomicBool},
 	},
-	dynatos_sync_types::{CellBool, RcPtr},
+	std::rc::Rc,
 };
 
 /// Effect inner
 #[doc(hidden)]
 pub struct Inner<F: ?Sized> {
 	/// Whether this effect is fresh
-	fresh: CellBool,
+	fresh: AtomicBool,
 
 	/// Whether this effect is currently suppressed
-	suppressed: CellBool,
+	suppressed: AtomicBool,
 
 	/// Whether we're currently checking dependencies.
-	checking_deps: CellBool,
+	checking_deps: AtomicBool,
 
 	/// Where this effect was defined
 	defined_loc: Loc,
@@ -66,7 +66,7 @@ impl<F: ?Sized> Deref for Inner<F> {
 /// Effect
 pub struct Effect<F: ?Sized = dyn EffectRun> {
 	/// Inner
-	pub(crate) inner: RcPtr<Inner<F>>,
+	pub(crate) inner: Rc<Inner<F>>,
 }
 
 impl<F> Effect<F> {
@@ -94,16 +94,14 @@ impl<F> Effect<F> {
 	#[track_caller]
 	pub fn new_raw(run: F) -> Self {
 		let inner = Inner {
-			fresh: CellBool::new(false),
-			suppressed: CellBool::new(false),
-			checking_deps: CellBool::new(false),
+			fresh: AtomicBool::new(false),
+			suppressed: AtomicBool::new(false),
+			checking_deps: AtomicBool::new(false),
 			defined_loc: Loc::caller(),
 			run,
 		};
 
-		Self {
-			inner: RcPtr::new(inner),
-		}
+		Self { inner: Rc::new(inner) }
 	}
 
 	/// Tries to create a new effect.
@@ -138,7 +136,7 @@ impl<F: ?Sized> Effect<F> {
 	#[must_use]
 	pub fn downgrade(&self) -> WeakEffect<F> {
 		WeakEffect {
-			inner: RcPtr::downgrade(&self.inner),
+			inner: Rc::downgrade(&self.inner),
 		}
 	}
 
@@ -149,7 +147,7 @@ impl<F: ?Sized> Effect<F> {
 	/// or [`WeakEffect`]s exist that point to it.
 	#[must_use]
 	pub fn is_inert(&self) -> bool {
-		RcPtr::strong_count(&self.inner) == 1 && RcPtr::weak_count(&self.inner) == 0
+		Rc::strong_count(&self.inner) == 1 && Rc::weak_count(&self.inner) == 0
 	}
 
 	/// Returns a unique identifier to this effect.
@@ -157,7 +155,7 @@ impl<F: ?Sized> Effect<F> {
 	/// Downgrading and cloning the effect will retain the same id
 	#[must_use]
 	pub fn id(&self) -> usize {
-		RcPtr::as_ptr(&self.inner).addr()
+		Rc::as_ptr(&self.inner).addr()
 	}
 
 	/// Creates an effect dependency gatherer
@@ -213,7 +211,7 @@ impl<F: ?Sized> Effect<F> {
 					.dep_graph()
 					.with_trigger_deps(trigger, move |effect, _| _ = effect.try_run());
 			});
-		self.inner.checking_deps.set(false, atomic::Ordering::Release);
+		self.inner.checking_deps.store(false, atomic::Ordering::Release);
 
 		// If we're suppressed or fresh, we don't need to run.
 		if self.is_suppressed() || self.is_fresh() {
@@ -246,18 +244,18 @@ impl<F: ?Sized> Effect<F> {
 		self.inner.run.run(ctx);
 
 		// And set ourselves as fresh
-		self.inner.fresh.set(true, atomic::Ordering::Release);
+		self.inner.fresh.store(true, atomic::Ordering::Release);
 	}
 
 	/// Sets the effect as stale
 	pub fn set_stale(&self) {
-		self.inner.fresh.set(false, atomic::Ordering::Release);
+		self.inner.fresh.store(false, atomic::Ordering::Release);
 	}
 
 	/// Returns whether the effect is fresh
 	#[must_use]
 	pub fn is_fresh(&self) -> bool {
-		self.inner.fresh.get(atomic::Ordering::Acquire)
+		self.inner.fresh.load(atomic::Ordering::Acquire)
 	}
 
 	/// Returns whether the effect is stale
@@ -274,7 +272,7 @@ impl<F: ?Sized> Effect<F> {
 	/// Returns whether the effect is suppressed
 	#[must_use]
 	pub fn is_suppressed(&self) -> bool {
-		self.inner.suppressed.get(atomic::Ordering::Acquire)
+		self.inner.suppressed.load(atomic::Ordering::Acquire)
 	}
 
 	/// Formats this effect into `s`
@@ -282,7 +280,7 @@ impl<F: ?Sized> Effect<F> {
 	fn fmt_debug(&self, mut s: fmt::DebugStruct<'_, '_>) -> Result<(), fmt::Error> {
 		s.field("id", &self.id());
 
-		s.field("suppressed", &self.inner.suppressed.get(atomic::Ordering::Acquire));
+		s.field("suppressed", &self.inner.suppressed.load(atomic::Ordering::Acquire));
 
 		s.field("defined_loc", &self.defined_loc());
 
@@ -316,7 +314,7 @@ impl<F: ?Sized> Eq for Effect<F> {}
 impl<F: ?Sized> Clone for Effect<F> {
 	fn clone(&self) -> Self {
 		Self {
-			inner: RcPtr::clone(&self.inner),
+			inner: Rc::clone(&self.inner),
 		}
 	}
 }

@@ -6,8 +6,8 @@ use {
 	core::{error::Error as StdError, marker::PhantomData, str::FromStr},
 	dynatos_loadable::Loadable,
 	dynatos_reactive::{Memo, SignalBorrow, SignalBorrowMut},
-	dynatos_sync_types::{RcPtr, SyncBounds},
 	dynatos_web::DynatosWebCtx,
+	std::rc::Rc,
 };
 
 /// Parses a singular value from the query.
@@ -15,7 +15,7 @@ use {
 /// Requires a value of type [`LocationSignal`](crate::LocationSignal) in the context store.
 pub struct SingleQuery<T> {
 	/// The key to this query
-	key: RcPtr<str>,
+	key: Rc<str>,
 
 	/// Queries with our key
 	queries: Memo<Vec<String>, QueriesFn>,
@@ -26,10 +26,10 @@ pub struct SingleQuery<T> {
 
 impl<T> SingleQuery<T> {
 	/// Creates a new query
-	pub fn new(ctx: &DynatosWebCtx, key: impl Into<RcPtr<str>>) -> Self {
+	pub fn new(ctx: &DynatosWebCtx, key: impl Into<Rc<str>>) -> Self {
 		let key = key.into();
 		Self {
-			key:      RcPtr::clone(&key),
+			key:      Rc::clone(&key),
 			queries:  super::queries_memo(ctx, key),
 			ctx:      ctx.clone(),
 			_phantom: PhantomData,
@@ -46,7 +46,7 @@ impl<T> SingleQuery<T> {
 impl<T> Clone for SingleQuery<T> {
 	fn clone(&self) -> Self {
 		Self {
-			key:      RcPtr::clone(&self.key),
+			key:      Rc::clone(&self.key),
 			queries:  self.queries.clone(),
 			ctx:      self.ctx.clone(),
 			_phantom: PhantomData,
@@ -56,8 +56,7 @@ impl<T> Clone for SingleQuery<T> {
 
 impl<T> QueryParse for SingleQuery<T>
 where
-	T: SyncBounds + FromStr,
-	T::Err: SyncBounds,
+	T: FromStr,
 {
 	type Value = Loadable<T, T::Err>;
 
@@ -78,8 +77,7 @@ where
 
 impl<T> QueryIntoValue<T> for SingleQuery<T>
 where
-	T: SyncBounds + FromStr,
-	T::Err: SyncBounds,
+	T: FromStr,
 {
 	fn into_query_value(value: T) -> Self::Value {
 		Loadable::Loaded(value)
@@ -88,8 +86,7 @@ where
 
 impl<T> QueryIntoValue<Result<T, T::Err>> for SingleQuery<T>
 where
-	T: SyncBounds + FromStr,
-	T::Err: SyncBounds,
+	T: FromStr,
 {
 	fn into_query_value(value: Result<T, T::Err>) -> Self::Value {
 		match value {
@@ -101,8 +98,8 @@ where
 
 impl<T> QueryWrite<&'_ Loadable<T, T::Err>> for SingleQuery<T>
 where
-	T: SyncBounds + FromStr + ToString,
-	T::Err: SyncBounds + StdError,
+	T: FromStr + ToString,
+	T::Err: StdError,
 {
 	fn write(&self, new_value: &Loadable<T, T::Err>) {
 		match new_value {

@@ -7,11 +7,13 @@ pub use self::tags::{WorldTag, WorldTagGuard};
 use {
 	self::tags::{WorldTagState, WorldTagsData},
 	crate::{dep_graph::DepGraph, effect_stack::EffectStack, run_queue::RunQueue},
-	dynatos_sync_types::{LazyCell, thread_local_or_global},
+	core::cell::LazyCell,
 };
 
 /// Global world
-#[thread_local_or_global]
+// Note: This is thread-local for now just because in web we only have a single
+//       thread and can't use `LazyLock`.
+#[thread_local]
 pub static GLOBAL_WORLD: LazyCell<GlobalWorld> = LazyCell::new(GlobalWorld::new);
 
 /// Thread-local world

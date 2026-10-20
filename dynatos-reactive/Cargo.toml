@@ -6,8 +6,7 @@ edition = "2024"
 [dependencies]
 
 # Workspace
-dynatos-sync-types = { default-features = false, path = "../dynatos-sync-types" }
-dynatos-util       = { default-features = false, path = "../dynatos-util" }
+dynatos-util = { default-features = false, path = "../dynatos-util" }
 
 derive_more          = { features = ["full"], workspace = true }
 duplicate            = { workspace = true }
@@ -18,9 +17,6 @@ petgraph             = { workspace = true }
 tracing              = { workspace = true }
 wasm-bindgen-futures = { workspace = true }
 zutil-cloned         = { workspace = true }
-
-[features]
-sync = ["dynatos-sync-types/sync"]
 
 [lints]
 workspace = true

@@ -1,11 +1,10 @@
 //! Effect-trigger tests
 
-#![feature(macro_attr, proc_macro_hygiene, stmt_expr_attributes)]
-#![cfg_attr(not(feature = "sync"), feature(thread_local))]
+#![feature(proc_macro_hygiene, stmt_expr_attributes, thread_local)]
 
 use {
+	core::cell::OnceCell,
 	dynatos_reactive::{Effect, Trigger, WeakEffect, WeakTrigger, effect},
-	dynatos_sync_types::{OnceCell, thread_local_or_global},
 	dynatos_util::Counter,
 	zutil_cloned::cloned,
 };
@@ -113,7 +112,7 @@ fn fresh_stale() {
 /// Ensures the function returned by `Effect::running` is the same as the future being run.
 #[test]
 fn running() {
-	#[thread_local_or_global]
+	#[thread_local]
 	static RUNNING: OnceCell<Effect> = OnceCell::new();
 
 	// Create an effect, and save the running effect within it to `RUNNING`.
@@ -132,10 +131,10 @@ fn running() {
 /// while running stacked futures
 #[test]
 fn running_stacked() {
-	#[thread_local_or_global]
+	#[thread_local]
 	static RUNNING_TOP: OnceCell<Effect> = OnceCell::new();
 
-	#[thread_local_or_global]
+	#[thread_local]
 	static RUNNING_BOTTOM: OnceCell<Effect> = OnceCell::new();
 
 	// Create 2 stacked effects, saving the running within each to `running1` and `running2`.

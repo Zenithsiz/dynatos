@@ -3,7 +3,7 @@
 use {
 	crate::LocationSignal,
 	dynatos_reactive::{SignalBorrow, SignalSet},
-	dynatos_sync_types::SyncBounds,
+
 	dynatos_web::{DynatosWebCtx, ElementWithAttr, EventTargetWithListener, ev, html},
 };
 
@@ -12,7 +12,7 @@ use {
 /// Expects a value of type [`LocationSignal`](crate::LocationSignal) in the context store.
 pub fn anchor<U>(ctx: &DynatosWebCtx, new_location: U) -> web_sys::HtmlElement
 where
-	U: SyncBounds + AsRef<str> + 'static,
+	U: AsRef<str> + 'static,
 {
 	let link = html::a(ctx).with_attr("href", new_location.as_ref());
 

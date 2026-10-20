@@ -6,17 +6,13 @@ edition = "2024"
 [dependencies]
 
 # Workspace
-dynatos-sync-types = { default-features = false, path = "../dynatos-sync-types" }
-dynatos-util       = { default-features = false, path = "../dynatos-util" }
-dynatos-web        = { default-features = false, path = "../dynatos-web" }
+dynatos-util = { default-features = false, path = "../dynatos-util" }
+dynatos-web  = { default-features = false, path = "../dynatos-web" }
 
 extend       = { workspace = true }
 js-sys       = { workspace = true }
 wasm-bindgen = { workspace = true }
 web-sys      = { workspace = true }
-
-[features]
-sync = ["dynatos-sync-types/sync", "dynatos-web/sync"]
 
 [lints]
 workspace = true

@@ -3,7 +3,6 @@
 use {
 	crate::{ObjectGet, ObjectSetProp},
 	core::any::Any,
-	dynatos_sync_types::SyncBounds,
 	js_sys::Object,
 };
 
@@ -13,7 +12,7 @@ pub impl Object {
 	/// Attaches a value to this object
 	fn attach_value<T>(&self, value: T)
 	where
-		T: SyncBounds + 'static,
+		T: 'static,
 	{
 		// TODO: Use an static anonymous symbol?
 		let prop_name = "__dynatos_values";
@@ -46,7 +45,7 @@ where
 	/// Returns the object, for chaining
 	fn with_value<T>(self, value: T) -> Self
 	where
-		T: SyncBounds + 'static,
+		T: 'static,
 	{
 		self.as_ref().attach_value(value);
 		self

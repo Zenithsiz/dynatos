@@ -8,7 +8,7 @@ use {
 		marker::Unsize,
 		ops::CoerceUnsized,
 	},
-	dynatos_sync_types::{RcPtr, WeakRcPtr},
+	std::rc::{Rc, Weak},
 };
 
 /// Weak effect
@@ -16,16 +16,14 @@ use {
 /// Used to break ownership between a signal and it's subscribers
 pub struct WeakEffect<F: ?Sized = dyn EffectRun> {
 	/// Inner
-	pub(super) inner: WeakRcPtr<Inner<F>>,
+	pub(super) inner: Weak<Inner<F>>,
 }
 
 impl<F> WeakEffect<F> {
 	/// Creates an empty weak effect
 	#[must_use]
 	pub const fn new() -> Self {
-		Self {
-			inner: WeakRcPtr::new(),
-		}
+		Self { inner: Weak::new() }
 	}
 }
 
@@ -41,7 +39,7 @@ impl<F: ?Sized> WeakEffect<F> {
 	/// Upgrading and cloning the effect will retain the same id
 	#[must_use]
 	pub fn id(&self) -> usize {
-		WeakRcPtr::as_ptr(&self.inner).addr()
+		Weak::as_ptr(&self.inner).addr()
 	}
 
 	/// Runs this effect, if it exists.
@@ -79,7 +77,7 @@ impl<F: ?Sized> WeakEffect<F> {
 		//       we need to first upgrade and call it that way.
 		match self.inner.upgrade() {
 			Some(inner) => WeakEffect {
-				inner: RcPtr::downgrade(&inner.unsize_inner()),
+				inner: Rc::downgrade(&inner.unsize_inner()),
 			},
 
 			// Note: If we failed upgrading, we simply create a `Weak`
@@ -90,7 +88,7 @@ impl<F: ?Sized> WeakEffect<F> {
 			//       in another effect that actually compares equal, but for others
 			//       it won't.
 			None => WeakEffect {
-				inner: WeakRcPtr::<Inner<!>>::new(),
+				inner: Weak::<Inner<!>>::new(),
 			},
 		}
 	}
@@ -114,7 +112,7 @@ impl<F: ?Sized> Eq for WeakEffect<F> {}
 impl<F: ?Sized> Clone for WeakEffect<F> {
 	fn clone(&self) -> Self {
 		Self {
-			inner: WeakRcPtr::clone(&self.inner),
+			inner: Weak::clone(&self.inner),
 		}
 	}
 }

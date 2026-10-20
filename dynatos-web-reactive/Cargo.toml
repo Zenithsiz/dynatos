@@ -7,7 +7,6 @@ edition = "2024"
 
 # Workspace
 dynatos-reactive            = { default-features = false, path = "../dynatos-reactive" }
-dynatos-sync-types          = { default-features = false, path = "../dynatos-sync-types" }
 dynatos-util                = { default-features = false, path = "../dynatos-util" }
 dynatos-web                 = { default-features = false, path = "../dynatos-web" }
 dynatos-web-reactive-macros = { default-features = false, path = "../dynatos-web-reactive-macros" }
@@ -19,10 +18,6 @@ itertools    = { workspace = true }
 js-sys       = { workspace = true }
 wasm-bindgen = { workspace = true }
 web-sys      = { workspace = true }
-
-[features]
-
-sync = ["dynatos-reactive/sync", "dynatos-sync-types/sync", "dynatos-web-router/sync", "dynatos-web/sync"]
 
 [lints]
 workspace = true

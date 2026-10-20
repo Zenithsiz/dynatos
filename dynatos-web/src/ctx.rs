@@ -4,7 +4,7 @@ use {
 	crate::JsResultContext,
 	app_error::{AppError, Context, app_error},
 	dynatos_store::ValueStore,
-	dynatos_sync_types::RcPtr,
+	std::rc::Rc,
 	wasm_bindgen::JsCast,
 	web_sys::{Document, History, HtmlBodyElement, HtmlHeadElement, Location, Window},
 };
@@ -34,7 +34,7 @@ struct Inner {
 /// You should create it once and pass it down to
 /// wherever this library requires it.
 #[derive(Clone, Debug)]
-pub struct DynatosWebCtx(RcPtr<Inner>);
+pub struct DynatosWebCtx(Rc<Inner>);
 
 impl DynatosWebCtx {
 	/// Creates a new context type
@@ -67,7 +67,7 @@ impl DynatosWebCtx {
 			location,
 		};
 
-		Ok(Self(RcPtr::new(inner)))
+		Ok(Self(Rc::new(inner)))
 	}
 
 	/// Returns the context's value store

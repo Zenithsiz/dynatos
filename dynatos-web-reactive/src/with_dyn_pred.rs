@@ -3,7 +3,7 @@
 use {
 	core::ops::Deref,
 	dynatos_reactive::{Derived, Memo, Signal, SignalWith, WithDefault, derived::DerivedRun},
-	dynatos_sync_types::SyncBounds,
+
 };
 
 /// Values that may be used as possible dynamic predicates.
@@ -14,14 +14,14 @@ use {
 /// - `impl Fn() -> B`
 ///
 /// Where `B` is any of the types above.
-pub trait WithDynPred: SyncBounds {
+pub trait WithDynPred {
 	/// Evaluates this predicate
 	fn eval(&self) -> bool;
 }
 
 impl<FT, T> WithDynPred for FT
 where
-	FT: SyncBounds + Fn() -> T,
+	FT: Fn() -> T,
 	T: WithDynPred,
 {
 	fn eval(&self) -> bool {
@@ -40,8 +40,8 @@ impl WithDynPred for bool {
 	Generics Ty;
 	[T] [Signal<T> where T: WithDynPred + 'static];
 	[T, F] [Derived<T, F> where T: WithDynPred + 'static, F: ?Sized + DerivedRun<T> + 'static];
-	[T, F] [Memo<T, F> where T: WithDynPred + 'static, F: SyncBounds + ?Sized + 'static];
-	[S, T] [WithDefault<S, T> where S: SyncBounds, T: SyncBounds, Self: for<'a> SignalWith<Value<'a>: Deref<Target: WithDynPred>>];
+	[T, F] [Memo<T, F> where T: WithDynPred + 'static, F: ?Sized + 'static];
+	[S, T] [WithDefault<S, T> where  Self: for<'a> SignalWith<Value<'a>: Deref<Target: WithDynPred>>];
 )]
 impl<Generics> WithDynPred for Ty {
 	fn eval(&self) -> bool {

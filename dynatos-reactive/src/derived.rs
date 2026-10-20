@@ -43,13 +43,14 @@ use {
 		effect,
 	},
 	core::{
+		cell::{self, RefCell},
 		cmp,
 		fmt,
 		hash::{self, Hash},
 		marker::{PhantomData, Unsize},
 		ops::{CoerceUnsized, Deref},
 	},
-	dynatos_sync_types::{IMutRw, IMutRwRef, RcPtr, SyncBounds},
+	std::rc::Rc,
 };
 
 /// Derived signal.
@@ -65,10 +66,10 @@ impl<T, F> Derived<T, F> {
 	#[track_caller]
 	pub fn new(f: F) -> Self
 	where
-		T: SyncBounds + 'static,
+		T: 'static,
 		F: DerivedRun<T> + 'static,
 	{
-		let value = IMutRw::new(None);
+		let value = RefCell::new(None);
 		let effect = Effect::new(EffectFn {
 			trigger: Trigger::new(),
 			value,
@@ -84,10 +85,10 @@ impl<T, F> Derived<T, F> {
 	#[track_caller]
 	pub fn new_lazy(f: F) -> Self
 	where
-		T: SyncBounds + 'static,
+		T: 'static,
 		F: DerivedRun<T> + 'static,
 	{
-		let value = IMutRw::new(None);
+		let value = RefCell::new(None);
 		let effect = Effect::new_raw(EffectFn {
 			trigger: Trigger::new(),
 			value,
@@ -107,7 +108,6 @@ impl<T, F: ?Sized> Derived<T, F> {
 	#[must_use]
 	pub fn unsize(self) -> Derived<T, dyn DerivedRun<T>>
 	where
-		T: SyncBounds,
 		F: DerivedRun<T>,
 	{
 		Derived {
@@ -119,7 +119,7 @@ impl<T, F: ?Sized> Derived<T, F> {
 }
 
 /// Reference type for [`SignalBorrow`] impl
-pub struct BorrowRef<'a, T: 'a, F: ?Sized>(IMutRwRef<'a, Option<T>>, PhantomData<fn(F)>);
+pub struct BorrowRef<'a, T: 'a, F: ?Sized>(cell::Ref<'a, Option<T>>, PhantomData<fn(F)>);
 
 impl<T, F: ?Sized> Deref for BorrowRef<'_, T, F> {
 	type Target = T;
@@ -136,7 +136,7 @@ impl<T: fmt::Debug, F: ?Sized> fmt::Debug for BorrowRef<'_, T, F> {
 	}
 }
 
-impl<T: SyncBounds + 'static, F: ?Sized + DerivedRun<T> + 'static> SignalBorrow for Derived<T, F> {
+impl<T: 'static, F: ?Sized + DerivedRun<T> + 'static> SignalBorrow for Derived<T, F> {
 	type Ref<'a>
 		= BorrowRef<'a, T, F>
 	where
@@ -146,36 +146,36 @@ impl<T: SyncBounds + 'static, F: ?Sized + DerivedRun<T> + 'static> SignalBorrow 
 		self.effect.inner_fn().trigger.gather_subs();
 
 		let effect_fn = self.effect.inner_fn();
-		let mut value = effect_fn.value.read();
+		let mut value = effect_fn.value.borrow();
 
 		// Initialize the value if we haven't
 		if value.is_none() {
 			drop(value);
 			self.effect.run();
-			value = effect_fn.value.read();
+			value = effect_fn.value.borrow();
 		}
 
 		BorrowRef(value, PhantomData)
 	}
 }
 
-impl<T: SyncBounds + 'static, F: ?Sized> SignalWithDefaultImpl for Derived<T, F> {}
-impl<T: SyncBounds + 'static, F: ?Sized> SignalGetDefaultImpl for Derived<T, F> {}
-impl<T: SyncBounds + 'static, F: ?Sized> SignalGetClonedDefaultImpl for Derived<T, F> {}
+impl<T: 'static, F: ?Sized> SignalWithDefaultImpl for Derived<T, F> {}
+impl<T: 'static, F: ?Sized> SignalGetDefaultImpl for Derived<T, F> {}
+impl<T: 'static, F: ?Sized> SignalGetClonedDefaultImpl for Derived<T, F> {}
 
-impl<T: SyncBounds + PartialEq + 'static, F: ?Sized + DerivedRun<T> + 'static> PartialEq for Derived<T, F> {
+impl<T: PartialEq + 'static, F: ?Sized + DerivedRun<T> + 'static> PartialEq for Derived<T, F> {
 	fn eq(&self, other: &Self) -> bool {
 		*self.borrow() == *other.borrow()
 	}
 }
 
-impl<T: SyncBounds + Eq + 'static, F: ?Sized + DerivedRun<T> + 'static> Eq for Derived<T, F> {}
-impl<T: SyncBounds + PartialOrd + 'static, F: ?Sized + DerivedRun<T> + 'static> PartialOrd for Derived<T, F> {
+impl<T: Eq + 'static, F: ?Sized + DerivedRun<T> + 'static> Eq for Derived<T, F> {}
+impl<T: PartialOrd + 'static, F: ?Sized + DerivedRun<T> + 'static> PartialOrd for Derived<T, F> {
 	fn partial_cmp(&self, other: &Self) -> Option<cmp::Ordering> {
 		self.borrow().partial_cmp(&other.borrow())
 	}
 }
-impl<T: SyncBounds + Ord + 'static, F: ?Sized + DerivedRun<T> + 'static> Ord for Derived<T, F> {
+impl<T: Ord + 'static, F: ?Sized + DerivedRun<T> + 'static> Ord for Derived<T, F> {
 	fn cmp(&self, other: &Self) -> cmp::Ordering {
 		self.borrow().cmp(&other.borrow())
 	}
@@ -189,7 +189,7 @@ impl<T, F: ?Sized> Clone for Derived<T, F> {
 	}
 }
 
-impl<T: SyncBounds + Hash + 'static, F: ?Sized + DerivedRun<T> + 'static> Hash for Derived<T, F> {
+impl<T: Hash + 'static, F: ?Sized + DerivedRun<T> + 'static> Hash for Derived<T, F> {
 	fn hash<H: hash::Hasher>(&self, state: &mut H) {
 		self.borrow().hash(state);
 	}
@@ -203,7 +203,7 @@ impl<T: fmt::Debug, F: ?Sized> fmt::Debug for Derived<T, F> {
 		debug.field("effect", &self.effect);
 		debug.field("trigger", &effect_fn.trigger);
 
-		match effect_fn.value.try_read() {
+		match effect_fn.value.try_borrow() {
 			Ok(value) => debug.field("value", &*value).finish(),
 			Err(_) => debug.finish_non_exhaustive(),
 		}
@@ -224,7 +224,7 @@ pub struct EffectFn<T, F: ?Sized> {
 	trigger: Trigger,
 
 	/// Value
-	value: IMutRw<Option<T>>,
+	value: RefCell<Option<T>>,
 
 	/// Function
 	f: F,
@@ -242,15 +242,15 @@ impl<T, F: ?Sized> Deref for EffectFn<T, F> {
 
 impl<T, F> EffectRun for EffectFn<T, F>
 where
-	T: SyncBounds + 'static,
+	T: 'static,
 	F: ?Sized + DerivedRun<T> + 'static,
 {
 	fn run(&self, _ctx: EffectRunCtx<'_>) {
-		*self.value.write() = Some(self.f.run());
+		*self.value.borrow_mut() = Some(self.f.run());
 		self.trigger.exec();
 	}
 
-	fn unsize_inner(self: RcPtr<effect::Inner<Self>>) -> RcPtr<effect::Inner<dyn EffectRun>> {
+	fn unsize_inner(self: Rc<effect::Inner<Self>>) -> Rc<effect::Inner<dyn EffectRun>> {
 		DerivedRun::unsize_inner_effect(self)
 	}
 }
@@ -260,7 +260,7 @@ where
 /// # Implementation
 /// To implement this trait, you must implement the [`run`](DerivedRun::run) function,
 /// and then use the macro [`derived_run_impl_inner`] to implement some details.
-pub trait DerivedRun<T: SyncBounds>: SyncBounds {
+pub trait DerivedRun<T> {
 	/// Runs the derived function, yielding a value
 	fn run(&self) -> T;
 
@@ -270,32 +270,32 @@ pub trait DerivedRun<T: SyncBounds>: SyncBounds {
 
 	/// Unsizes the inner field of the effect to a `dyn EffectRun`
 	#[doc(hidden)]
-	fn unsize_inner_effect(self: RcPtr<effect::Inner<EffectFn<T, Self>>>) -> RcPtr<effect::Inner<dyn EffectRun>>;
+	fn unsize_inner_effect(self: Rc<effect::Inner<EffectFn<T, Self>>>) -> Rc<effect::Inner<dyn EffectRun>>;
 
 	/// Unsizes the inner field of the effect to an effect fn to a `dyn DerivedRun`.
 	#[doc(hidden)]
 	fn unsize_inner_derived(
-		self: RcPtr<effect::Inner<EffectFn<T, Self>>>,
-	) -> RcPtr<effect::Inner<EffectFn<T, dyn DerivedRun<T>>>>;
+		self: Rc<effect::Inner<EffectFn<T, Self>>>,
+	) -> Rc<effect::Inner<EffectFn<T, dyn DerivedRun<T>>>>;
 }
 
 /// Implementation detail for the [`EffectRun`] trait
 pub macro derived_run_impl_inner($T:ty) {
-	fn unsize_inner_effect(self: RcPtr<effect::Inner<EffectFn<$T, Self>>>) -> RcPtr<effect::Inner<dyn EffectRun>> {
+	fn unsize_inner_effect(self: Rc<effect::Inner<EffectFn<$T, Self>>>) -> Rc<effect::Inner<dyn EffectRun>> {
 		self
 	}
 
 	fn unsize_inner_derived(
-		self: RcPtr<effect::Inner<EffectFn<$T, Self>>>,
-	) -> RcPtr<effect::Inner<EffectFn<$T, dyn DerivedRun<$T>>>> {
+		self: Rc<effect::Inner<EffectFn<$T, Self>>>,
+	) -> Rc<effect::Inner<EffectFn<$T, dyn DerivedRun<$T>>>> {
 		self
 	}
 }
 
 impl<T, F> DerivedRun<T> for F
 where
-	T: SyncBounds + 'static,
-	F: SyncBounds + Fn() -> T + 'static,
+	T: 'static,
+	F: Fn() -> T + 'static,
 {
 	derived_run_impl_inner! { T }
 

@@ -6,10 +6,9 @@ edition = "2024"
 [dependencies]
 
 # Workspace
-dynatos-loadable   = { default-features = false, path = "../dynatos-loadable" }
-dynatos-reactive   = { default-features = false, path = "../dynatos-reactive" }
-dynatos-sync-types = { default-features = false, path = "../dynatos-sync-types" }
-dynatos-web        = { default-features = false, path = "../dynatos-web" }
+dynatos-loadable = { default-features = false, path = "../dynatos-loadable" }
+dynatos-reactive = { default-features = false, path = "../dynatos-reactive" }
+dynatos-web      = { default-features = false, path = "../dynatos-web" }
 
 js-sys       = { workspace = true }
 thiserror    = { workspace = true }
@@ -18,9 +17,6 @@ url          = { workspace = true }
 wasm-bindgen = { workspace = true }
 web-sys      = { workspace = true }
 zutil-cloned = { workspace = true }
-
-[features]
-sync = ["dynatos-loadable/sync", "dynatos-reactive/sync", "dynatos-sync-types/sync"]
 
 [lints]
 workspace = true

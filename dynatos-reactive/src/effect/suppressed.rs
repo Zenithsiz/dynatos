@@ -35,6 +35,6 @@ impl<F: ?Sized> Drop for EffectSuppressed<'_, F> {
 		self.effect
 			.inner
 			.suppressed
-			.set(self.prev_suppressed, atomic::Ordering::Release);
+			.store(self.prev_suppressed, atomic::Ordering::Release);
 	}
 }

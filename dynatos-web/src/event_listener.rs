@@ -2,7 +2,6 @@
 
 use {
 	crate::{DynatosWebCtx, util},
-	dynatos_sync_types::SyncBounds,
 	dynatos_util::TryOrReturnExt,
 	js_sys::WeakRef,
 	wasm_bindgen::{ErasableGeneric, JsValue, convert::FromWasmAbi},
@@ -13,7 +12,7 @@ use {
 #[extend::ext(name = EventTargetAddListener)]
 pub impl EventTarget {
 	/// Adds an event listener to this target
-	fn add_event_listener<E>(&self, ctx: &DynatosWebCtx, f: impl SyncBounds + Fn(E::Event) + 'static)
+	fn add_event_listener<E>(&self, ctx: &DynatosWebCtx, f: impl Fn(E::Event) + 'static)
 	where
 		E: EventListener,
 	{
@@ -25,7 +24,7 @@ pub impl EventTarget {
 		&self,
 		_ctx: &DynatosWebCtx,
 		event_type: &str,
-		f: impl SyncBounds + Fn(Ev) + 'static,
+		f: impl Fn(Ev) + 'static,
 	) {
 		// TODO: Can this fail? On MDN, nothing seems to mention it can throw.
 		self.add_event_listener_with_callback(event_type, &util::js_fn::<dyn Fn(Ev)>(f))
@@ -42,7 +41,7 @@ where
 	/// Adds an event listener to this target
 	///
 	/// Returns the type, for chaining
-	fn with_event_listener<E>(self, ctx: &DynatosWebCtx, f: impl SyncBounds + Fn(E::Event) + 'static) -> Self
+	fn with_event_listener<E>(self, ctx: &DynatosWebCtx, f: impl Fn(E::Event) + 'static) -> Self
 	where
 		E: EventListener,
 	{
@@ -55,10 +54,10 @@ where
 #[extend::ext(name = ElementAddListener)]
 pub impl<ET> ET
 where
-	ET: SyncBounds + ErasableGeneric<Repr = JsValue> + AsRef<EventTarget> + 'static,
+	ET: ErasableGeneric<Repr = JsValue> + AsRef<EventTarget> + 'static,
 {
 	/// Adds an event listener to this target
-	fn add_event_listener_el<E>(&self, ctx: &DynatosWebCtx, f: impl SyncBounds + Fn(ET, E::Event) + 'static)
+	fn add_event_listener_el<E>(&self, ctx: &DynatosWebCtx, f: impl Fn(ET, E::Event) + 'static)
 	where
 		E: EventListener,
 	{
@@ -75,7 +74,7 @@ where
 	/// Adds an event listener to this target
 	///
 	/// Returns the type, for chaining
-	fn with_event_listener_el<E>(self, ctx: &DynatosWebCtx, f: impl SyncBounds + Fn(ET, E::Event) + 'static) -> Self
+	fn with_event_listener_el<E>(self, ctx: &DynatosWebCtx, f: impl Fn(ET, E::Event) + 'static) -> Self
 	where
 		E: EventListener,
 	{

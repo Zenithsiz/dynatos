@@ -13,7 +13,6 @@ use {
 		SignalSetWith,
 		enum_split::{EnumSplitValue, EnumSplitValueUpdateCtx, SignalStorage},
 	},
-	dynatos_sync_types::SyncBounds,
 };
 
 /// Loadable value.
@@ -424,9 +423,9 @@ impl<T, E> Default for SplitValueStorage<T, E> {
 
 impl<T, E, S> EnumSplitValue<S> for Loadable<T, E>
 where
-	T: SyncBounds + Clone + 'static,
-	E: SyncBounds + Clone + 'static,
-	S: SyncBounds + SignalSet<Self> + Clone + 'static,
+	T: Clone + 'static,
+	E: Clone + 'static,
+	S: SignalSet<Self> + Clone + 'static,
 {
 	type SigKind = Loadable<(), ()>;
 	type Signal = Loadable<Signal<T>, Signal<E>>;

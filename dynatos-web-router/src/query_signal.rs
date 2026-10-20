@@ -24,8 +24,8 @@ use {
 		effect,
 		signal,
 	},
-	dynatos_sync_types::{RcPtr, SyncBounds},
 	dynatos_web::DynatosWebCtx,
+	std::rc::Rc,
 	zutil_cloned::cloned,
 };
 
@@ -37,12 +37,12 @@ use {
 /// to update the value.
 pub struct QuerySignal<T: QueryParse + 'static> {
 	/// Query
-	query: RcPtr<T>,
+	query: Rc<T>,
 
 	/// Bound url path for this query.
 	// TODO: Should this be optional so the user can opt out of
 	//       binding a unique path against the query signal?
-	location_path: RcPtr<str>,
+	location_path: Rc<str>,
 
 	/// Inner value
 	inner: Signal<Option<T::Value>>,
@@ -62,12 +62,12 @@ impl<T: QueryParse> QuerySignal<T> {
 		T: 'static,
 		T::Value: 'static,
 	{
-		let query = RcPtr::new(query);
+		let query = Rc::new(query);
 
 		// Note: This access must skip dependencies to ensure that the query signal itself
 		//       doesn't change whenever the location changes, and only it's value does.
 		let location = ctx.store().get::<LocationSignal>();
-		let location_path = RcPtr::<str>::from(location.borrow_no_dep().path());
+		let location_path = Rc::<str>::from(location.borrow_no_dep().path());
 
 		let inner = Signal::new(None);
 		#[cloned(query, location_path, inner)]
@@ -105,8 +105,8 @@ type UpdateEffect<T: QueryParse + 'static> = impl EffectRun;
 impl<T: QueryParse> Clone for QuerySignal<T> {
 	fn clone(&self) -> Self {
 		Self {
-			query:         RcPtr::clone(&self.query),
-			location_path: RcPtr::clone(&self.location_path),
+			query:         Rc::clone(&self.query),
+			location_path: Rc::clone(&self.location_path),
 			inner:         self.inner.clone(),
 			update_effect: self.update_effect.clone(),
 		}
@@ -273,9 +273,9 @@ impl<T: QueryParse + 'static> signal::SignalUpdateDefaultImpl for QuerySignal<T>
 
 
 /// Query parse
-pub trait QueryParse: SyncBounds {
+pub trait QueryParse {
 	/// Value
-	type Value: SyncBounds;
+	type Value;
 
 	/// Parses the value from the query
 	fn parse(&self) -> Self::Value;
@@ -307,7 +307,7 @@ pub trait QueryWriteValue = QueryParse + for<'a> QueryWrite<&'a <Self as QueryPa
 type QueriesFn = impl Fn() -> Vec<String>;
 
 #[define_opaque(QueriesFn)]
-fn queries_memo(ctx: &DynatosWebCtx, key: RcPtr<str>) -> Memo<Vec<String>, QueriesFn> {
+fn queries_memo(ctx: &DynatosWebCtx, key: Rc<str>) -> Memo<Vec<String>, QueriesFn> {
 	let location = ctx.store().get::<LocationSignal>();
 	Memo::new(move || {
 		location

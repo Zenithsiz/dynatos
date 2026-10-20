@@ -7,9 +7,10 @@ use {
 		hash::BuildHasherDefault,
 		marker::PhantomData,
 	},
-	dynatos_sync_types::{IMutRw, SyncBounds},
+
 	dynatos_util::HoleyStack,
 	std::{collections::HashMap, hash::DefaultHasher},
+	core::cell::RefCell,
 };
 
 /// Value store
@@ -18,14 +19,14 @@ pub struct ValueStore {
 	values: ValuesImpl,
 }
 
-type ValuesImpl = IMutRw<HashMap<TypeId, StackImpl, BuildHasherDefault<DefaultHasher>>>;
-type StackImpl = HoleyStack<Box<dyn Any + SyncBounds>>;
+type ValuesImpl = RefCell<HashMap<TypeId, StackImpl, BuildHasherDefault<DefaultHasher>>>;
+type StackImpl = HoleyStack<Box<dyn Any>>;
 
 impl ValueStore {
 	#[must_use]
 	pub const fn new() -> Self {
 		Self {
-			values: IMutRw::new(HashMap::with_hasher(BuildHasherDefault::new())),
+			values: RefCell::new(HashMap::with_hasher(BuildHasherDefault::new())),
 		}
 	}
 
@@ -34,7 +35,7 @@ impl ValueStore {
 	/// This is equivalent to `push(value).forget()`
 	pub fn set<T>(&self, value: T)
 	where
-		T: Any + SyncBounds,
+		T: Any,
 	{
 		self.push(value).forget();
 	}
@@ -42,9 +43,9 @@ impl ValueStore {
 	/// Pushes a value of `T` to this store
 	pub fn push<T>(&self, value: T) -> Handle<'_, T>
 	where
-		T: Any + SyncBounds,
+		T: Any,
 	{
-		let mut values = self.values.write();
+		let mut values = self.values.borrow_mut();
 		let stack = values.entry(TypeId::of::<T>()).or_default();
 		let idx = stack.push(Box::new(value));
 
@@ -96,7 +97,7 @@ impl ValueStore {
 		T: 'static,
 		F: FnOnce(Option<&T>) -> O,
 	{
-		let values = self.values.read();
+		let values = self.values.borrow();
 		let value = try {
 			let stack = values.get(&TypeId::of::<T>())?;
 			let value = stack.top()?;
@@ -118,16 +119,16 @@ impl ValueStore {
 
 	pub(crate) fn with_idx<F, O>(&self, idx: usize, type_id: TypeId, f: F) -> O
 	where
-		F: FnOnce(&(dyn Any + SyncBounds)) -> O,
+		F: FnOnce(&dyn Any) -> O,
 	{
-		let values = self.values.read();
+		let values = self.values.borrow();
 		let stack = values.get(&type_id).expect("Value stack should exist");
 		let value = stack.get(idx).expect("Value was already taken");
 		f(&**value)
 	}
 
-	pub(crate) fn take_idx(&self, idx: usize, type_id: TypeId) -> Box<dyn Any + SyncBounds> {
-		let mut values = self.values.write();
+	pub(crate) fn take_idx(&self, idx: usize, type_id: TypeId) -> Box<dyn Any> {
+		let mut values = self.values.borrow_mut();
 		let stack = values.get_mut(&type_id).expect("Value stack should exist");
 
 		stack.pop(idx).expect("Value was already taken")

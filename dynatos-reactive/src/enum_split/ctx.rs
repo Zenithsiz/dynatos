@@ -4,7 +4,7 @@ use {
 	super::{EnumSplitValue, SignalStorage},
 	crate::{Effect, Signal, SignalGetCloned, SignalSet, SignalWith, effect},
 	core::marker::PhantomData,
-	dynatos_sync_types::SyncBounds,
+
 	zutil_cloned::cloned,
 };
 
@@ -34,9 +34,9 @@ impl<S> EnumSplitValueUpdateCtx<'_, S> {
 	pub fn create_signal_storage<T, V, F>(&self, value: V, into_t: F) -> SignalStorage<V>
 	where
 		T: EnumSplitValue<S>,
-		S: SyncBounds + SignalSet<T> + Clone + 'static,
-		V: SyncBounds + Clone + 'static,
-		F: SyncBounds + Fn(V) -> T + 'static,
+		S: SignalSet<T> + Clone + 'static,
+		V: Clone + 'static,
+		F: Fn(V) -> T + 'static,
 	{
 		let signal = Signal::new(value);
 

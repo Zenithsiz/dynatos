@@ -7,7 +7,7 @@ use {
 		marker::PhantomData,
 		mem,
 	},
-	dynatos_sync_types::SyncBounds,
+
 };
 
 /// A handle to a store value.
@@ -101,7 +101,7 @@ impl OpaqueHandle<'_> {
 	/// Uses the value from this handle
 	pub fn with<F, O>(&self, f: F) -> O
 	where
-		F: FnOnce(&(dyn Any + SyncBounds)) -> O,
+		F: FnOnce(&dyn Any) -> O,
 	{
 		self.store.with_idx(self.idx, self.type_id, f)
 	}
@@ -118,7 +118,7 @@ impl OpaqueHandle<'_> {
 	}
 
 	/// Inner method for [`take`](Self::take), and the [`Drop`] impl.
-	fn take_inner(&self) -> Box<dyn Any + SyncBounds> {
+	fn take_inner(&self) -> Box<dyn Any> {
 		self.store.take_idx(self.idx, self.type_id)
 	}
 }

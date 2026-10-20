@@ -2,11 +2,10 @@
 
 // TODO: It seems that titles aren't getting dropped for some reason.
 
-#![feature(macro_attr)]
-#![cfg_attr(not(feature = "sync"), feature(thread_local))]
+#![feature(thread_local)]
 
 use {
-	dynatos_sync_types::{IMut, thread_local_or_global},
+	core::cell::RefCell,
 	dynatos_util::HoleyStack,
 	dynatos_web::{DynatosWebCtx, ObjectSetProp},
 	js_sys::Object,
@@ -14,8 +13,8 @@ use {
 };
 
 /// Title stack.
-#[thread_local_or_global]
-static TITLE_STACK: IMut<HoleyStack<String>> = IMut::new(HoleyStack::new());
+#[thread_local]
+static TITLE_STACK: RefCell<HoleyStack<String>> = RefCell::new(HoleyStack::new());
 
 /// Title.
 ///
@@ -36,7 +35,7 @@ impl Title {
 		let title: String = title.into();
 
 		// If no title exists, add the current one
-		let mut stack = TITLE_STACK.lock();
+		let mut stack = TITLE_STACK.borrow_mut();
 		if stack.is_empty() {
 			stack.push(ctx.document().title());
 		}
@@ -55,7 +54,7 @@ impl Title {
 impl Drop for Title {
 	fn drop(&mut self) {
 		// Remove our title
-		let mut stack = TITLE_STACK.lock();
+		let mut stack = TITLE_STACK.borrow_mut();
 		let _prev_title = stack.pop(self.title_idx).expect("Title was already taken");
 
 		// Then find the next title to set back to.

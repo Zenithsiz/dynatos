@@ -6,10 +6,11 @@
 use {
 	crate::{GLOBAL_WORLD, THREAD_WORLD, effect, loc::Loc, world::WorldTag},
 	core::{
+		cell::LazyCell,
 		fmt,
 		hash::{Hash, Hasher},
 	},
-	dynatos_sync_types::{LazyCell, RcPtr, WeakRcPtr, thread_local_or_global},
+	std::rc::{Rc, Weak},
 };
 
 /// Trigger inner
@@ -21,7 +22,7 @@ struct Inner {
 /// Trigger
 pub struct Trigger {
 	/// Inner
-	inner: RcPtr<Inner>,
+	inner: Rc<Inner>,
 }
 
 impl Trigger {
@@ -32,16 +33,14 @@ impl Trigger {
 		let inner = Inner {
 			defined_loc: Loc::caller(),
 		};
-		Self {
-			inner: RcPtr::new(inner),
-		}
+		Self { inner: Rc::new(inner) }
 	}
 
 	/// Downgrades this trigger
 	#[must_use]
 	pub fn downgrade(&self) -> WeakTrigger {
 		WeakTrigger {
-			inner: RcPtr::downgrade(&self.inner),
+			inner: Rc::downgrade(&self.inner),
 		}
 	}
 
@@ -55,7 +54,7 @@ impl Trigger {
 	/// Downgrading and cloning the trigger will retain the same id
 	#[must_use]
 	pub fn id(&self) -> usize {
-		RcPtr::as_ptr(&self.inner).addr()
+		Rc::as_ptr(&self.inner).addr()
 	}
 
 	/// Gathers all effects depending on this trigger.
@@ -112,7 +111,7 @@ impl Trigger {
 	/// it instead.
 	pub fn exec_noop() -> Option<TriggerExec> {
 		/// No-op trigger
-		#[thread_local_or_global]
+		#[thread_local]
 		static NOOP_TRIGGER: LazyCell<Trigger> = LazyCell::new(Trigger::new);
 
 		NOOP_TRIGGER.exec()
@@ -190,7 +189,7 @@ impl Eq for Trigger {}
 impl Clone for Trigger {
 	fn clone(&self) -> Self {
 		Self {
-			inner: RcPtr::clone(&self.inner),
+			inner: Rc::clone(&self.inner),
 		}
 	}
 }
@@ -211,16 +210,14 @@ impl fmt::Debug for Trigger {
 /// Weak trigger
 pub struct WeakTrigger {
 	/// Inner
-	inner: WeakRcPtr<Inner>,
+	inner: Weak<Inner>,
 }
 
 impl WeakTrigger {
 	/// Creates an empty weak trigger
 	#[must_use]
 	pub const fn new() -> Self {
-		Self {
-			inner: WeakRcPtr::new(),
-		}
+		Self { inner: Weak::new() }
 	}
 
 	/// Returns a unique identifier to this trigger.
@@ -228,7 +225,7 @@ impl WeakTrigger {
 	/// Upgrading and cloning the trigger will retain the same id
 	#[must_use]
 	pub fn id(&self) -> usize {
-		WeakRcPtr::as_ptr(&self.inner).addr()
+		Weak::as_ptr(&self.inner).addr()
 	}
 
 	/// Upgrades this weak trigger
@@ -257,7 +254,7 @@ impl Eq for WeakTrigger {}
 impl Clone for WeakTrigger {
 	fn clone(&self) -> Self {
 		Self {
-			inner: WeakRcPtr::clone(&self.inner),
+			inner: Weak::clone(&self.inner),
 		}
 	}
 }

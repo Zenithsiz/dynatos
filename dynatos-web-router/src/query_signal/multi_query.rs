@@ -5,8 +5,8 @@ use {
 	crate::LocationSignal,
 	core::{error::Error as StdError, fmt, marker::PhantomData, str::FromStr},
 	dynatos_reactive::{Memo, SignalBorrow, SignalBorrowMut},
-	dynatos_sync_types::{RcPtr, SyncBounds},
 	dynatos_web::DynatosWebCtx,
+	std::rc::Rc,
 };
 
 /// Parses multiple values from the query.
@@ -14,7 +14,7 @@ use {
 /// Requires a value of type [`LocationSignal`](crate::LocationSignal) in the context store.
 pub struct MultiQuery<T> {
 	/// The key to this query
-	key: RcPtr<str>,
+	key: Rc<str>,
 
 	/// Queries with our key
 	queries: Memo<Vec<String>, QueriesFn>,
@@ -25,10 +25,10 @@ pub struct MultiQuery<T> {
 
 impl<T> MultiQuery<T> {
 	/// Creates a new query
-	pub fn new(ctx: &DynatosWebCtx, key: impl Into<RcPtr<str>>) -> Self {
+	pub fn new(ctx: &DynatosWebCtx, key: impl Into<Rc<str>>) -> Self {
 		let key = key.into();
 		Self {
-			key:      RcPtr::clone(&key),
+			key:      Rc::clone(&key),
 			queries:  super::queries_memo(ctx, key),
 			ctx:      ctx.clone(),
 			_phantom: PhantomData,
@@ -45,7 +45,7 @@ impl<T> MultiQuery<T> {
 impl<T> Clone for MultiQuery<T> {
 	fn clone(&self) -> Self {
 		Self {
-			key:      RcPtr::clone(&self.key),
+			key:      Rc::clone(&self.key),
 			queries:  self.queries.clone(),
 			ctx:      self.ctx.clone(),
 			_phantom: PhantomData,
@@ -55,8 +55,7 @@ impl<T> Clone for MultiQuery<T> {
 
 impl<T> QueryParse for MultiQuery<T>
 where
-	T: SyncBounds + FromStr,
-	T::Err: SyncBounds,
+	T: FromStr,
 {
 	type Value = Result<Vec<T>, QueryParseError<T>>;
 
@@ -79,8 +78,7 @@ where
 
 impl<T> QueryIntoValue<Vec<T>> for MultiQuery<T>
 where
-	T: SyncBounds + FromStr,
-	T::Err: SyncBounds,
+	T: FromStr,
 {
 	fn into_query_value(value: Vec<T>) -> Self::Value {
 		Ok(value)

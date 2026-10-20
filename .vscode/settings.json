@@ -16,12 +16,5 @@
 		"unsize",
 		"zutil"
 	],
-	"rust-analyzer.cargo.features": "all",
-	"rust-analyzer.diagnostics.disabled": ["macro-error", "unlinked-file", "E0308", "E0107"],
-	"rust-analyzer.check.overrideCommand": [
-		"${workspaceFolder}/cargo.sh",
-		"clippy",
-		"--all-targets",
-		"--message-format=json"
-	]
+	"rust-analyzer.cargo.features": "all"
 }
