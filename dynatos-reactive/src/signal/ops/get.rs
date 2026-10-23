@@ -1,9 +1,6 @@
 //! [`SignalGet`]
 
-use {
-	crate::{SignalWith, effect},
-	core::{any::TypeId, mem},
-};
+use crate::{SignalWith, effect};
 
 /// Auto trait implemented for all signals that want a default implementation of [`SignalGet`]
 ///
@@ -48,36 +45,13 @@ pub trait SignalGet {
 	}
 }
 
-impl<S> SignalGet for S
+impl<S, T> SignalGet for S
 where
-	S: for<'a> SignalWith<Value<'a>: SignalGetCopy> + 'static + SignalGetDefaultImpl,
+	S: for<'a> SignalWith<Value<'a>: SignalGetCopy<Value = T>> + 'static + SignalGetDefaultImpl,
 {
-	type Value = <S::Value<'static> as SignalGetCopy>::Value;
+	type Value = T;
 
 	fn get(&self) -> Self::Value {
-		self.with(|value| self::convert_inner::<S>(value.copy_value()))
+		self.with(|value| value.copy_value())
 	}
-}
-
-/// Converts the value of a specific lifetime `SignalGetCopy` to the `'static` one.
-#[duplicate::duplicate_item(
-	From To;
-	[<S::Value<'a> as SignalGetCopy>::Value]
-	[<S::Value<'static> as SignalGetCopy>::Value];
-)]
-fn convert_inner<'a, S>(value: From) -> To
-where
-	S: for<'b> SignalWith<Value<'b>: SignalGetCopy> + 'static,
-{
-	debug_assert_eq!(
-		TypeId::of::<From>(),
-		TypeId::of::<To>(),
-		"GAT with `'static` lifetime was different than `'a`"
-	);
-
-	// SAFETY: You cannot specialize on lifetimes, and
-	//         `SignalGetCopy::Value: 'static`, so both
-	//         types must be the same type. We also verify
-	//         that the types are the same before-hand
-	unsafe { mem::transmute::<From, To>(value) }
 }
