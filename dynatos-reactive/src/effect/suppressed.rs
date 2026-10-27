@@ -7,6 +7,7 @@ use {super::Effect, core::sync::atomic};
 /// While this type is alive, the corresponding
 /// effect will be suppressed and not be added
 /// to the run queue.
+#[derive(derive_more::Debug)]
 #[must_use = "The effect is only suppressed while this value is value"]
 pub struct EffectSuppressed<'a, F: ?Sized> {
 	/// Effect

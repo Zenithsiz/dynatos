@@ -278,6 +278,7 @@ impl fmt::Debug for WeakTrigger {
 }
 
 /// Trigger executor
+#[derive(Debug)]
 pub struct TriggerExec {
 	/// Trigger defined location
 	trigger_defined_loc: Loc,
