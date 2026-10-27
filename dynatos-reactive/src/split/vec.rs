@@ -123,48 +123,11 @@ impl<O> SignalBorrow for VecSplitSignal<O> {
 #[derive(Debug)]
 pub struct VecSplitSignalBorrow<'a, O>(cell::Ref<'a, Vec<Output<O>>>);
 
-impl<'a, O> IntoIterator for VecSplitSignalBorrow<'a, O> {
-	type IntoIter = VecSplitSignalBorrowIter<'a, O>;
-	type Item = VecSplitSignalBorrowIterValue<'a, O>;
-
-	fn into_iter(self) -> Self::IntoIter {
-		VecSplitSignalBorrowIter {
-			borrow: self.0,
-			idx:    0,
-		}
-	}
-}
-
-#[derive(Debug)]
-pub struct VecSplitSignalBorrowIter<'a, O> {
-	borrow: cell::Ref<'a, Vec<Output<O>>>,
-	idx:    usize,
-}
-
-impl<'a, O> Iterator for VecSplitSignalBorrowIter<'a, O> {
-	type Item = VecSplitSignalBorrowIterValue<'a, O>;
-
-	fn next(&mut self) -> Option<Self::Item> {
-		let value = cell::Ref::filter_map(cell::Ref::clone(&self.borrow), |output| {
-			output
-				.get(self.idx)
-				.map(|output| output.value.as_ref().expect("Value was missing"))
-		})
-		.ok()?;
-		self.idx += 1;
-
-		Some(VecSplitSignalBorrowIterValue(value))
-	}
-}
-
-#[derive(Debug)]
-pub struct VecSplitSignalBorrowIterValue<'a, O>(cell::Ref<'a, O>);
-
-impl<O> ops::Deref for VecSplitSignalBorrowIterValue<'_, O> {
-	type Target = O;
-
-	fn deref(&self) -> &Self::Target {
-		&self.0
+impl<O> VecSplitSignalBorrow<'_, O> {
+	pub fn iter(&self) -> impl Iterator<Item = &O> {
+		self.0
+			.iter()
+			.map(|output| output.value.as_ref().expect("Value was missing"))
 	}
 }
 
@@ -368,7 +331,7 @@ mod tests {
 		let get_derived_values = move || {
 			split_signal
 				.borrow()
-				.into_iter()
+				.iter()
 				.map(|derived| derived.get())
 				.collect::<Vec<_>>()
 		};
