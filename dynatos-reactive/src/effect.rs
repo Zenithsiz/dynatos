@@ -31,7 +31,7 @@ use {
 		ops::{CoerceUnsized, Deref},
 		sync::atomic::{self, AtomicBool},
 	},
-	std::rc::Rc,
+	std::rc::{Rc, Weak},
 };
 
 /// Effect inner
@@ -87,7 +87,7 @@ impl<F> Effect<F> {
 		effect
 	}
 
-	/// Crates a new raw computed effect.
+	/// Creates a new raw computed effect.
 	///
 	/// The effect won't be run, and instead you must gather
 	/// dependencies manually.
@@ -102,6 +102,28 @@ impl<F> Effect<F> {
 		};
 
 		Self { inner: Rc::new(inner) }
+	}
+
+	/// Creates a new cyclic, raw computed effect.
+	///
+	/// The effect won't be run, and instead you must gather
+	/// dependencies manually.
+	#[track_caller]
+	pub fn new_cyclic_raw(f: impl FnOnce(WeakEffect<F>) -> F) -> Self {
+		let inner = Rc::new_cyclic(|inner| {
+			let run = f(WeakEffect {
+				inner: Weak::clone(inner),
+			});
+			Inner {
+				fresh: AtomicBool::new(false),
+				suppressed: AtomicBool::new(false),
+				checking_deps: AtomicBool::new(false),
+				defined_loc: Loc::caller(),
+				run,
+			}
+		});
+
+		Self { inner }
 	}
 
 	/// Tries to create a new effect.
