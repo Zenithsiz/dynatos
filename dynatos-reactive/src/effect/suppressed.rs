@@ -38,3 +38,57 @@ impl<F: ?Sized> Drop for EffectSuppressed<'_, F> {
 			.store(self.prev_suppressed, atomic::Ordering::Release);
 	}
 }
+
+#[cfg(test)]
+mod tests {
+	use {super::*, crate::Trigger, core::cell::Cell, std::rc::Rc, zutil_cloned::cloned};
+
+	#[test]
+	fn suppressed() {
+		let trigger = Trigger::new();
+		let times_ran = Rc::new(Cell::new(0));
+
+		#[cloned(trigger, times_ran)]
+		let effect = Effect::new(move || {
+			trigger.gather_subs();
+			times_ran.update(|ran| ran + 1);
+		});
+		assert_eq!(times_ran.get(), 1);
+
+		// Executing the trigger should update the effect
+		trigger.exec();
+		assert_eq!(times_ran.get(), 2);
+
+		// Running when suppressed shouldn't execute it.
+		{
+			let _suppressed = effect.suppress();
+			trigger.exec();
+		}
+		assert_eq!(times_ran.get(), 2);
+
+		// Ensure that the effect doesn't run if there's an execution on the stack
+		{
+			let dummy_trigger = Trigger::new();
+			let exec = dummy_trigger.exec();
+			trigger.exec();
+			assert_eq!(times_ran.get(), 2);
+			drop(exec);
+			assert_eq!(times_ran.get(), 3);
+		}
+
+		// Suppressing should work when execution is delayed
+		{
+			let dummy_trigger = Trigger::new();
+			let _exec = dummy_trigger.exec();
+			{
+				let _suppressed = effect.suppress();
+				trigger.exec();
+			}
+		}
+		assert_eq!(times_ran.get(), 3);
+
+		// Ensure that the trigger didn't lose the effect as a subscriber
+		trigger.exec();
+		assert_eq!(times_ran.get(), 4);
+	}
+}
