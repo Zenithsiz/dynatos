@@ -16,7 +16,8 @@
 	try_trait_v2_residual,
 	unwrap_infallible,
 	arbitrary_self_types,
-	coverage_attribute
+	coverage_attribute,
+	share_trait
 )]
 
 pub mod async_signal;
@@ -30,6 +31,7 @@ pub mod mapped_signal;
 pub mod memo;
 pub mod run_queue;
 pub mod signal;
+pub mod split;
 pub mod trigger;
 pub mod with_default;
 pub mod world;
