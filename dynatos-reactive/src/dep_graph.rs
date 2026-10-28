@@ -243,7 +243,7 @@ impl Default for DepGraph {
 	}
 }
 
-/// Function trait for [`with`] and friends.
+/// Function trait for [`With`] and friends.
 pub trait WithFn<W: With> = FnMut(W::EndNode, Vec<W::Info>);
 
 /// Dep graph with
