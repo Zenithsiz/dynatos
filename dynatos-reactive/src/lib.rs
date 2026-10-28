@@ -19,6 +19,7 @@
 	coverage_attribute,
 	share_trait
 )]
+#![cfg_attr(test, feature(hash_map_macro))]
 
 pub mod async_signal;
 pub mod dep_graph;
