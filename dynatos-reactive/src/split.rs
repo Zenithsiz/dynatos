@@ -16,15 +16,12 @@ use {
 		trigger::TriggerExec,
 	},
 	core::{
-		cell::{self, OnceCell, RefCell},
+		cell::{self, RefCell},
 		clone::Share,
 		hash::{BuildHasher, Hash},
 		ops::{self, Deref, DerefMut},
 	},
-	std::{
-		collections::{HashMap, hash_map},
-		rc::Rc,
-	},
+	std::{collections::HashMap, rc::Rc},
 	zutil_cloned::cloned,
 };
 
@@ -98,7 +95,7 @@ impl<S: SplitMut> SplitMut for &mut S {
 pub trait SplitStorage: Sized + Split + 'static {
 	type Storage<O>: Default + Split<Key = Self::Key, Value = StorageElement<O>>;
 
-	fn sync_storage<O>(&self, storage: &RefCell<Self::Storage<O>>, f: impl Fn(Self::Key) -> O);
+	fn sync_storage<O>(&self, storage: &RefCell<Self::Storage<O>>, f: impl Fn(Self::Key, Trigger) -> O);
 }
 
 
@@ -136,21 +133,20 @@ impl<T> SplitMut for Vec<T> {
 impl<T: 'static> SplitStorage for Vec<T> {
 	type Storage<O> = Vec<StorageElement<O>>;
 
-	fn sync_storage<O>(&self, storage: &RefCell<Self::Storage<O>>, f: impl Fn(Self::Key) -> O) {
+	fn sync_storage<O>(&self, storage: &RefCell<Self::Storage<O>>, f: impl Fn(Self::Key, Trigger) -> O) {
 		let mut storage_borrow = storage.borrow_mut();
 		match self.len() <= storage_borrow.len() {
 			true => storage_borrow.truncate(self.len()),
-			false =>
-				for idx in storage_borrow.len()..self.len() {
-					storage_borrow.push(StorageElement::default());
+			false => {
+				let start_idx = storage_borrow.len();
+				drop(storage_borrow);
 
-					drop(storage_borrow);
-					let value = f(idx);
-
-					storage_borrow = storage.borrow_mut();
-
-					assert!(storage_borrow[idx].value.set(value).is_ok(), "Value was initialized");
-				},
+				for idx in start_idx..self.len() {
+					let trigger = Trigger::new();
+					let value = f(idx, trigger.clone());
+					storage.borrow_mut().push(StorageElement { value, trigger });
+				}
+			},
 		}
 	}
 }
@@ -203,48 +199,28 @@ where
 {
 	type Storage<O> = HashMap<K, StorageElement<O>>;
 
-	fn sync_storage<O>(&self, storage: &RefCell<Self::Storage<O>>, f: impl Fn(Self::Key) -> O) {
-		let mut storage_borrow = storage.borrow_mut();
-
+	fn sync_storage<O>(&self, storage: &RefCell<Self::Storage<O>>, f: impl Fn(Self::Key, Trigger) -> O) {
 		// TODO: Not have to go over both maps to add/remove?
-		storage_borrow.retain(|key, _| self.contains_key(key));
+		storage.borrow_mut().retain(|key, _| self.contains_key(key));
 		#[expect(clippy::iter_over_hash_type, reason = "Order doesn't matter")]
 		for key in self.keys() {
-			let hash_map::Entry::Vacant(entry) = storage_borrow.entry(key.clone()) else {
+			if storage.borrow().contains_key(key) {
 				continue;
-			};
+			}
 
-			entry.insert(StorageElement::default());
-			drop(storage_borrow);
-
-			let value = f(key.clone());
-			storage_borrow = storage.borrow_mut();
-			assert!(
-				storage_borrow
-					.get_mut(key)
-					.expect("Should exist")
-					.value
-					.set(value)
-					.is_ok(),
-				"Value was initialized"
-			);
+			let trigger = Trigger::new();
+			let value = f(key.clone(), trigger.clone());
+			storage
+				.borrow_mut()
+				.insert(key.clone(), StorageElement { value, trigger });
 		}
 	}
 }
 
 #[derive(derive_more::Debug)]
 pub struct StorageElement<O> {
-	value:   OnceCell<O>,
+	value:   O,
 	trigger: Trigger,
-}
-
-impl<O> Default for StorageElement<O> {
-	fn default() -> Self {
-		Self {
-			value:   OnceCell::new(),
-			trigger: Trigger::new(),
-		}
-	}
 }
 
 #[derive(derive_more::Debug)]
@@ -285,13 +261,13 @@ impl<T: SplitStorage, O> SplitSignal<T, O> {
 					}
 				}
 
-				signal.borrow().sync_storage(&inner.storage, |key| {
-					let proxy = SplitSignalProxy {
+				signal.borrow().sync_storage(&inner.storage, |key, trigger| {
+					f(SplitSignalProxy {
 						inner: inner.share(),
 						signal: signal.clone(),
+						trigger,
 						key,
-					};
-					f(proxy)
+					})
 				});
 			});
 
@@ -324,24 +300,20 @@ pub struct SplitSignalBorrow<'a, T: SplitStorage, O>(cell::Ref<'a, T::Storage<O>
 
 impl<T: SplitStorage, O> SplitSignalBorrow<'_, T, O> {
 	pub fn iter(&self) -> impl Iterator<Item = (T::Key, &O)> {
-		self.0.iter().map(|(key, storage)| {
-			let value = storage.value.get().expect("Value was missing");
-			(key, value)
-		})
+		self.0.iter().map(|(key, storage)| (key, &storage.value))
 	}
 
 	pub fn values(&self) -> impl Iterator<Item = &O> {
-		self.0
-			.values()
-			.map(|storage| storage.value.get().expect("Value was missing"))
+		self.0.values().map(|storage| &storage.value)
 	}
 }
 
 #[derive(Clone, derive_more::Debug)]
 pub struct SplitSignalProxy<S, T: SplitStorage, O> {
-	inner:  Rc<Inner<T, O>>,
-	signal: S,
-	key:    T::Key,
+	inner:   Rc<Inner<T, O>>,
+	signal:  S,
+	trigger: Trigger,
+	key:     T::Key,
 }
 
 impl<S, T: SplitStorage, O> SplitSignalProxy<S, T, O> {
@@ -362,7 +334,7 @@ where
 		Self: 'a;
 
 	fn borrow(&self) -> Self::Ref<'_> {
-		self.inner.storage.borrow().index(&self.key).trigger.gather_subs();
+		self.trigger.gather_subs();
 
 		SplitSignalProxyBorrow {
 			borrow: self.signal.borrow_no_dep(),
@@ -382,12 +354,10 @@ where
 		Self: 'a;
 
 	fn borrow_mut(&self) -> Self::RefMut<'_> {
-		let exec = self.inner.storage.borrow().index(&self.key).trigger.exec();
-
 		SplitSignalProxyBorrowMut {
 			_suppress: self.inner.update_proxies.suppress(),
 			borrow:    self.signal.borrow_mut(),
-			_exec:     exec,
+			_exec:     self.trigger.exec(),
 			key:       self.key.clone(),
 		}
 	}
