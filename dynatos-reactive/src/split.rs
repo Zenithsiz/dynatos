@@ -28,7 +28,19 @@ use {
 mod hash_map;
 mod vec;
 
-pub trait Split {
+/// A collection for [`SplitSignal`].
+///
+/// Requires the collection to be indexable with a key ([`Self::Key`]).
+/// For example, [`Vec`] uses it's index as the key, while [`HashMap`](std::collections::HashMap)
+/// uses the actual key.
+///
+/// Collections must also be iterable.
+/// Both [`Self::iter`] and [`Self::values`] are requires because cloning the
+/// keys might not be free (like it is in `Vec`) when you only need the values.
+///
+/// We also can't return references to the keys because [`Vec`] is unable to do so,
+/// given that it's keys (indices) aren't actually stored anywhere.
+pub trait Collection {
 	type Key: Clone;
 	type Value;
 
@@ -37,7 +49,7 @@ pub trait Split {
 	fn values(&self) -> impl Iterator<Item = &Self::Value>;
 }
 
-impl<S: Split> Split for &S {
+impl<S: Collection> Collection for &S {
 	type Key = S::Key;
 	type Value = S::Value;
 
@@ -54,7 +66,7 @@ impl<S: Split> Split for &S {
 	}
 }
 
-impl<S: Split> Split for &mut S {
+impl<S: Collection> Collection for &mut S {
 	type Key = S::Key;
 	type Value = S::Value;
 
@@ -71,31 +83,55 @@ impl<S: Split> Split for &mut S {
 	}
 }
 
-pub trait SplitMut: Split {
+/// A mutable collection for [`SplitSignal`]
+///
+/// See [`Collection`] for more details.
+///
+/// This only enhances it with mutably indexing.
+pub trait CollectionMut: Collection {
 	fn index_mut(&mut self, key: &Self::Key) -> &mut Self::Value;
 }
 
-impl<S: SplitMut> SplitMut for &mut S {
+impl<S: CollectionMut> CollectionMut for &mut S {
 	fn index_mut(&mut self, key: &Self::Key) -> &mut Self::Value {
 		(**self).index_mut(key)
 	}
 }
 
-pub trait SplitStorage: Sized + Split + 'static {
-	type Storage<O>: Default + Split<Key = Self::Key, Value = StorageElement<O>>;
+/// A collection with storage for [`SplitSignal`]
+///
+/// This trait defines how [`SplitSignal`] stores the values.
+/// In particular, [`SplitSignal`] needs to store a collection of
+/// [`StorageElement`]s, which is defined by [`Self::Storage`].
+///
+/// [`Self::sync_storage`] serves to synchronize this collection with the storage,
+/// ensuring that any keys that no longer exist are removed from storage and any new
+/// keys are created.
+pub trait CollectionStorage: Collection + 'static {
+	type Storage<O>: Default + Collection<Key = Self::Key, Value = StorageElement<O>>;
 
 	fn sync_storage<O>(&self, storage: &RefCell<Self::Storage<O>>, f: impl Fn(Self::Key, Trigger) -> O);
 }
 
-
+/// A storage element.
+///
+/// Just an implementation detail for [`SplitSignal`].
+/// When implementing [`CollectionStorage`] for your own types,
+/// you can create new elements with [`Self::new`].
 #[derive(derive_more::Debug)]
 pub struct StorageElement<O> {
 	value:   O,
 	trigger: Trigger,
 }
 
+impl<O> StorageElement<O> {
+	pub const fn new(value: O, trigger: Trigger) -> Self {
+		Self { value, trigger }
+	}
+}
+
 #[derive(derive_more::Debug)]
-struct Inner<T: SplitStorage, O> {
+struct Inner<T: CollectionStorage, O> {
 	storage:        RefCell<T::Storage<O>>,
 	update_proxies: Effect,
 }
@@ -104,12 +140,41 @@ struct Inner<T: SplitStorage, O> {
 ///
 /// Allows splitting a signal of a collection into
 /// a collection of signals.
+///
+/// The collection of signals is special, in that writes through
+/// the "proxy signal" (i.e. the signal inside of the collection of signals)
+/// will update all dependencies of the original signals, *except* for other
+/// proxy signals, reducing unnecessary work.
+///
+/// # Examples
+///
+/// Simple example demonstrating how to split a `Signal<Vec<_>>`
+/// into a `impl Iterator<Item = Derived<_, _>>`.
+///
+/// ```
+/// # #![feature(proc_macro_hygiene, stmt_expr_attributes)]
+/// # use {dynatos_reactive::{Signal, Derived, SplitSignal, SignalGet, SignalBorrow, SignalSet}, zutil_cloned::cloned};
+/// let signal = Signal::new(vec![1, 2, 3]);
+///
+/// // To create a split signal, you pass in your signal and
+/// // a function that creates signals from a proxy signal.
+/// let split_signal = SplitSignal::new(signal.clone(), move |proxy| {
+/// 	Derived::new(move || proxy.get() + 2).unsize()
+/// });
+///
+/// // You can access the split signal to get all of the signals.
+/// assert_eq!(split_signal.borrow().values().map(|derived| derived.get()).collect::<Vec<_>>(), [3, 4, 5]);
+///
+/// // Modifying the outer signal modifies all inner signals
+/// signal.set(vec![2, 3, 4]);
+/// assert_eq!(split_signal.borrow().values().map(|derived| derived.get()).collect::<Vec<_>>(), [4, 5, 6]);
+/// ```
 #[derive(derive_more::Debug)]
-pub struct SplitSignal<T: SplitStorage, O> {
+pub struct SplitSignal<T: CollectionStorage, O> {
 	inner: Rc<Inner<T, O>>,
 }
 
-impl<T: SplitStorage, O> SplitSignal<T, O> {
+impl<T: CollectionStorage, O> SplitSignal<T, O> {
 	pub fn new<S, F>(signal: S, f: F) -> Self
 	where
 		T::Key: Eq + Hash + Clone + 'static,
@@ -155,7 +220,7 @@ impl<T: SplitStorage, O> SplitSignal<T, O> {
 	}
 }
 
-impl<T: SplitStorage, O> SignalBorrow for SplitSignal<T, O> {
+impl<T: CollectionStorage, O> SignalBorrow for SplitSignal<T, O> {
 	type Ref<'a>
 		= SplitSignalBorrow<'a, T, O>
 	where
@@ -167,9 +232,9 @@ impl<T: SplitStorage, O> SignalBorrow for SplitSignal<T, O> {
 }
 
 #[derive(derive_more::Debug)]
-pub struct SplitSignalBorrow<'a, T: SplitStorage, O>(cell::Ref<'a, T::Storage<O>>);
+pub struct SplitSignalBorrow<'a, T: CollectionStorage, O>(cell::Ref<'a, T::Storage<O>>);
 
-impl<T: SplitStorage, O> SplitSignalBorrow<'_, T, O> {
+impl<T: CollectionStorage, O> SplitSignalBorrow<'_, T, O> {
 	pub fn iter(&self) -> impl Iterator<Item = (T::Key, &O)> {
 		self.0.iter().map(|(key, storage)| (key, &storage.value))
 	}
@@ -180,21 +245,21 @@ impl<T: SplitStorage, O> SplitSignalBorrow<'_, T, O> {
 }
 
 #[derive(Clone, derive_more::Debug)]
-pub struct SplitSignalProxy<S, T: SplitStorage, O> {
+pub struct SplitSignalProxy<S, T: CollectionStorage, O> {
 	inner:   Rc<Inner<T, O>>,
 	signal:  S,
 	trigger: Trigger,
 	key:     T::Key,
 }
 
-impl<S, T: SplitStorage, O> SplitSignalProxy<S, T, O> {
+impl<S, T: CollectionStorage, O> SplitSignalProxy<S, T, O> {
 	/// Returns the key of this proxy
 	pub const fn key(&self) -> &T::Key {
 		&self.key
 	}
 }
 
-impl<S, T: SplitStorage, O> SignalBorrow for SplitSignalProxy<S, T, O>
+impl<S, T: CollectionStorage, O> SignalBorrow for SplitSignalProxy<S, T, O>
 where
 	S: SignalBorrow,
 	T::Key: Eq + Hash + Clone,
@@ -214,7 +279,7 @@ where
 	}
 }
 
-impl<S, T: SplitStorage, O> SignalBorrowMut for SplitSignalProxy<S, T, O>
+impl<S, T: CollectionStorage, O> SignalBorrowMut for SplitSignalProxy<S, T, O>
 where
 	S: SignalBorrowMut,
 	T::Key: Eq + Hash + Clone,
@@ -234,15 +299,15 @@ where
 	}
 }
 
-impl<S, T: SplitStorage, O> SignalGetDefaultImpl for SplitSignalProxy<S, T, O> {}
-impl<S, T: SplitStorage, O> SignalGetClonedDefaultImpl for SplitSignalProxy<S, T, O> {}
-impl<S, T: SplitStorage, O> SignalWithDefaultImpl for SplitSignalProxy<S, T, O> {}
+impl<S, T: CollectionStorage, O> SignalGetDefaultImpl for SplitSignalProxy<S, T, O> {}
+impl<S, T: CollectionStorage, O> SignalGetClonedDefaultImpl for SplitSignalProxy<S, T, O> {}
+impl<S, T: CollectionStorage, O> SignalWithDefaultImpl for SplitSignalProxy<S, T, O> {}
 
-impl<S, T: SplitStorage, O> SignalSetDefaultImpl for SplitSignalProxy<S, T, O> {}
-impl<S, T: SplitStorage, O> SignalUpdateDefaultImpl for SplitSignalProxy<S, T, O> {}
+impl<S, T: CollectionStorage, O> SignalSetDefaultImpl for SplitSignalProxy<S, T, O> {}
+impl<S, T: CollectionStorage, O> SignalUpdateDefaultImpl for SplitSignalProxy<S, T, O> {}
 
 #[derive(derive_more::Debug)]
-pub struct SplitSignalProxyBorrow<'a, S, T: Split>
+pub struct SplitSignalProxyBorrow<'a, S, T: Collection>
 where
 	S: SignalBorrow + 'a,
 {
@@ -253,10 +318,10 @@ where
 impl<'a, S, T> ops::Deref for SplitSignalProxyBorrow<'a, S, T>
 where
 	S: SignalBorrow<Ref<'a>: Deref<Target = T>>,
-	T: Split,
+	T: Collection,
 	T::Key: Eq + Hash,
 {
-	type Target = <<S::Ref<'a> as Deref>::Target as Split>::Value;
+	type Target = <<S::Ref<'a> as Deref>::Target as Collection>::Value;
 
 	fn deref(&self) -> &Self::Target {
 		self.borrow.index(&self.key)
@@ -267,7 +332,7 @@ where
 pub struct SplitSignalProxyBorrowMut<'a, S, T>
 where
 	S: SignalBorrowMut + 'a,
-	T: Split,
+	T: Collection,
 {
 	_suppress: EffectSuppressed<'a, dyn EffectRun>,
 	borrow:    S::RefMut<'a>,
@@ -278,10 +343,10 @@ where
 impl<'a, S, T> ops::Deref for SplitSignalProxyBorrowMut<'a, S, T>
 where
 	S: SignalBorrowMut<RefMut<'a>: Deref<Target = T>>,
-	T: Split,
+	T: Collection,
 	T::Key: Eq + Hash,
 {
-	type Target = <<S::RefMut<'a> as Deref>::Target as Split>::Value;
+	type Target = <<S::RefMut<'a> as Deref>::Target as Collection>::Value;
 
 	fn deref(&self) -> &Self::Target {
 		self.borrow.index(&self.key)
@@ -291,7 +356,7 @@ where
 impl<'a, S, T> ops::DerefMut for SplitSignalProxyBorrowMut<'a, S, T>
 where
 	S: SignalBorrowMut<RefMut<'a>: DerefMut<Target = T>>,
-	T: SplitMut,
+	T: CollectionMut,
 	T::Key: Eq + Hash,
 {
 	fn deref_mut(&mut self) -> &mut Self::Target {

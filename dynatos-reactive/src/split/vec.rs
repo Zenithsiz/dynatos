@@ -1,13 +1,13 @@
-//! [`Vec`] impl of [`Split`]
+//! [`Vec`] impl of [`Collection`]
 
 use {
-	super::{Split, SplitMut, SplitStorage, StorageElement},
+	super::{Collection, CollectionMut, CollectionStorage, StorageElement},
 	crate::Trigger,
 	core::cell::RefCell,
 };
 
 
-impl<T> Split for Vec<T> {
+impl<T> Collection for Vec<T> {
 	type Key = usize;
 	type Value = T;
 
@@ -24,13 +24,13 @@ impl<T> Split for Vec<T> {
 	}
 }
 
-impl<T> SplitMut for Vec<T> {
+impl<T> CollectionMut for Vec<T> {
 	fn index_mut(&mut self, key: &Self::Key) -> &mut Self::Value {
 		&mut self[*key]
 	}
 }
 
-impl<T: 'static> SplitStorage for Vec<T> {
+impl<T: 'static> CollectionStorage for Vec<T> {
 	type Storage<O> = Vec<StorageElement<O>>;
 
 	fn sync_storage<O>(&self, storage: &RefCell<Self::Storage<O>>, f: impl Fn(Self::Key, Trigger) -> O) {
@@ -44,7 +44,7 @@ impl<T: 'static> SplitStorage for Vec<T> {
 				for idx in start_idx..self.len() {
 					let trigger = Trigger::new();
 					let value = f(idx, trigger.clone());
-					storage.borrow_mut().push(StorageElement { value, trigger });
+					storage.borrow_mut().push(StorageElement::new(value, trigger));
 				}
 			},
 		}
@@ -55,7 +55,7 @@ impl<T: 'static> SplitStorage for Vec<T> {
 #[cfg(test)]
 mod tests {
 	use {
-		crate::{Derived, Signal, SignalBorrow, SignalBorrowMut, SignalGet, SignalSet, Trigger, split::SplitSignal},
+		crate::{Derived, Signal, SignalBorrow, SignalBorrowMut, SignalGet, SignalSet, SplitSignal, Trigger},
 		core::cell::{Cell, RefCell},
 		std::rc::Rc,
 		zutil_cloned::cloned,

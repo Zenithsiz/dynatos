@@ -1,7 +1,7 @@
-//! [`HashMap`] impl of [`Split`]
+//! [`HashMap`] impl of [`Collection`]
 
 use {
-	super::{Split, SplitMut, SplitStorage, StorageElement},
+	super::{Collection, CollectionMut, CollectionStorage, StorageElement},
 	crate::Trigger,
 	core::{
 		cell::RefCell,
@@ -11,7 +11,7 @@ use {
 };
 
 
-impl<K, V, S> Split for HashMap<K, V, S>
+impl<K, V, S> Collection for HashMap<K, V, S>
 where
 	K: Clone + Eq + Hash,
 	S: BuildHasher,
@@ -32,7 +32,7 @@ where
 	}
 }
 
-impl<K, V, S> SplitMut for HashMap<K, V, S>
+impl<K, V, S> CollectionMut for HashMap<K, V, S>
 where
 	K: Clone + Eq + Hash,
 	S: BuildHasher,
@@ -42,7 +42,7 @@ where
 	}
 }
 
-impl<K, V, HS> SplitStorage for HashMap<K, V, HS>
+impl<K, V, HS> CollectionStorage for HashMap<K, V, HS>
 where
 	K: Clone + Eq + Hash + 'static,
 	V: 'static,
@@ -63,7 +63,7 @@ where
 			let value = f(key.clone(), trigger.clone());
 			storage
 				.borrow_mut()
-				.insert(key.clone(), StorageElement { value, trigger });
+				.insert(key.clone(), StorageElement::new(value, trigger));
 		}
 	}
 }
@@ -71,7 +71,7 @@ where
 #[cfg(test)]
 mod tests {
 	use {
-		crate::{Derived, Signal, SignalBorrow, SignalBorrowMut, SignalGet, SignalSet, Trigger, split::SplitSignal},
+		crate::{Derived, Signal, SignalBorrow, SignalBorrowMut, SignalGet, SignalSet, SplitSignal, Trigger},
 		core::cell::{Cell, RefCell},
 		itertools::Itertools,
 		std::{collections::HashMap, hash_map, rc::Rc},

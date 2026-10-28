@@ -63,6 +63,7 @@ pub use self::{
 		SignalWith,
 		SignalWithDefaultImpl,
 	},
+	split::SplitSignal,
 	trigger::{Trigger, WeakTrigger},
 	with_default::{SignalWithDefault, WithDefault},
 	world::{GLOBAL_WORLD, GlobalWorld, THREAD_WORLD},
