@@ -23,10 +23,6 @@ where
 		&self[key]
 	}
 
-	fn try_index(&self, key: &Self::Key) -> Option<&Self::Value> {
-		self.get(key)
-	}
-
 	fn iter(&self) -> impl Iterator<Item = (Self::Key, &Self::Value)> {
 		self.iter().map(|(key, value)| (key.clone(), value))
 	}
@@ -43,10 +39,6 @@ where
 {
 	fn index_mut(&mut self, key: &Self::Key) -> &mut Self::Value {
 		self.get_mut(key).expect("Invalid key")
-	}
-
-	fn try_index_mut(&mut self, key: &Self::Key) -> Option<&mut Self::Value> {
-		self.get_mut(key)
 	}
 }
 

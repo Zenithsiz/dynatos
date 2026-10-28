@@ -15,10 +15,6 @@ impl<T> Split for Vec<T> {
 		&self[*key]
 	}
 
-	fn try_index(&self, key: &Self::Key) -> Option<&Self::Value> {
-		self.get(*key)
-	}
-
 	fn iter(&self) -> impl Iterator<Item = (Self::Key, &Self::Value)> {
 		self.as_slice().iter().enumerate()
 	}
@@ -31,10 +27,6 @@ impl<T> Split for Vec<T> {
 impl<T> SplitMut for Vec<T> {
 	fn index_mut(&mut self, key: &Self::Key) -> &mut Self::Value {
 		&mut self[*key]
-	}
-
-	fn try_index_mut(&mut self, key: &Self::Key) -> Option<&mut Self::Value> {
-		self.get_mut(*key)
 	}
 }
 

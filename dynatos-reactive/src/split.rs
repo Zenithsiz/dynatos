@@ -33,7 +33,6 @@ pub trait Split {
 	type Value;
 
 	fn index(&self, key: &Self::Key) -> &Self::Value;
-	fn try_index(&self, key: &Self::Key) -> Option<&Self::Value>;
 	fn iter(&self) -> impl Iterator<Item = (Self::Key, &Self::Value)>;
 	fn values(&self) -> impl Iterator<Item = &Self::Value>;
 }
@@ -44,10 +43,6 @@ impl<S: Split> Split for &S {
 
 	fn index(&self, key: &Self::Key) -> &Self::Value {
 		(**self).index(key)
-	}
-
-	fn try_index(&self, key: &Self::Key) -> Option<&Self::Value> {
-		(**self).try_index(key)
 	}
 
 	fn iter(&self) -> impl Iterator<Item = (Self::Key, &Self::Value)> {
@@ -67,10 +62,6 @@ impl<S: Split> Split for &mut S {
 		(**self).index(key)
 	}
 
-	fn try_index(&self, key: &Self::Key) -> Option<&Self::Value> {
-		(**self).try_index(key)
-	}
-
 	fn iter(&self) -> impl Iterator<Item = (Self::Key, &Self::Value)> {
 		(**self).iter()
 	}
@@ -82,16 +73,11 @@ impl<S: Split> Split for &mut S {
 
 pub trait SplitMut: Split {
 	fn index_mut(&mut self, key: &Self::Key) -> &mut Self::Value;
-	fn try_index_mut(&mut self, key: &Self::Key) -> Option<&mut Self::Value>;
 }
 
 impl<S: SplitMut> SplitMut for &mut S {
 	fn index_mut(&mut self, key: &Self::Key) -> &mut Self::Value {
 		(**self).index_mut(key)
-	}
-
-	fn try_index_mut(&mut self, key: &Self::Key) -> Option<&mut Self::Value> {
-		(**self).try_index_mut(key)
 	}
 }
 
